@@ -1,0 +1,9 @@
+*.d
+*.o
+_build/*
+_old_code/*
+.cache
+compile_commands.json
+.vscode
+k5_eeprom.raw
+k5prog.exe.stackdump
