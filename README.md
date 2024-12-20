@@ -19,8 +19,9 @@
 
 ## Building
 
-make
-make prog COMPORT=com3
+$ make
+
+$ make prog COMPORT=com3
 
 ## Open implementation of the Quansheng UV-K5/K6/5R firmware
 
