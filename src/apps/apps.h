@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ui.h"
-#include "keypad.h"
+#include "keyboard.h"
 
 namespace System {
     class SystemTask;
@@ -20,17 +20,16 @@ namespace Applications
 
     class Application {
     public:
-        explicit Application(System::SystemTask& systask, UI &ui, Keypad &keypad) : systask{ systask }, ui{ui}, keypad{keypad} {};
+        explicit Application(System::SystemTask& systask, UI &ui) : systask{ systask }, ui{ui} {};
 
         virtual void init(void) = 0;
         virtual void update(void) {};
-        virtual void action(void) = 0;
+        virtual void action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) = 0;
         virtual void timeout(void) {};
 
     protected:
         System::SystemTask& systask;
         UI& ui;
-        Keypad& keypad;
     };
 
 } // namespace Applications

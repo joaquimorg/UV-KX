@@ -142,14 +142,14 @@ public:
         spi.writeRegister(BK4819_REG_3E, 0xA037);
 
         // Set GPIO5<1> to high - RED
-        //toggleGpioOut(gPIO5_PIN1_RED, true);        
+        //toggleGpioOut(gPIO5_PIN1_RED, true);
     }
 
     // ------------------------------------------------------------------------
 
     void setupRegisters(void) {
-        //GPIO_ClearBit(&GPIOC->DATA, GPIOC_PIN_AUDIO_PATH);        
-        toggleGreen(false);        
+        //GPIO_ClearBit(&GPIOC->DATA, GPIOC_PIN_AUDIO_PATH);
+        toggleGreen(false);
         toggleRed(false);
         toggleGpioOut(BK4819_GPIO1_PIN29_PA_ENABLE, false);
         // setupPowerAmplifier(0, 0); // 0 is default
@@ -334,8 +334,8 @@ public:
             BK4819_REG_30_DISABLE_TX_DSP | BK4819_REG_30_ENABLE_RX_DSP);
     }
 
-    void setAF(uint16_t af) {
-        spi.writeRegister(BK4819_REG_47, 0x6040 | (af << 8));
+    void setAF(BK4819_AF af) {
+        spi.writeRegister(BK4819_REG_47, 0x6040 | ((int)af << 8));
     }
 
     void toggleAFBit(bool on) {
@@ -368,10 +368,69 @@ public:
             OpenDelay, CloseDelay);
     }
 
+    void setIdle(void) {
+        spi.writeRegister(BK4819_REG_30, 0x0000);
+    }
+
+    void setToneRegister(uint16_t toneConfig) {
+        spi.writeRegister(BK4819_REG_71, toneConfig);
+    }
+
+    void setToneFrequency(uint16_t f) {
+        setToneRegister(scaleFreq(f));
+    }
+
+    void setTone2Frequency(uint16_t f) {
+        spi.writeRegister(BK4819_REG_72, scaleFreq(f));
+    }
+
+    void enterTxMute(void) {
+        spi.writeRegister(BK4819_REG_50, 0xBB20);
+    }
+
+    void exitTxMute(void) {
+        spi.writeRegister(BK4819_REG_50, 0x3B20);
+    }
+
+    uint16_t getToneRegister(void) {
+        return spi.readRegister(BK4819_REG_71);
+    }
+
+
+    void playTone(uint16_t frequency, bool bTuningGainSwitch) {
+        enterTxMute();
+        setAF(BK4819_AF::BEEP);
+
+        uint8_t gain = bTuningGainSwitch ? 28 : 96;
+
+        uint16_t toneCfg = BK4819_REG_70_ENABLE_TONE1 |
+            (gain << BK4819_REG_70_SHIFT_TONE1_TUNING_GAIN);
+        spi.writeRegister(BK4819_REG_70, toneCfg);
+
+        setIdle();
+        spi.writeRegister(BK4819_REG_30, 0 | BK4819_REG_30_ENABLE_AF_DAC |
+            BK4819_REG_30_ENABLE_DISC_MODE |
+            BK4819_REG_30_ENABLE_TX_DSP);
+
+        setToneFrequency(frequency);
+    }
+
+    void turnsOffTonesTurnsOnRX(void) {
+        spi.writeRegister(BK4819_REG_70, 0);
+        setAF(BK4819_AF::MUTE);
+        exitTxMute();
+        setIdle();
+        spi.writeRegister(
+            BK4819_REG_30,
+            0 | BK4819_REG_30_ENABLE_VCO_CALIB | BK4819_REG_30_ENABLE_RX_LINK |
+            BK4819_REG_30_ENABLE_AF_DAC | BK4819_REG_30_ENABLE_DISC_MODE |
+            BK4819_REG_30_ENABLE_PLL_VCO | BK4819_REG_30_ENABLE_RX_DSP);
+    }
+
     void setModulation(ModType type) {
         bool isSsb = type == ModType::MOD_LSB || type == ModType::MOD_USB;
         bool isFm = type == ModType::MOD_FM || type == ModType::MOD_WFM;
-        setAF(modTypeRegValues[(uint8_t)type]);
+        setAF((BK4819_AF)modTypeRegValues[(uint8_t)type]);
         setRegValue(afDacGainRegSpec, 0x8);
         spi.writeRegister(0x3D, isSsb ? 0 : 0x2AAB);
         setRegValue(afcDisableRegSpec, !isFm);
@@ -455,6 +514,9 @@ private:
     static constexpr uint32_t frequencyMIN = 1600000;
     static constexpr uint32_t frequencyMAX = 134000000;
 
+    static constexpr uint32_t VHF_UHF_BOUND1 = 24000000;
+    static constexpr uint32_t VHF_UHF_BOUND2 = 28000000;
+
     // Structure to hold gain data
     struct Gain {
         uint16_t regValue;
@@ -529,7 +591,7 @@ private:
     }
 
     void selectFilter(uint32_t frequency) {
-        if (frequency < 28000000)
+        if (frequency < VHF_UHF_BOUND2)
         {	// VHF
             toggleGpioOut(BK4819_GPIO4_PIN32_VHF_LNA, true);
             toggleGpioOut(BK4819_GPIO3_PIN31_UHF_LNA, false);
@@ -569,6 +631,10 @@ private:
         uint16_t reg = spi.readRegister(s.num);
         reg &= (uint16_t)~(s.mask << s.offset);
         spi.writeRegister(s.num, reg | (v << s.offset));
+    }
+
+    uint16_t scaleFreq(const uint16_t freq) {
+        return (uint16_t)((((uint32_t)freq * 1353245u) + (1u << 16)) >> 17); // with rounding
     }
 
 };

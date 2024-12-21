@@ -9,8 +9,6 @@ using namespace Applications;
 
 void Menu::drawScreen(void) {
 
-    //char key = '-';
-
     ui.lcd()->clearBuffer();
 
     ui.setBlackColor();
@@ -38,27 +36,15 @@ void Menu::update(void) {
     drawScreen();
 }
 
-void Menu::action(void) {
-    
-    if (keypad.isPressed()) {
-        // Key is currently pressed
-        key = keypad.getKey();
+void Menu::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {    
 
-        if (keypad.isLongPressed()) {
-            return;
-        }        
-    }
-
-    if (keypad.isReleased()) {
-        //systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, 0);
-        //systask.loadApplication(Applications::Menu);
-        if (key == 'U') {
+    if (keyState == Keyboard::KeyState::KEY_PRESSED || keyState == Keyboard::KeyState::KEY_LONG_PRESSED_CONT) {
+        if (keyCode == Keyboard::KeyCode::KEY_UP) {
              ui.u8slPrev();
-        } else if (key == 'D') {
+        } else if (keyCode == Keyboard::KeyCode::KEY_DOWN) {
             ui.u8slNext();
-        } else if (key == 'E') {
+        } else if (keyCode == Keyboard::KeyCode::KEY_EXIT) {
             systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::MainVFO);
-        }
-        key = '-';
+        }     
     }
 }

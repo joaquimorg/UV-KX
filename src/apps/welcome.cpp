@@ -50,8 +50,8 @@ void Welcome::timeout(void) {
     systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::MainVFO);
 };
 
-void Welcome::action(void) {
-    if (keypad.isReleased()) {
+void Welcome::action(__attribute__((unused)) Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
+    if (keyState == Keyboard::KeyState::KEY_PRESSED) {
         systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::MainVFO);
     }
 }

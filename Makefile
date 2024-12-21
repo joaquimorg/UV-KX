@@ -82,27 +82,25 @@ ASMFLAGS += -mcpu=cortex-m0
 
 # C flags
 CCFLAGS = 
-CCFLAGS += -Wall -Werror -mcpu=cortex-m0 -fno-builtin -fshort-enums -fno-delete-null-pointer-checks -MMD
-#-g
-#CCFLAGS += -flto
-#CCFLAGS += -ftree-vectorize -funroll-loops
-CCFLAGS += -Wextra -Wno-unused-function -Wno-unused-variable -Wno-unknown-pragmas
+CCFLAGS += -Wall -Werror -mcpu=cortex-m0 -fno-builtin -fshort-enums -fno-delete-null-pointer-checks -MMD -g
+CCFLAGS += -flto
+CCFLAGS += -ftree-vectorize -funroll-loops
+CCFLAGS += -Wextra -Wno-unused-function -Wno-unused-variable -Wno-unknown-pragmas 
 #-Wunused-parameter -Wconversion
 CCFLAGS += -fno-math-errno -pipe -ffunction-sections -fdata-sections -ffast-math
-#CCFLAGS += -fsingle-precision-constant -finline-functions-called-once
+CCFLAGS += -fsingle-precision-constant -finline-functions-called-once
 CCFLAGS += -Os -g3 -fno-exceptions -fno-non-call-exceptions -fno-delete-null-pointer-checks
 CCFLAGS += -DARMCM0
 
 # C++ flags
 CXXFLAGS =
-CXXFLAGS += -Wall -Werror -mcpu=cortex-m0 -fno-builtin -fshort-enums -fno-delete-null-pointer-checks -MMD
-#-g
-#CXXFLAGS += -flto
-#CXXFLAGS += -ftree-vectorize -funroll-loops
+CXXFLAGS += -Wall -Werror -mcpu=cortex-m0 -fno-builtin -fshort-enums -fno-delete-null-pointer-checks -MMD -g
+CXXFLAGS += -flto
+CXXFLAGS += -ftree-vectorize -funroll-loops
 CXXFLAGS += -Wextra -Wunused-parameter -Wconversion -Wno-unknown-pragmas
 CXXFLAGS += -fno-math-errno -pipe -ffunction-sections -fdata-sections -ffast-math
-#CXXFLAGS += -fsingle-precision-constant -finline-functions-called-once
-CXXFLAGS += -std=c++17 -pedantic -Wno-expansion-to-defined -fno-rtti
+CXXFLAGS += -fsingle-precision-constant -finline-functions-called-once
+CXXFLAGS += -std=c++20 -pedantic -Wno-expansion-to-defined -fno-rtti
 CXXFLAGS += -Os -g3 -fno-exceptions -fno-non-call-exceptions -fno-delete-null-pointer-checks
 CXXFLAGS += -DARMCM0
 #-O3

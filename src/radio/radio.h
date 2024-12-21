@@ -14,6 +14,19 @@ namespace RadioNS
     class Radio {
     public:
 
+        enum class BEEPType {
+            BEEP_NONE = 0,
+            BEEP_1KHZ_60MS_OPTIONAL,
+            BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL,
+            BEEP_440HZ_500MS,
+            BEEP_880HZ_200MS,
+            BEEP_880HZ_500MS,
+            BEEP_500HZ_60MS_DOUBLE_BEEP,
+            BEEP_440HZ_40MS_OPTIONAL,
+            BEEP_880HZ_40MS_OPTIONAL,
+            BEEP_880HZ_60MS_TRIPLE_BEEP
+        };
+
         enum class RadioState {
             IDLE,
             RX_ON,
@@ -33,7 +46,7 @@ namespace RadioNS
             ModType modulation;
         };
 
-        VFO radioVFO[2];        
+        VFO radioVFO[2];
 
         Radio(System::SystemTask& systask, UART& uart, BK4819& bk4819) : systask{ systask }, uart{ uart }, bk4819{ bk4819 } {};
 
@@ -43,6 +56,8 @@ namespace RadioNS
         void setFilterBandwidth(BK4819_Filter_Bandwidth bw) { bk4819.setFilterBandwidth(bw); }
         void setVFO(uint8_t vfo, uint32_t rx, uint32_t tx, int16_t channel, ModType modulation);
         void setupToVFO(uint8_t vfo);
+
+        void playBeep(BEEPType beep);
 
         // get VFO
         VFO getVFO(uint8_t vfo) { return radioVFO[vfo]; };

@@ -45,7 +45,13 @@ void SystemTask::initSystem(void) {
 }
 
 void SystemTask::pushMessage(SystemMSG msg, uint32_t value) {
-    SystemMessages appMSG = { msg, value };
+    SystemMessages appMSG = { msg, value, (Keyboard::KeyCode)0, (Keyboard::KeyState)0 };
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+    xQueueSendFromISR(systemMessageQueue, (void*)&appMSG, &xHigherPriorityTaskWoken);
+}
+
+void SystemTask::pushMessageKey(Keyboard::KeyCode key, Keyboard::KeyState state) {
+    SystemMessages appMSG = { SystemMSG::MSG_KEYPRESSED, 0, key, state };
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
     xQueueSendFromISR(systemMessageQueue, (void*)&appMSG, &xHigherPriorityTaskWoken);
 }
@@ -68,6 +74,9 @@ void SystemTask::statusTaskImpl() {
     xTimerStart(appTimer, 0);
     xTimerStart(runTimer, 0);
 
+    keyboard.init(); // Initialize the keyboard
+
+    playBeep(RadioNS::Radio::BEEPType::BEEP_880HZ_200MS);
     for (;;) {
         // Wait for notifications or messages
         if (xQueueReceive(systemMessageQueue, &notification, pdMS_TO_TICKS(5)) == pdTRUE) {
@@ -76,23 +85,18 @@ void SystemTask::statusTaskImpl() {
         }
 
         // main app action
-        if (currentApp != Applications::Applications::None) {
+        /*if (currentApp != Applications::Applications::None) {
             currentApplication->action();
-        }
+        }*/
 
-        keypad.update(); // Update keypad readings        
         radio.checkRadioInterrupts(); // Check for radio interrupts
-        if (keypad.isPressed()) {
-            timeoutCount = 0;
-            timeoutLightCount = 0;
-            pushMessage(SystemMSG::MSG_BKCLIGHT, (uint32_t)Backlight::backLightState::ON);
-        }
-        vTaskDelay(pdMS_TO_TICKS(10));
+        vTaskDelay(pdMS_TO_TICKS(1));
     }
 }
 
 void SystemTask::processSystemNotification(SystemMessages notification) {
     // Handle different system notifications
+
     switch (notification.message) {
     case SystemMSG::MSG_TIMEOUT:
         //uart.sendLog("MSG_TIMEOUT\n");
@@ -105,10 +109,32 @@ void SystemTask::processSystemNotification(SystemMessages notification) {
         timeoutLightCount = 0;
         backlight.setBacklight((Backlight::backLightState)notification.payload);
         break;
+    case SystemMSG::MSG_PLAY_BEEP:
+        playBeep((RadioNS::Radio::BEEPType)notification.payload);
+        break;
     case SystemMSG::MSG_RADIO_RX:
         //uart.sendLog("MSG_RADIO_RX\n");        
         pushMessage(SystemMSG::MSG_BKCLIGHT, (uint32_t)Backlight::backLightState::ON);
         break;
+    case SystemMSG::MSG_KEYPRESSED: {
+        //uart.sendLog("MSG_KEYPRESSED\n");
+
+        Keyboard::KeyCode key = notification.key;
+        Keyboard::KeyState state = notification.state;
+
+        if (state == Keyboard::KeyState::KEY_PRESSED) {
+            timeoutCount = 0;
+            timeoutLightCount = 0;
+            pushMessage(SystemMSG::MSG_BKCLIGHT, (uint32_t)Backlight::backLightState::ON);
+            pushMessage(SystemMSG::MSG_PLAY_BEEP, (uint32_t)RadioNS::Radio::BEEPType::BEEP_1KHZ_60MS_OPTIONAL);
+        }
+
+        if (currentApp != Applications::Applications::None) {
+            currentApplication->action(key, state);
+        }
+
+        break;
+    }
     case SystemMSG::MSG_APP_LOAD:
         loadApplication((Applications::Applications)notification.payload);
         break;

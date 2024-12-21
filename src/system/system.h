@@ -7,7 +7,8 @@
 #include "sys.h"
 #include "spi_hal.h"
 #include "uart_hal.h"
-#include "keypad.h"
+#include "i2c_hal.h"
+#include "keyboard.h"
 #include "backlight.h"
 #include "battery.h"
 #include "bk4819.h"
@@ -29,6 +30,8 @@ namespace System
         enum class SystemMSG {
             MSG_TIMEOUT,
             MSG_BKCLIGHT,
+            MSG_KEYPRESSED,
+            MSG_PLAY_BEEP,
             MSG_RADIO_RX,
             MSG_APP_LOAD,
         };
@@ -39,21 +42,24 @@ namespace System
             ui(st7565),
             backlight(),
             uart(),
-            keypad(),
+            keyboard(*this),
             battery(),
             bk4819(),
             radio(*this, uart, bk4819),
-            welcomeApp(*this, ui, keypad),
-            mainVFOApp(*this, ui, keypad, radio),
-            menuApp(*this, ui, keypad)
+            welcomeApp(*this, ui),
+            mainVFOApp(*this, ui, radio),
+            menuApp(*this, ui)
         {
             initSystem(); // Initialize system
         }
 
         void loadApplication(Applications::Applications app);
         void pushMessage(SystemMSG msg, uint32_t value);
+        void pushMessageKey(Keyboard::KeyCode key, Keyboard::KeyState state);
 
         Battery getBattery() { return battery; }
+
+        void playBeep(RadioNS::Radio::BEEPType beep) { radio.playBeep(beep); }
 
         // Static methods (required by FreeRTOS)
         static void runStatusTask(void* pvParameters);
@@ -69,7 +75,7 @@ namespace System
         UI ui;
         Backlight backlight;
         UART uart;
-        Keypad keypad;
+        Keyboard keyboard;
         Battery battery;
         BK4819 bk4819;
         RadioNS::Radio radio;
@@ -77,6 +83,8 @@ namespace System
         struct SystemMessages {
             SystemMSG message;
             uint32_t payload;
+            Keyboard::KeyCode key;
+            Keyboard::KeyState state;
         };
 
         static constexpr uint8_t queueLenght = 20;

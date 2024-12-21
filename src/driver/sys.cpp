@@ -22,8 +22,8 @@ uint32_t getElapsedMilliseconds(void) {
 }
 
 
-void delayUs(uint32_t Delay) {
-	const uint32_t ticks = Delay * gTickMultiplier;
+void delayUs(uint32_t delay) {
+	const uint32_t ticks = delay * gTickMultiplier;
 	uint32_t elapsed_ticks = 0;
 	uint32_t Start = SysTick->LOAD;
 	uint32_t Previous = SysTick->VAL;
@@ -42,8 +42,9 @@ void delayUs(uint32_t Delay) {
 	} while (elapsed_ticks < ticks);
 }
 
-void delayMs(uint32_t Delay) {
-	delayUs(Delay * 1000);
+void delayMs(uint32_t delay) {
+	delayUs(delay * 1000);
+	//vTaskDelay(pdMS_TO_TICKS(delay));
 }
 
 void configureSysCon() {

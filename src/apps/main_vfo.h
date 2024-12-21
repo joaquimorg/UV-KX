@@ -9,19 +9,18 @@ namespace Applications
 
     class MainVFO : public Application {
     public:
-        MainVFO(System::SystemTask& systask, UI& ui, Keypad& keypad, RadioNS::Radio& radio)
-            : Application(systask, ui, keypad), radio{ radio } {
+        MainVFO(System::SystemTask& systask, UI& ui, RadioNS::Radio& radio)
+            : Application(systask, ui), radio{ radio } {
         }
 
         void drawScreen(void);
         void init(void);
         void update(void);
-        void action(void);
+        void action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState);
 
     private:
         RadioNS::Radio& radio;        
         uint8_t activeVFO = 0;
-        char key = '-';
 
         void showRSSI(void);
 

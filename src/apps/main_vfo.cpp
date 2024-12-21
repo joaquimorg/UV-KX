@@ -120,36 +120,27 @@ void MainVFO::update(void) {
     drawScreen();
 }
 
-void MainVFO::action(void) {
+void MainVFO::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
 
-    RadioNS::Radio::VFO vfo = radio.getVFO(activeVFO);
+    RadioNS::Radio::VFO vfo = radio.getVFO(activeVFO);    
 
-    if (keypad.isPressed()) {
-        // Key is currently pressed        
-
-        if (keypad.isLongPressed()) {
-            return;
-        }
-    }
-
-    if (keypad.isReleased()) {
+    if (keyState == Keyboard::KeyState::KEY_RELEASED) {
         //systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, 0);
         //systask.loadApplication(Applications::MainVFO);
-        key = keypad.getKey();
 
-        if (key == 'U') {
+        if (keyCode == Keyboard::KeyCode::KEY_UP) {
             vfo.rx.frequency += 1250;
             radio.setVFO(activeVFO, vfo.rx.frequency, vfo.rx.frequency, 0, ModType::MOD_FM);
             radio.setupToVFO(activeVFO);
         }
-        else if (key == 'D') {
+        else if (keyCode == Keyboard::KeyCode::KEY_DOWN) {
             vfo.rx.frequency -= 1250;
             radio.setVFO(activeVFO, vfo.rx.frequency, vfo.rx.frequency, 0, ModType::MOD_FM);
             radio.setupToVFO(activeVFO);
         }
-        else if (key == 'M') {
+        else if (keyCode == Keyboard::KeyCode::KEY_MENU) {
             systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::Menu);
         }
-        key = '-';
+
     }
 }
