@@ -99,7 +99,7 @@ namespace System
         Applications::Applications currentApp = Applications::Applications::None;
 
         static constexpr uint16_t actionTimeout = 5; // Timeout for action 5 seconds
-        uint16_t backlightTimeout = 15; // Timeout for backlight 15 seconds
+        uint16_t backlightTimeout = 30; // Timeout for backlight 30 seconds default
         uint16_t timeoutCount = 0;
         uint16_t timeoutLightCount = 0;
 

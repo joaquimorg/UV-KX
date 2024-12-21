@@ -1,0 +1,4 @@
+#define dual_ab_width 5
+#define dual_ab_height 5
+static unsigned char dual_ab_bits[] = {
+   0x0a, 0x1f, 0x1f, 0x0e, 0x04 };

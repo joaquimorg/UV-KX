@@ -38,7 +38,7 @@ void SystemTask::initSystem(void) {
     st7565.begin();
     bk4819.setupRegisters();
 
-    radio.setVFO(0, 44616875, 44616875, 0, ModType::MOD_FM);    
+    radio.setVFO(0, 44601875, 44601875, 0, ModType::MOD_FM);
     radio.setupToVFO(0);
 
     uart.print("UV-Kx Open Firmware - " AUTHOR_STRING " - " VERSION_STRING "\n");
@@ -56,8 +56,8 @@ void SystemTask::statusTaskImpl() {
     //uart.sendLog("System task started\n");
 
     battery.getReadings(); // Update battery readings
-    
-    appTimer = xTimerCreateStatic("app", pdMS_TO_TICKS(200), pdTRUE, this, SystemTask::appTimerCallback, &appTimerBuffer);    
+
+    appTimer = xTimerCreateStatic("app", pdMS_TO_TICKS(200), pdTRUE, this, SystemTask::appTimerCallback, &appTimerBuffer);
     runTimer = xTimerCreateStatic("run", pdMS_TO_TICKS(1000), pdFALSE, this, SystemTask::runTimerCallback, &runTimerBuffer);
 
     // Load the Welcome application        
@@ -68,7 +68,7 @@ void SystemTask::statusTaskImpl() {
     xTimerStart(appTimer, 0);
     xTimerStart(runTimer, 0);
 
-    for (;;) {        
+    for (;;) {
         // Wait for notifications or messages
         if (xQueueReceive(systemMessageQueue, &notification, pdMS_TO_TICKS(5)) == pdTRUE) {
             // Process system notifications
@@ -79,9 +79,14 @@ void SystemTask::statusTaskImpl() {
         if (currentApp != Applications::Applications::None) {
             currentApplication->action();
         }
-        
+
         keypad.update(); // Update keypad readings        
         radio.checkRadioInterrupts(); // Check for radio interrupts
+        if (keypad.isPressed()) {
+            timeoutCount = 0;
+            timeoutLightCount = 0;
+            pushMessage(SystemMSG::MSG_BKCLIGHT, (uint32_t)Backlight::backLightState::ON);
+        }
         vTaskDelay(pdMS_TO_TICKS(10));
     }
 }
@@ -93,7 +98,7 @@ void SystemTask::processSystemNotification(SystemMessages notification) {
         //uart.sendLog("MSG_TIMEOUT\n");
         if (currentApp != Applications::Applications::None) {
             currentApplication->timeout();
-        }        
+        }
         break;
     case SystemMSG::MSG_BKCLIGHT:
         //uart.sendLog("MSG_BKCLIGHT\n");
@@ -107,24 +112,25 @@ void SystemTask::processSystemNotification(SystemMessages notification) {
     case SystemMSG::MSG_APP_LOAD:
         loadApplication((Applications::Applications)notification.payload);
         break;
-    
+
     default:
         break;
     }
 }
 
 void SystemTask::runTimerImpl(void) {
-    
+
     // 1 second timer
 
     battery.getReadings(); // Update battery readings
-    if (currentApp != Applications::Applications::None) {        
+    if (currentApp != Applications::Applications::None) {
     }
 
     if (timeoutCount > actionTimeout) {
         timeoutCount = 0;
         pushMessage(SystemMSG::MSG_TIMEOUT, 0);
-    } else {
+    }
+    else {
         timeoutCount++;
     }
 
@@ -132,19 +138,15 @@ void SystemTask::runTimerImpl(void) {
         if (timeoutLightCount > backlightTimeout) {
             //timeoutLightCount = 0;
             pushMessage(SystemMSG::MSG_BKCLIGHT, (uint32_t)Backlight::backLightState::OFF);
-        } else {
+        }
+        else {
             timeoutLightCount++;
         }
     }
 }
 
 void SystemTask::appTimerImpl(void) {
-    // Update the current application
-    if (keypad.isPressed()) {
-        timeoutCount = 0;
-        timeoutLightCount = 0;
-        pushMessage(SystemMSG::MSG_BKCLIGHT, (uint32_t)Backlight::backLightState::ON);
-    }
+    // Update the current application    
 
     if (currentApp != Applications::Applications::None) {
         currentApplication->update();
@@ -153,8 +155,8 @@ void SystemTask::appTimerImpl(void) {
 
 void SystemTask::loadApplication(Applications::Applications app) {
     if (app == Applications::Applications::None) return;
-    xTimerStop(appTimer, 0);  
-    currentApp = Applications::Applications::None;  
+    xTimerStop(appTimer, 0);
+    currentApp = Applications::Applications::None;
     switch (app) {
     case Applications::Applications::Welcome:
         currentApplication = &welcomeApp;
