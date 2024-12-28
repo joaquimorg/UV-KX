@@ -17,34 +17,62 @@ void Menu::drawScreen(void) {
     
     ui.setFont(Font::FONT_8B_TR);
     ui.drawString(TextAlign::LEFT, 2, 0, 6, false, false, false, "MENU");
-    ui.drawStringf(TextAlign::RIGHT, 0, 126, 6, false, false, false, "%02u / %02u", ui.getSelectionListPos() + 1, ui.getSelectionListTotal());
+    ui.drawStringf(TextAlign::RIGHT, 0, 126, 6, false, false, false, "%02u / %02u", menulist.getListPos() + 1, menulist.getTotal());
 
     ui.setBlackColor();
-    ui.setFont(Font::FONT_8_TR);
-    //ui.drawStrf(10, 30, "BATT : %u.%02uV - %3i%%", systask.getBattery().getBatteryVoltageAverage() / 100, systask.getBattery().getBatteryVoltageAverage() % 100, systask.getBattery().getBatteryPercentage());    
-    ui.drawMenu();
 
-    ui.lcd()->sendBuffer();
+    menulist.draw(15);
+
+    ui.updateDisplay();
 }
 
 
 void Menu::init(void) {
-    ui.setMenu();
+    menulist.set(0, 6, 120, "VFO A SETTINGS\nVFO B SETTINGS\nRADIO SETTINGS\nMESSENGER\nSCANNER\nABOUT");
 }
 
 void Menu::update(void) {
     drawScreen();
 }
 
+void Menu::timeout(void) {
+    systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::MainVFO);
+}
+
 void Menu::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {    
 
     if (keyState == Keyboard::KeyState::KEY_PRESSED || keyState == Keyboard::KeyState::KEY_LONG_PRESSED_CONT) {
         if (keyCode == Keyboard::KeyCode::KEY_UP) {
-             ui.u8slPrev();
+             menulist.prev();
         } else if (keyCode == Keyboard::KeyCode::KEY_DOWN) {
-            ui.u8slNext();
+            menulist.next();
         } else if (keyCode == Keyboard::KeyCode::KEY_EXIT) {
             systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::MainVFO);
-        }     
+        }
+
+        if (keyCode == Keyboard::KeyCode::KEY_MENU) {
+            switch (menulist.getListPos()) {
+                case 0:
+                    systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::SETVFOA);
+                    break;
+                case 1:
+                    systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::SETVFOB);
+                    break;
+                case 2:
+                    systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::SETRADIO);
+                    break;
+                case 3:
+                    systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::MESSENGER);
+                    break;
+                case 4:
+                    systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::SCANNER);
+                    break;
+                case 5:
+                    systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::ABOUT);
+                    break;
+                default:
+                    break;
+            }
+        } 
     }
 }

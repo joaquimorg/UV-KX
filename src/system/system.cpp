@@ -122,7 +122,7 @@ void SystemTask::processSystemNotification(SystemMessages notification) {
         Keyboard::KeyCode key = notification.key;
         Keyboard::KeyState state = notification.state;
 
-        if (state == Keyboard::KeyState::KEY_PRESSED) {
+        if (state == Keyboard::KeyState::KEY_PRESSED || state == Keyboard::KeyState::KEY_LONG_PRESSED) {
             timeoutCount = 0;
             timeoutLightCount = 0;
             pushMessage(SystemMSG::MSG_BKCLIGHT, (uint32_t)Backlight::backLightState::ON);
@@ -192,6 +192,30 @@ void SystemTask::loadApplication(Applications::Applications app) {
         break;
     case Applications::Applications::Menu:
         currentApplication = &menuApp;
+        break;
+    case Applications::Applications::SETVFOA:
+        currentApplication = &setVFOAApp;
+        break;
+    case Applications::Applications::SETVFOB:
+        currentApplication = &setVFOBApp;
+        break;
+    case Applications::Applications::SETRADIO:
+        currentApplication = &setRadioApp;
+        break;
+    case Applications::Applications::MESSENGER:
+        // TODO: Implement Messenger
+        //currentApplication = &messengerApp;
+        currentApplication = &mainVFOApp;
+        pushMessage(SystemMSG::MSG_PLAY_BEEP, (uint32_t)RadioNS::Radio::BEEPType::BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL);
+        break;
+    case Applications::Applications::SCANNER:
+        // TODO: Implement Scanner
+        //currentApplication = &scannerApp;
+        currentApplication = &mainVFOApp;
+        pushMessage(SystemMSG::MSG_PLAY_BEEP, (uint32_t)RadioNS::Radio::BEEPType::BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL);
+        break;
+    case Applications::Applications::ABOUT:
+        currentApplication = &welcomeApp;
         break;
     default:
         break;

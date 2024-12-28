@@ -33,6 +33,11 @@ namespace RadioNS
             TX_ON,
         };
 
+        enum class VFOAB {
+            VFOA,
+            VFOB,
+        };
+
         struct FREQ {
             uint32_t frequency;
             uint8_t codeType;

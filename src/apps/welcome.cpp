@@ -38,7 +38,7 @@ void Welcome::drawScreen(void) {
     ui.lcd()->drawBox(0, 57, 128, 7);
     ui.drawString(TextAlign::CENTER, 0, 128, 63, false, false, false, AUTHOR_STRING " - " VERSION_STRING);
 
-    ui.lcd()->sendBuffer();
+    ui.updateDisplay();
 }
 
 

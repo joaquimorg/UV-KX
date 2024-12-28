@@ -276,90 +276,20 @@ public:
         lcd()->drawBox(x + 1, y + 1, fill, 3);
     }
 
-    /* - - - - - - - - - - - - - - - - - - - - - - - - - - */
-    /* - - - - - - - - - - - - - - - - - - - - - - - - - - */
+private:
 
-    u8sl_t u8sl;
-    const char* slines;
-    uint8_t displayLines = 6;
+    ST7565& st7565;
 
-    u8g2_uint_t drawSelectionListLine(u8g2_uint_t y, uint8_t idx, const char* s) {
-        //u8g2_uint_t yy;
-        //uint8_t border_size = 0;
-        uint8_t is_invert = 0;
+};
 
-        u8g2_uint_t line_height = (u8g2_uint_t)(lcd()->getAscent() - lcd()->getDescent() + 2);
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+class SelectionList {
 
-        /* check whether this is the current cursor line */
-        if (idx == u8sl.current_pos)
-        {
-            //border_size = 2;
-            is_invert = 1;
-        }
+public:
 
-        /* get the line from the array */
-        s = u8x8_GetStringLineStart(idx, s);
+    SelectionList(UI& ui) : ui{ ui } {};
 
-        /* draw the line */
-        if (s == NULL)
-            s = "";
-        //u8g2_DrawUTF8Line(u8g2, MY_BORDER_SIZE, y, u8g2_GetDisplayWidth(u8g2) - 2 * MY_BORDER_SIZE, s, border_size, is_invert);
-
-        setFont(Font::FONT_5_TR);
-
-        drawStringf(TextAlign::LEFT, 2, 0, y, true, false, false, "%02u", idx + 1);
-
-        if (is_invert) {
-            setFont(Font::FONT_8B_TR);
-        }
-        else {
-            setFont(Font::FONT_8_TR);
-        }
-        drawString(TextAlign::LEFT, 16, 75, y, is_invert, true, false, s);
-
-        return line_height;
-    }
-
-    void drawList(u8g2_uint_t y, const char* s) {
-        uint8_t i;
-        for (i = 0; i < u8sl.visible; i++) {
-            y += drawSelectionListLine(y, i + u8sl.first_pos, s);
-        }
-    }
-
-    /*void u8slNext() {
-        u8sl.current_pos++;
-        if (u8sl.current_pos >= u8sl.total)
-        {
-            u8sl.current_pos = 0;
-            u8sl.first_pos = 0;
-        }
-        else
-        {
-            if (u8sl.first_pos + u8sl.visible <= u8sl.current_pos + 1)
-            {
-                u8sl.first_pos = (uint8_t)(u8sl.current_pos - u8sl.visible + 1);
-            }
-        }
-    }
-
-    void u8slPrev() {
-        if (u8sl.current_pos == 0)
-        {
-            u8sl.current_pos = u8sl.total - 1;
-            u8sl.first_pos = 0;
-            if (u8sl.total > u8sl.visible)
-                u8sl.first_pos = u8sl.total - u8sl.visible;
-        }
-        else
-        {
-            u8sl.current_pos--;
-            if (u8sl.first_pos > u8sl.current_pos)
-                u8sl.first_pos = u8sl.current_pos;
-        }
-    }*/
-
-    void u8slNext() {
+    void next() {
         u8sl.current_pos++;
         if (u8sl.current_pos >= u8sl.total) {
             u8sl.current_pos = 0;
@@ -376,7 +306,7 @@ public:
         }
     }
 
-    void u8slPrev() {
+    void prev() {
         if (u8sl.current_pos == 0) {
             u8sl.current_pos = u8sl.total - 1;
             u8sl.first_pos = (u8sl.total > u8sl.visible) ? (u8sl.total - u8sl.visible) : 0;
@@ -393,18 +323,16 @@ public:
         }
     }
 
-    void drawSelectionList(uint8_t start_pos, const char* sl) {
+    void set(uint8_t startPos, uint8_t displayLines, uint8_t maxw, const char* sl) {    
 
-        //u8g2_uint_t yy = 65;        
-
-        if (start_pos > 0)	/* issue 112 */
-            start_pos--;		/* issue 112 */
+        if (startPos > 0)
+            startPos--;
 
         u8sl.visible = displayLines;
 
         u8sl.total = u8x8_GetStringLineCnt(sl);
         u8sl.first_pos = 0;
-        u8sl.current_pos = start_pos;
+        u8sl.current_pos = startPos;
 
         if (u8sl.current_pos >= u8sl.total)
             u8sl.current_pos = u8sl.total - 1;
@@ -412,29 +340,105 @@ public:
             u8sl.first_pos = (uint8_t)(u8sl.current_pos - u8sl.visible + 1);
 
         slines = sl;
+        maxWidth = maxw;
     }
 
-    uint8_t getSelectionListPos() {
+    uint8_t getListPos() {
         return u8sl.current_pos;
     }
 
-    uint8_t getSelectionListTotal() {
+    uint8_t getTotal() {
         return u8sl.total;
     }
 
-    void setMenu() {
-        drawSelectionList(menu_pos, "SQUELCH\nSTEP\nRX DCS\nRX CTCS\nTX DCS\nTX CTCS\nPTT ID\nBANDWIDTH\nTX POWER\nSCAN\nSCAN MODE");
+    void draw(uint8_t y) {
+        ui.lcd()->setFontPosBaseline();
+        drawSelectionList(y, slines);
     }
 
-    void drawMenu() {
-        lcd()->setFontPosBaseline();
-        drawList(15, slines);
+    void setStartXPos(uint8_t x) {
+        startXPos = x;
     }
-    /* - - - - - - - - - - - - - - - - - - - - - - - - - - */
-    /* - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 private:
+    u8sl_t u8sl;
+    const char* slines;
+    uint8_t maxWidth = 75;
+    uint8_t startXPos = 2;
 
-    ST7565& st7565;
+    u8g2_uint_t drawSelectionListLine(u8g2_uint_t y, uint8_t idx, const char* s) {
+        //u8g2_uint_t yy;
+        //uint8_t border_size = 0;
+        uint8_t is_invert = 0;
+
+        u8g2_uint_t line_height = (u8g2_uint_t)(ui.lcd()->getAscent() - ui.lcd()->getDescent() + 2);
+
+        /* check whether this is the current cursor line */
+        if (idx == u8sl.current_pos)
+        {
+            //border_size = 2;
+            is_invert = 1;
+        }
+
+        /* get the line from the array */
+        s = u8x8_GetStringLineStart(idx, s);
+
+        /* draw the line */
+        if (s == NULL)
+            s = "";
+        //u8g2_DrawUTF8Line(u8g2, MY_BORDER_SIZE, y, u8g2_GetDisplayWidth(u8g2) - 2 * MY_BORDER_SIZE, s, border_size, is_invert);
+
+        ui.setFont(Font::FONT_5_TR);
+
+        ui.drawStringf(TextAlign::LEFT, startXPos, 0, y, true, false, false, "%02u", idx + 1);
+
+        if (is_invert) {
+            ui.setFont(Font::FONT_8B_TR);
+        }
+        else {
+            ui.setFont(Font::FONT_8_TR);
+        }
+        ui.drawString(TextAlign::LEFT, startXPos + 14, maxWidth, y, is_invert, true, false, s);
+
+        return line_height;
+    }
+
+    void drawSelectionList(u8g2_uint_t y, const char* s) {
+        uint8_t i;
+        for (i = 0; i < u8sl.visible; i++) {
+            y += drawSelectionListLine(y, i + u8sl.first_pos, s);
+        }
+    }
+
+protected:
+    UI& ui;
 
 };
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+class SelectionListPopup : public SelectionList {
+public:
+    SelectionListPopup(UI& ui) : SelectionList(ui) {        
+    }
+
+    void drawPopup() {
+        uint8_t popupWidth = 64; // Width of the popup
+        uint8_t popupHeight = 32; // Height of the popup
+        uint8_t x = (uint8_t)((W - popupWidth) / 2); // Center the popup horizontally
+        uint8_t y = (uint8_t)((H - popupHeight) / 2); // Center the popup vertically
+
+        // Draw the popup background
+        ui.setWhiteColor();
+        ui.lcd()->drawRBox(x - 1, y - 1, popupWidth + 3, popupHeight + 3, 5);
+        ui.setBlackColor();
+        ui.lcd()->drawRFrame(x, y, popupWidth, popupHeight, 5);
+        ui.lcd()->drawRFrame(x, y, popupWidth + 1, popupHeight + 1, 5);
+
+        // Draw the selection list inside the popup
+        setStartXPos(x + 4);
+        draw(y + 10);
+    }
+
+};
+

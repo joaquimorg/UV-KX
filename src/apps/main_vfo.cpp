@@ -31,7 +31,7 @@ void MainVFO::drawScreen(void) {
 
     ui.lcd()->setColorIndex(BLACK);
     ui.lcd()->drawLine(5, 9, 5, 27);
-    
+
     ui.setFont(Font::FONT_8B_TR);
     //ui.lcd()->drawStr(2, 14, "A");
     ui.drawString(TextAlign::LEFT, 2, 0, 21, true, true, false, "A");
@@ -64,7 +64,7 @@ void MainVFO::drawScreen(void) {
         ui.setFont(Font::FONT_8B_TR);
         ui.drawString(TextAlign::LEFT, 2, 0, 48, true, true, false, "RX");
     } else {
-    
+
     }*/
 
 
@@ -89,7 +89,8 @@ void MainVFO::drawScreen(void) {
 
     if (systask.getBattery().isCharging()) {
         ui.draw_ic8_charging(100, 59, BLACK);
-    } else {
+    }
+    else {
         ui.drawBattery(systask.getBattery().getBatteryPercentage(), 96, 59);
     }
 
@@ -98,7 +99,11 @@ void MainVFO::drawScreen(void) {
 
     ui.drawStringf(TextAlign::RIGHT, 0, 128, 58, true, false, false, "PS  A/B");
 
-    ui.lcd()->sendBuffer();
+    if (showPower) {
+        powerList.drawPopup();
+    }
+
+    ui.updateDisplay();
 }
 
 void MainVFO::showRSSI(void) {
@@ -114,33 +119,63 @@ void MainVFO::showRSSI(void) {
 }
 
 void MainVFO::init(void) {
+    powerList.set(0, 3, 40, "HIGH\nMID\nLOW");
 }
 
 void MainVFO::update(void) {
     drawScreen();
 }
 
+void MainVFO::timeout(void) {
+   if (showPower) {
+        showPower = false;
+    }
+}
+
 void MainVFO::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
 
-    RadioNS::Radio::VFO vfo = radio.getVFO(activeVFO);    
+    RadioNS::Radio::VFO vfo = radio.getVFO(activeVFO);
 
     if (keyState == Keyboard::KeyState::KEY_RELEASED) {
-        //systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, 0);
-        //systask.loadApplication(Applications::MainVFO);
 
         if (keyCode == Keyboard::KeyCode::KEY_UP) {
-            vfo.rx.frequency += 1250;
-            radio.setVFO(activeVFO, vfo.rx.frequency, vfo.rx.frequency, 0, ModType::MOD_FM);
-            radio.setupToVFO(activeVFO);
+            if (showPower) {
+                powerList.prev();
+            }
+            else {
+                vfo.rx.frequency += 1250;
+                radio.setVFO(activeVFO, vfo.rx.frequency, vfo.rx.frequency, 0, ModType::MOD_FM);
+                radio.setupToVFO(activeVFO);
+            }
         }
         else if (keyCode == Keyboard::KeyCode::KEY_DOWN) {
-            vfo.rx.frequency -= 1250;
-            radio.setVFO(activeVFO, vfo.rx.frequency, vfo.rx.frequency, 0, ModType::MOD_FM);
-            radio.setupToVFO(activeVFO);
+            if (showPower) {
+                powerList.next();
+            }
+            else {
+                vfo.rx.frequency -= 1250;
+                radio.setVFO(activeVFO, vfo.rx.frequency, vfo.rx.frequency, 0, ModType::MOD_FM);
+                radio.setupToVFO(activeVFO);
+            }
+
         }
         else if (keyCode == Keyboard::KeyCode::KEY_MENU) {
-            systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::Menu);
-        }
+            if (showPower) {
 
+            } else {
+                systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::Menu);
+            }
+        }
+        else if (keyCode == Keyboard::KeyCode::KEY_EXIT) {
+            if (showPower) {
+                showPower = false;
+            }
+        }
+    }
+
+    if (keyState == Keyboard::KeyState::KEY_LONG_PRESSED) {
+        if (keyCode == Keyboard::KeyCode::KEY_6) {
+            showPower = !showPower;
+        }
     }
 }

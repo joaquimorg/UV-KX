@@ -16,6 +16,12 @@ namespace Applications
         Welcome,
         MainVFO,
         Menu,
+        SETVFOA,
+        SETVFOB,
+        SETRADIO,
+        MESSENGER,
+        SCANNER,
+        ABOUT
     };
 
     class Application {

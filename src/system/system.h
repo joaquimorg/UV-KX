@@ -20,6 +20,8 @@
 #include "welcome.h"
 #include "main_vfo.h"
 #include "menu.h"
+#include "set_vfo.h"
+#include "set_radio.h"
 
 // ------------------------------------------------------------------------------------------------------------
 namespace System
@@ -48,7 +50,10 @@ namespace System
             radio(*this, uart, bk4819),
             welcomeApp(*this, ui),
             mainVFOApp(*this, ui, radio),
-            menuApp(*this, ui)
+            menuApp(*this, ui),
+            setVFOAApp(*this, ui, RadioNS::Radio::VFOAB::VFOA),
+            setVFOBApp(*this, ui, RadioNS::Radio::VFOAB::VFOB),
+            setRadioApp(*this, ui)
         {
             initSystem(); // Initialize system
         }
@@ -102,6 +107,9 @@ namespace System
         Applications::Welcome welcomeApp;
         Applications::MainVFO mainVFOApp;
         Applications::Menu menuApp;
+        Applications::SetVFO setVFOAApp;
+        Applications::SetVFO setVFOBApp;
+        Applications::SetRadio setRadioApp;
 
         Applications::Application* currentApplication;
         Applications::Applications currentApp = Applications::Applications::None;
