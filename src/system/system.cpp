@@ -103,6 +103,9 @@ void SystemTask::processSystemNotification(SystemMessages notification) {
         if (currentApp != Applications::Applications::None) {
             currentApplication->timeout();
         }
+        if (keyboard.wasFKeyPressed()) {         
+            keyboard.clearFKeyPressed();
+        }
         break;
     case SystemMSG::MSG_BKCLIGHT:
         //uart.sendLog("MSG_BKCLIGHT\n");
@@ -116,6 +119,10 @@ void SystemTask::processSystemNotification(SystemMessages notification) {
         //uart.sendLog("MSG_RADIO_RX\n");        
         pushMessage(SystemMSG::MSG_BKCLIGHT, (uint32_t)Backlight::backLightState::ON);
         break;
+    case SystemMSG::MSG_RADIO_TX:
+        //uart.sendLog("MSG_RADIO_TX\n");
+        //pushMessage(SystemMSG::MSG_BKCLIGHT, (uint32_t)Backlight::backLightState::ON);
+        break;
     case SystemMSG::MSG_KEYPRESSED: {
         //uart.sendLog("MSG_KEYPRESSED\n");
 
@@ -126,7 +133,11 @@ void SystemTask::processSystemNotification(SystemMessages notification) {
             timeoutCount = 0;
             timeoutLightCount = 0;
             pushMessage(SystemMSG::MSG_BKCLIGHT, (uint32_t)Backlight::backLightState::ON);
-            pushMessage(SystemMSG::MSG_PLAY_BEEP, (uint32_t)RadioNS::Radio::BEEPType::BEEP_1KHZ_60MS_OPTIONAL);
+            if(key != Keyboard::KeyCode::KEY_PTT) {
+                pushMessage(SystemMSG::MSG_PLAY_BEEP, (uint32_t)RadioNS::Radio::BEEPType::BEEP_1KHZ_60MS_OPTIONAL);
+            } else {
+                pushMessage(SystemMSG::MSG_RADIO_TX, 0);
+            }
         }
 
         if (currentApp != Applications::Applications::None) {

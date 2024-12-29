@@ -18,16 +18,16 @@ enum class ModType {
 };
 
 enum class BK4819_Filter_Bandwidth {
-    BK4819_FILTER_BW_26k = 0, //	"W 26k",	//0
+    BK4819_FILTER_BW_26k = 0, //  "W 26k",	//0
     BK4819_FILTER_BW_23k,     //  "W 23k",	//1
     BK4819_FILTER_BW_20k,     //  "W 20k",	//2
     BK4819_FILTER_BW_17k,     //  "W 17k",	//3
     BK4819_FILTER_BW_14k,     //  "W 14k",	//4
     BK4819_FILTER_BW_12k,     //  "W 12k",	//5
     BK4819_FILTER_BW_10k,     //  "N 10k",	//6
-    BK4819_FILTER_BW_9k,      //  "N 9k",		//7
-    BK4819_FILTER_BW_7k,      //  "U 7K",		//8
-    BK4819_FILTER_BW_6k       //  "U 6K"		//9
+    BK4819_FILTER_BW_9k,      //  "N 9k",	//7
+    BK4819_FILTER_BW_7k,      //  "U 7K",	//8
+    BK4819_FILTER_BW_6k       //  "U 6K"	//9
 };
 
 // Enum class for BK4819 Audio Filter values

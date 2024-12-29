@@ -35,6 +35,7 @@ namespace System
             MSG_KEYPRESSED,
             MSG_PLAY_BEEP,
             MSG_RADIO_RX,
+            MSG_RADIO_TX,
             MSG_APP_LOAD,
         };
 
@@ -61,6 +62,7 @@ namespace System
         void loadApplication(Applications::Applications app);
         void pushMessage(SystemMSG msg, uint32_t value);
         void pushMessageKey(Keyboard::KeyCode key, Keyboard::KeyState state);
+        bool wasFKeyPressed() const { return keyboard.wasFKeyPressed(); };
 
         Battery getBattery() { return battery; }
 

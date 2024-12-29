@@ -331,6 +331,8 @@ public:
         u8sl.visible = displayLines;
 
         u8sl.total = u8x8_GetStringLineCnt(sl);
+        if (u8sl.total <= u8sl.visible)
+            u8sl.visible = u8sl.total;
         u8sl.first_pos = 0;
         u8sl.current_pos = startPos;
 
@@ -360,11 +362,20 @@ public:
         startXPos = x;
     }
 
+    void setMaxWidth(uint8_t w) {
+        maxWidth = w;
+    }
+
+    void setShowLineNumbers(bool show) {
+        showLineNumbers = show;
+    }
+
 private:
     u8sl_t u8sl;
     const char* slines;
     uint8_t maxWidth = 75;
     uint8_t startXPos = 2;
+    bool showLineNumbers = true;
 
     u8g2_uint_t drawSelectionListLine(u8g2_uint_t y, uint8_t idx, const char* s) {
         //u8g2_uint_t yy;
@@ -388,9 +399,10 @@ private:
             s = "";
         //u8g2_DrawUTF8Line(u8g2, MY_BORDER_SIZE, y, u8g2_GetDisplayWidth(u8g2) - 2 * MY_BORDER_SIZE, s, border_size, is_invert);
 
-        ui.setFont(Font::FONT_5_TR);
-
-        ui.drawStringf(TextAlign::LEFT, startXPos, 0, y, true, false, false, "%02u", idx + 1);
+        if (showLineNumbers) {
+            ui.setFont(Font::FONT_5_TR);
+            ui.drawStringf(TextAlign::LEFT, startXPos, 0, y, true, false, false, "%02u", idx + 1);
+        }
 
         if (is_invert) {
             ui.setFont(Font::FONT_8B_TR);
@@ -398,7 +410,13 @@ private:
         else {
             ui.setFont(Font::FONT_8_TR);
         }
-        ui.drawString(TextAlign::LEFT, startXPos + 14, maxWidth, y, is_invert, true, false, s);
+
+        if (showLineNumbers) {
+            ui.drawString(TextAlign::LEFT, startXPos + 14, maxWidth, y, is_invert, true, false, s);
+        }
+        else {
+            ui.drawString(TextAlign::CENTER, startXPos, maxWidth, y, is_invert, true, false, s);
+        }
 
         return line_height;
     }
@@ -419,12 +437,11 @@ protected:
 
 class SelectionListPopup : public SelectionList {
 public:
-    SelectionListPopup(UI& ui) : SelectionList(ui) {        
-    }
+    SelectionListPopup(UI& ui) : SelectionList(ui) {}
 
     void drawPopup() {
-        uint8_t popupWidth = 64; // Width of the popup
-        uint8_t popupHeight = 32; // Height of the popup
+        uint8_t popupWidth = 72; // Width of the popup
+        uint8_t popupHeight = 34; // Height of the popup
         uint8_t x = (uint8_t)((W - popupWidth) / 2); // Center the popup horizontally
         uint8_t y = (uint8_t)((H - popupHeight) / 2); // Center the popup vertically
 
@@ -435,10 +452,24 @@ public:
         ui.lcd()->drawRFrame(x, y, popupWidth, popupHeight, 5);
         ui.lcd()->drawRFrame(x, y, popupWidth + 1, popupHeight + 1, 5);
 
+        ui.lcd()->drawBox(x + 1, y + 1, popupWidth - 1, 6);
+
+        ui.setFont(Font::FONT_5_TR);
+        ui.drawString(TextAlign::CENTER, x, x + popupWidth, y + 6, false, false, false, title);
+
         // Draw the selection list inside the popup
+        setShowLineNumbers(false);
+        setMaxWidth((uint8_t)(x + popupWidth - 4));
         setStartXPos(x + 4);
-        draw(y + 10);
+        draw(y + 14);
     }
+
+    void setPopupTitle(const char* title) {
+        this->title = title;
+    }
+
+private:
+    const char* title;
 
 };
 

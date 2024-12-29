@@ -10,7 +10,7 @@ namespace Applications
     class MainVFO : public Application {
     public:
         MainVFO(System::SystemTask& systask, UI& ui, RadioNS::Radio& radio)
-            : Application(systask, ui), radio{ radio }, powerList(ui) {
+            : Application(systask, ui), radio{ radio }, popupList(ui) {
         }
 
         void drawScreen(void);
@@ -22,9 +22,9 @@ namespace Applications
     private:
         RadioNS::Radio& radio;
 
-        SelectionListPopup powerList;
+        SelectionListPopup popupList;
 
-        bool showPower = false;
+        bool showPopup = false;
 
         uint8_t activeVFO = 0;
 

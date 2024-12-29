@@ -97,10 +97,15 @@ void MainVFO::drawScreen(void) {
     ui.setFont(Font::FONT_5_TR);
     ui.drawStringf(TextAlign::RIGHT, 0, 128, 64, true, false, false, "%i%%", systask.getBattery().getBatteryPercentage());
 
-    ui.drawStringf(TextAlign::RIGHT, 0, 128, 58, true, false, false, "PS  A/B");
+    if (systask.wasFKeyPressed()) {
+        ui.drawStringf(TextAlign::RIGHT, 0, 120, 57, true, true, false, "F");
+    }
+    else {
+        ui.drawStringf(TextAlign::RIGHT, 0, 128, 58, true, false, false, "PS  A/B");
+    }
 
-    if (showPower) {
-        powerList.drawPopup();
+    if (showPopup) {
+        popupList.drawPopup();
     }
 
     ui.updateDisplay();
@@ -119,7 +124,6 @@ void MainVFO::showRSSI(void) {
 }
 
 void MainVFO::init(void) {
-    powerList.set(0, 3, 40, "HIGH\nMID\nLOW");
 }
 
 void MainVFO::update(void) {
@@ -127,8 +131,8 @@ void MainVFO::update(void) {
 }
 
 void MainVFO::timeout(void) {
-   if (showPower) {
-        showPower = false;
+    if (showPopup) {
+        showPopup = false;
     }
 }
 
@@ -138,44 +142,58 @@ void MainVFO::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
 
     if (keyState == Keyboard::KeyState::KEY_RELEASED) {
 
+        if (showPopup) {
+            if (keyCode == Keyboard::KeyCode::KEY_UP) {
+                popupList.prev();
+            }
+            else if (keyCode == Keyboard::KeyCode::KEY_DOWN) {
+                popupList.next();
+            }
+            else if (keyCode == Keyboard::KeyCode::KEY_MENU) {
+            }
+            else if (keyCode == Keyboard::KeyCode::KEY_EXIT) {
+                showPopup = false;
+            }
+            else if (keyCode == Keyboard::KeyCode::KEY_4 || keyCode == Keyboard::KeyCode::KEY_5 || keyCode == Keyboard::KeyCode::KEY_6) {
+                popupList.next();
+            }
+        }
+
         if (keyCode == Keyboard::KeyCode::KEY_UP) {
-            if (showPower) {
-                powerList.prev();
-            }
-            else {
-                vfo.rx.frequency += 1250;
-                radio.setVFO(activeVFO, vfo.rx.frequency, vfo.rx.frequency, 0, ModType::MOD_FM);
-                radio.setupToVFO(activeVFO);
-            }
+            vfo.rx.frequency += 1250;
+            radio.setVFO(activeVFO, vfo.rx.frequency, vfo.rx.frequency, 0, ModType::MOD_FM);
+            radio.setupToVFO(activeVFO);
         }
         else if (keyCode == Keyboard::KeyCode::KEY_DOWN) {
-            if (showPower) {
-                powerList.next();
-            }
-            else {
-                vfo.rx.frequency -= 1250;
-                radio.setVFO(activeVFO, vfo.rx.frequency, vfo.rx.frequency, 0, ModType::MOD_FM);
-                radio.setupToVFO(activeVFO);
-            }
-
+            vfo.rx.frequency -= 1250;
+            radio.setVFO(activeVFO, vfo.rx.frequency, vfo.rx.frequency, 0, ModType::MOD_FM);
+            radio.setupToVFO(activeVFO);
         }
         else if (keyCode == Keyboard::KeyCode::KEY_MENU) {
-            if (showPower) {
-
-            } else {
-                systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::Menu);
-            }
+            systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::Menu);
         }
         else if (keyCode == Keyboard::KeyCode::KEY_EXIT) {
-            if (showPower) {
-                showPower = false;
-            }
+
         }
     }
 
-    if (keyState == Keyboard::KeyState::KEY_LONG_PRESSED) {
+    if (keyState == Keyboard::KeyState::KEY_LONG_PRESSED || keyState == Keyboard::KeyState::KEY_PRESSED_WITH_F) {
+        if (keyCode == Keyboard::KeyCode::KEY_4) {
+            popupList.set(0, 3, 0, "W 26k\nW 23k\nW 20k\nW 17k\nW 14k\nW 12k\nN 10k\nN 9k\nU 7k\nU 6k");
+            popupList.setPopupTitle("BANDWIDTH");
+            showPopup = true;
+        }
+
+        if (keyCode == Keyboard::KeyCode::KEY_5) {
+            popupList.set(0, 3, 0, "FM\nAM\nUSB");
+            popupList.setPopupTitle("MODULATION");
+            showPopup = true;
+        }
+
         if (keyCode == Keyboard::KeyCode::KEY_6) {
-            showPower = !showPower;
+            popupList.set(0, 3, 0, "HIGH\nMID\nLOW");
+            popupList.setPopupTitle("TX POWER");
+            showPopup = true;
         }
     }
 }

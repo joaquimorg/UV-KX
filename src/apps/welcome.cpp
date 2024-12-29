@@ -26,10 +26,12 @@ void Welcome::drawScreen(void) {
     ui.drawStrf(8, 42, "%i%% %u.%02uV", systask.getBattery().getBatteryPercentage(), systask.getBattery().getBatteryVoltageAverage() / 100, systask.getBattery().getBatteryVoltageAverage() % 100);
 
     ui.lcd()->drawStr(64, 33, "SI4732");
-    ui.lcd()->drawStr(64, 42, "EEPROM+");
+    ui.lcd()->drawStr(64, 42, "EEPROM");
+    ui.lcd()->drawStr(64, 51, "FM");
 
     ui.lcd()->drawStr(115, 33, "-");
     ui.lcd()->drawStr(115, 42, "-");
+    ui.lcd()->drawStr(115, 51, "-");
 
     ui.setFont(Font::FONT_5_TR);
 

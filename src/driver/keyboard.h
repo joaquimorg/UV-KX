@@ -52,6 +52,7 @@ public:
     // Get current F-key state
     bool wasFKeyPressed() const { return mWasFKeyPressed; }
 
+    void clearFKeyPressed() { mWasFKeyPressed = false; }
 
 private:
 
