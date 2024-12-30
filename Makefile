@@ -6,7 +6,8 @@ ENABLE_REMOTE_CONTROL			?= 0
 ENABLE_UART_DEBUG			  	?= 1
 
 #------------------------------------------------------------------------------
-AUTHOR_STRING ?= JOAQUIM.ORG
+AUTHOR_NAME ?= JOAQUIM
+AUTHOR_STRING ?= $(AUTHOR_NAME).ORG
 VERSION_STRING ?= V0.0.1
 PROJECT_NAME := uv-kx_$(VERSION_STRING)
 
@@ -119,7 +120,7 @@ LDFLAGS += -Wl,--print-memory-usage
 #------------------------------------------------------------------------------
 
 CCFLAGS += -DPRINTF_INCLUDE_CONFIG_H
-CXXFLAGS += -DAUTHOR_STRING=\"$(AUTHOR_STRING)\" -DVERSION_STRING=\"$(VERSION_STRING)\"
+CXXFLAGS += -DAUTHOR_NAME=\"$(AUTHOR_NAME)\" -DAUTHOR_STRING=\"$(AUTHOR_STRING)\" -DVERSION_STRING=\"$(VERSION_STRING)\"
 
 ifeq ($(ENABLE_UART_DEBUG),1)
 	CXXFLAGS += -DENABLE_UART_DEBUG

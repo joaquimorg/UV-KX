@@ -6,6 +6,8 @@
 #include "saradc.h"
 #include "irq.h"
 #include "adc.h"
+#include "aes.h"
+#include "crc.h"
 #include "sys.h"
 #include "FreeRTOS.h"
 #include "task.h"
@@ -18,7 +20,7 @@ void configureSysTick(void) {
 }
 
 uint32_t getElapsedMilliseconds(void) {
-	return pdTICKS_TO_MS( xTaskGetTickCount() );
+	return pdTICKS_TO_MS(xTaskGetTickCount());
 }
 
 
@@ -484,30 +486,112 @@ void boardPORTCONInit(void) {
 void boardADCInit(void) {
 	ADC_Config_t Config;
 
-	Config.CLK_SEL            = SYSCON_CLK_SEL_W_SARADC_SMPL_VALUE_DIV2;
-	Config.CH_SEL             = (ADC_CH_MASK)(ADC_CH4 | ADC_CH9);
-	Config.AVG                = SARADC_CFG_AVG_VALUE_8_SAMPLE;
-	Config.CONT               = SARADC_CFG_CONT_VALUE_SINGLE;
-	Config.MEM_MODE           = SARADC_CFG_MEM_MODE_VALUE_CHANNEL;
-	Config.SMPL_CLK           = SARADC_CFG_SMPL_CLK_VALUE_INTERNAL;
-	Config.SMPL_WIN           = SARADC_CFG_SMPL_WIN_VALUE_15_CYCLE;
-	Config.SMPL_SETUP         = SARADC_CFG_SMPL_SETUP_VALUE_1_CYCLE;
-	Config.ADC_TRIG           = SARADC_CFG_ADC_TRIG_VALUE_CPU;
-	Config.CALIB_KD_VALID     = SARADC_CALIB_KD_VALID_VALUE_YES;
+	Config.CLK_SEL = SYSCON_CLK_SEL_W_SARADC_SMPL_VALUE_DIV2;
+	Config.CH_SEL = (ADC_CH_MASK)(ADC_CH4 | ADC_CH9);
+	Config.AVG = SARADC_CFG_AVG_VALUE_8_SAMPLE;
+	Config.CONT = SARADC_CFG_CONT_VALUE_SINGLE;
+	Config.MEM_MODE = SARADC_CFG_MEM_MODE_VALUE_CHANNEL;
+	Config.SMPL_CLK = SARADC_CFG_SMPL_CLK_VALUE_INTERNAL;
+	Config.SMPL_WIN = SARADC_CFG_SMPL_WIN_VALUE_15_CYCLE;
+	Config.SMPL_SETUP = SARADC_CFG_SMPL_SETUP_VALUE_1_CYCLE;
+	Config.ADC_TRIG = SARADC_CFG_ADC_TRIG_VALUE_CPU;
+	Config.CALIB_KD_VALID = SARADC_CALIB_KD_VALID_VALUE_YES;
 	Config.CALIB_OFFSET_VALID = SARADC_CALIB_OFFSET_VALID_VALUE_YES;
-	Config.DMA_EN             = SARADC_CFG_DMA_EN_VALUE_DISABLE;
-	Config.IE_CHx_EOC         = SARADC_IE_CHx_EOC_VALUE_NONE;
-	Config.IE_FIFO_FULL       = SARADC_IE_FIFO_FULL_VALUE_DISABLE;
-	Config.IE_FIFO_HFULL      = SARADC_IE_FIFO_HFULL_VALUE_DISABLE;
+	Config.DMA_EN = SARADC_CFG_DMA_EN_VALUE_DISABLE;
+	Config.IE_CHx_EOC = SARADC_IE_CHx_EOC_VALUE_NONE;
+	Config.IE_FIFO_FULL = SARADC_IE_FIFO_FULL_VALUE_DISABLE;
+	Config.IE_FIFO_HFULL = SARADC_IE_FIFO_HFULL_VALUE_DISABLE;
 
 	ADC_Configure(&Config);
 	ADC_Enable();
 	ADC_SoftReset();
 }
 
-void boardADCGetBatteryInfo(uint16_t *pVoltage, uint16_t *pCurrent) {
+void boardADCGetBatteryInfo(uint16_t* pVoltage, uint16_t* pCurrent) {
 	ADC_Start();
 	while (!ADC_CheckEndOfConversion(ADC_CH9)) {}
 	*pVoltage = ADC_GetValue(ADC_CH4);
 	*pCurrent = ADC_GetValue(ADC_CH9);
 }
+
+
+static void AES_Setup_ENC_CBC(bool IsDecrypt, const void* pKey, const void* pIv) {
+	const uint32_t* pK = (const uint32_t*)pKey;
+	const uint32_t* pI = (const uint32_t*)pIv;
+
+	(void)IsDecrypt;	// unused
+
+	AES_CR = (AES_CR & ~AES_CR_EN_MASK) | AES_CR_EN_BITS_DISABLE;
+	AES_CR = AES_CR_CHMOD_BITS_CBC;
+	AES_KEYR3 = pK[0];
+	AES_KEYR2 = pK[1];
+	AES_KEYR1 = pK[2];
+	AES_KEYR0 = pK[3];
+	AES_IVR3 = pI[0];
+	AES_IVR2 = pI[1];
+	AES_IVR1 = pI[2];
+	AES_IVR0 = pI[3];
+	AES_CR = (AES_CR & ~AES_CR_EN_MASK) | AES_CR_EN_BITS_ENABLE;
+}
+
+static void AES_Transform(const void* pIn, void* pOut) {
+	const uint32_t* pI = (const uint32_t*)pIn;
+	uint32_t* pO = (uint32_t*)pOut;
+
+	AES_DINR = pI[0];
+	AES_DINR = pI[1];
+	AES_DINR = pI[2];
+	AES_DINR = pI[3];
+
+	while ((AES_SR & AES_SR_CCF_MASK) == AES_SR_CCF_BITS_NOT_COMPLETE) {
+	}
+
+	pO[0] = AES_DOUTR;
+	pO[1] = AES_DOUTR;
+	pO[2] = AES_DOUTR;
+	pO[3] = AES_DOUTR;
+
+	AES_CR |= AES_CR_CCFC_BITS_SET;
+}
+
+void AESEncrypt(const void* pKey, const void* pIv, const void* pIn, void* pOut, uint8_t NumBlocks) {
+	const uint8_t* pI = (const uint8_t*)pIn;
+	uint8_t* pO = (uint8_t*)pOut;
+	uint8_t i;
+
+	AES_Setup_ENC_CBC(0, pKey, pIv);
+	for (i = 0; i < NumBlocks; i++) {
+		AES_Transform(pI + (i * 16), pO + (i * 16));
+	}
+}
+
+void CRCInit(void) {
+	CRC_CR = 0
+		| CRC_CR_CRC_EN_BITS_DISABLE
+		| CRC_CR_INPUT_REV_BITS_NORMAL
+		| CRC_CR_INPUT_INV_BITS_NORMAL
+		| CRC_CR_OUTPUT_REV_BITS_NORMAL
+		| CRC_CR_OUTPUT_INV_BITS_NORMAL
+		| CRC_CR_DATA_WIDTH_BITS_8
+		| CRC_CR_CRC_SEL_BITS_CRC_16_CCITT
+		;
+	CRC_IV = 0;
+}
+
+uint16_t CRCCalculate(const void* pBuffer, uint16_t Size) {
+	const uint8_t* pData = (const uint8_t*)pBuffer;
+	uint16_t i, Crc;
+
+	CRC_CR = (CRC_CR & ~CRC_CR_CRC_EN_MASK) | CRC_CR_CRC_EN_BITS_ENABLE;
+
+	for (i = 0; i < Size; i++) {
+		CRC_DATAIN = pData[i];
+	}
+	Crc = (uint16_t)CRC_DATAOUT;
+
+	CRC_CR = (CRC_CR & ~CRC_CR_CRC_EN_MASK) | CRC_CR_CRC_EN_BITS_DISABLE;
+
+	return Crc;
+}
+
+

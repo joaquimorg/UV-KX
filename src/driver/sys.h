@@ -16,4 +16,8 @@ void boardADCGetBatteryInfo(uint16_t *pVoltage, uint16_t *pCurrent);
 void delayUs(uint32_t delay);
 void delayMs(uint32_t delay);
 
+void AESEncrypt(const void *pKey, const void *pIv, const void *pIn, void *pOut, uint8_t NumBlocks);
+
+void CRCInit(void);
+uint16_t CRCCalculate(const void *pBuffer, uint16_t Size);
 

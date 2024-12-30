@@ -28,6 +28,8 @@ extern uint8_t sram_data_end[];
 extern "C" void DATA_Init();
 extern "C" void BSS_Init();
 
+uint8_t UART_DMA_Buffer[256];
+
 void BSS_Init(void) {
 	for (uint32_t* pBss = __bss_start__; pBss < __bss_end__; pBss++) {
 		*pBss = 0;

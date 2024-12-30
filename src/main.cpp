@@ -94,6 +94,7 @@ int main(void) {
     boardGPIOInit();
     boardPORTCONInit();
     boardADCInit();
+    CRCInit();
 
     System::SystemTask systemTask;
 

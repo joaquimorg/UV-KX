@@ -14,6 +14,7 @@ namespace Applications
 
         void drawScreen(void);
         void init(void);
+        void update(void);
         void action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState);
         void timeout(void);
 

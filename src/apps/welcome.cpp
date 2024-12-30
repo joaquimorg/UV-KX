@@ -48,6 +48,10 @@ void Welcome::init(void) {
     drawScreen();
 }
 
+void Welcome::update(void) {
+    drawScreen();
+}
+
 void Welcome::timeout(void) {
     systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::MainVFO);
 };

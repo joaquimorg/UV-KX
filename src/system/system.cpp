@@ -84,10 +84,9 @@ void SystemTask::statusTaskImpl() {
             processSystemNotification(notification);
         }
 
-        // main app action
-        /*if (currentApp != Applications::Applications::None) {
-            currentApplication->action();
-        }*/
+        if (uart.isCommandAvailable()) {
+            uart.handleCommand();
+        }
 
         radio.checkRadioInterrupts(); // Check for radio interrupts
         vTaskDelay(pdMS_TO_TICKS(1));
@@ -103,7 +102,7 @@ void SystemTask::processSystemNotification(SystemMessages notification) {
         if (currentApp != Applications::Applications::None) {
             currentApplication->timeout();
         }
-        if (keyboard.wasFKeyPressed()) {         
+        if (keyboard.wasFKeyPressed()) {
             keyboard.clearFKeyPressed();
         }
         break;
@@ -133,9 +132,10 @@ void SystemTask::processSystemNotification(SystemMessages notification) {
             timeoutCount = 0;
             timeoutLightCount = 0;
             pushMessage(SystemMSG::MSG_BKCLIGHT, (uint32_t)Backlight::backLightState::ON);
-            if(key != Keyboard::KeyCode::KEY_PTT) {
+            if (key != Keyboard::KeyCode::KEY_PTT) {
                 pushMessage(SystemMSG::MSG_PLAY_BEEP, (uint32_t)RadioNS::Radio::BEEPType::BEEP_1KHZ_60MS_OPTIONAL);
-            } else {
+            }
+            else {
                 pushMessage(SystemMSG::MSG_RADIO_TX, 0);
             }
         }

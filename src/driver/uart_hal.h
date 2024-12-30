@@ -1,18 +1,53 @@
 #pragma once
 
 #include <cstdint>
+#include <cstring>
 
 #include "dma.h"
 #include "syscon.h"
 #include "uart.h"
 #include "printf.h"
+#include "sys.h"
 
+extern uint8_t UART_DMA_Buffer[256];
 class UART {
 private:
-    uint8_t DMA_Buffer[256];
+    static constexpr uint8_t Obfuscation[16] = {
+        0x16, 0x6C, 0x14, 0xE6, 0x2E, 0x91, 0x0D, 0x40,
+        0x21, 0x35, 0xD5, 0x40, 0x13, 0x03, 0xE9, 0x80
+    };
+
+    static constexpr size_t BufferSize = 256;
+
+    // Data Structures
+    struct Header_t {
+        uint16_t id;
+        uint16_t size;
+    };
+
+    struct Footer_t {
+        uint8_t padding[2];
+        uint16_t id;
+    };
+
+    union CommandBuffer_t {
+        uint8_t buffer[256];
+        struct {
+            Header_t header;
+            uint8_t data[256 - sizeof(Header_t)];
+        } command;
+    };
+
+    // Variables
+    CommandBuffer_t commandBuffer;
+    uint32_t timestamp;
+    uint16_t writeIndex;
+    bool isEncrypted;
+    bool sendScreenData = false;
 
 public:
-    UART() {
+    UART() : isEncrypted(false) {
+        memset(UART_DMA_Buffer, 0, BufferSize);
         // Constructor initializes UART
         init();
         print("\n\n");
@@ -30,7 +65,8 @@ public:
 
         if (Positive) {
             Frequency += 48000000U;
-        } else {
+        }
+        else {
             Frequency = 48000000U - Frequency;
         }
 
@@ -46,7 +82,7 @@ public:
         DMA_CTR = (DMA_CTR & ~DMA_CTR_DMAEN_MASK) | DMA_CTR_DMAEN_BITS_DISABLE;
 
         DMA_CH0->MSADDR = (uint32_t)(uintptr_t)&UART1->RDR;
-        DMA_CH0->MDADDR = (uint32_t)(uintptr_t)DMA_Buffer;
+        DMA_CH0->MDADDR = (uint32_t)(uintptr_t)UART_DMA_Buffer;
         DMA_CH0->MOD = 0
             | DMA_CH_MOD_MS_ADDMOD_BITS_NONE
             | DMA_CH_MOD_MS_SIZE_BITS_8BIT
@@ -106,4 +142,250 @@ public:
         const char* logPrefix = "[UV-Kx LOG] ";
         print("%s%s\n", logPrefix, message);
     }
+
+
+private:
+
+    void sendReply(void* pReply, uint16_t size) {
+        Header_t header;
+        Footer_t footer;
+
+        // Encrypt the reply data if encryption is enabled
+        if (isEncrypted) {
+            uint8_t* bytes = static_cast<uint8_t*>(pReply);
+            for (uint16_t i = 0; i < size; i++) {
+                bytes[i] ^= Obfuscation[i % sizeof(Obfuscation)];
+            }
+        }
+
+        // Prepare the header
+        header.id = 0xCDAB;
+        header.size = size;
+
+        // Send the header
+        send(&header, sizeof(header));
+
+        // Send the reply data
+        send(pReply, size);
+
+        // Prepare the footer
+        if (isEncrypted) {
+            footer.padding[0] = Obfuscation[size % sizeof(Obfuscation)] ^ 0xFF;
+            footer.padding[1] = Obfuscation[(size + 1) % sizeof(Obfuscation)] ^ 0xFF;
+        }
+        else {
+            footer.padding[0] = 0xFF;
+            footer.padding[1] = 0xFF;
+        }
+        footer.id = 0xBADC;
+
+        // Send the footer
+        send(&footer, sizeof(footer));
+    }
+
+    void sendVersion() {
+        // Prepare the reply structure
+        struct {
+            Header_t header;
+            struct {
+                char Version[16];
+                bool bHasCustomAesKey;
+                bool bIsInLockScreen;
+                uint8_t Padding[2];
+                uint32_t Challenge[4];
+            } Data;
+        } reply;
+
+        // Fill in the reply data
+        reply.header.id = 0x0515;
+        reply.header.size = sizeof(reply.Data);
+        memcpy(reply.Data.Version, AUTHOR_NAME " " VERSION_STRING, sizeof(reply.Data.Version));
+        reply.Data.bHasCustomAesKey = false;
+        reply.Data.bIsInLockScreen = false;
+        reply.Data.Challenge[0] = 0xFFFFFFFF;
+        reply.Data.Challenge[1] = 0xFFFFFFFF;
+        reply.Data.Challenge[2] = 0xFFFFFFFF;
+        reply.Data.Challenge[3] = 0xFFFFFFFF;
+
+        // Send the reply
+        sendReply(&reply, sizeof(reply));
+    }
+
+    /*bool isBadChallenge(const uint32_t* key, const uint32_t* challenge, const uint32_t* response) {
+        uint32_t iv[4] = { 0 };
+
+        AESEncrypt(key, iv, challenge, iv, true);
+
+        for (size_t i = 0; i < 4; i++) {
+            if (iv[i] != response[i]) {
+                return true;
+            }
+        }
+        return false;
+    }*/
+
+    void handleCmd0514(const uint8_t* pBuffer) {
+        // Define the structure of the incoming command
+        struct CMD_0514_t {
+            Header_t Header;
+            uint32_t Timestamp;
+        };
+
+        // Cast the buffer to the command structure
+        const CMD_0514_t* pCmd = reinterpret_cast<const CMD_0514_t*>(pBuffer);
+
+        // Update the session timestamp
+        timestamp = pCmd->Timestamp;
+
+        // Send the version response
+        sendVersion();
+    }
+
+
+    void decryptCommand(uint8_t* buffer, uint16_t size) {
+        for (uint16_t i = 0; i < size; i++) {
+            buffer[i] ^= Obfuscation[i % sizeof(Obfuscation)];
+        }
+    }
+
+    bool checkCRC(uint8_t* buffer, uint16_t size, uint16_t expectedCRC) {
+        // Compare calculated CRC with expected CRC
+        uint16_t crc = CRCCalculate(buffer, size);
+        //print("CRC: %d = %d\n", crc, expectedCRC);
+        return (crc == expectedCRC);
+    }
+
+    void sendScreen() {
+        sendScreenData = true;
+    }
+
+
+public:
+
+    void sendScreenBuffer(const void* buffer, uint32_t size) {
+        const uint16_t screenDumpIdByte = 0xEDAB;
+        if (sendScreenData) {
+            send(&screenDumpIdByte, 2);
+            send(buffer, size);
+        }
+    }
+
+    bool isCommandAvailable() {
+        uint16_t index;
+        uint16_t tailIndex;
+        uint16_t size;
+        uint16_t crc;
+        uint16_t dmaLength = DMA_CH0->ST & 0xFFFU;
+
+        while (true) {
+            // Check if DMA buffer is empty
+            if (writeIndex == dmaLength) {
+                return false;
+            }
+
+            // Advance to the next potential command start
+            while (writeIndex != dmaLength && UART_DMA_Buffer[writeIndex] != 0xABU) {
+                writeIndex = (writeIndex + 1) % BufferSize;
+            }
+
+            if (writeIndex == dmaLength) {
+                return false;
+            }
+
+            // Calculate command length
+            index = (writeIndex + 2) % BufferSize;
+            size = (UART_DMA_Buffer[index + 1] << 8) | UART_DMA_Buffer[index];
+
+            // Check if command length exceeds buffer size
+            if ((size + 8u) > BufferSize) {
+                writeIndex = dmaLength; // Skip this invalid command
+                return false;
+            }
+
+            // Check if there is enough data in the buffer for a complete command
+            uint16_t availableData = (uint16_t)((writeIndex < dmaLength) ? (dmaLength - writeIndex) :
+                (BufferSize - writeIndex + dmaLength));
+            if (availableData < size + 8) {
+                return false;
+            }
+
+            // Verify the footer
+            index = (index + 2) % BufferSize;
+            tailIndex = (index + size + 2) % BufferSize;
+            //print("tailIndex: %d\n", UART_DMA_Buffer[tailIndex]);
+            if (UART_DMA_Buffer[tailIndex] != 0xDC || UART_DMA_Buffer[(tailIndex + 1) % BufferSize] != 0xBA) {
+                writeIndex = dmaLength; // Skip this invalid command
+                return false;
+            }
+
+            // Copy command into the class buffer
+            if (tailIndex < index) {
+                uint16_t chunkSize = BufferSize - index;
+                memcpy(commandBuffer.buffer, UART_DMA_Buffer + index, chunkSize);
+                memcpy(commandBuffer.buffer + chunkSize, UART_DMA_Buffer, tailIndex);
+            }
+            else {
+                memcpy(commandBuffer.buffer, UART_DMA_Buffer + index, tailIndex - index);
+            }
+
+            // Zero out the processed portion of the buffer
+            uint16_t processedEnd = (tailIndex + 2) % BufferSize;
+            if (processedEnd < writeIndex) {
+                memset(UART_DMA_Buffer + writeIndex, 0, BufferSize - writeIndex);
+                memset(UART_DMA_Buffer, 0, processedEnd);
+            }
+            else {
+                memset(UART_DMA_Buffer + writeIndex, 0, processedEnd - writeIndex);
+            }
+            writeIndex = processedEnd;
+
+            if (commandBuffer.command.header.id == 0x0514)
+                isEncrypted = false;
+
+            if (commandBuffer.command.header.id == 0x6902)
+                isEncrypted = true;
+
+            // Decrypt if necessary
+            if (isEncrypted) {
+                decryptCommand(commandBuffer.buffer, size + 2);
+            }
+
+            // Validate CRC            
+            crc = (commandBuffer.buffer[size] | (commandBuffer.buffer[size + 1] << 8));
+
+            if (!checkCRC(commandBuffer.buffer, size, crc)) {
+                continue; // Invalid CRC, skip to the next potential command
+            }
+
+            return true; // Valid command is available
+        }
+    }
+
+    void handleCommand() {
+        switch (commandBuffer.command.header.id) {
+        case 0x0514:
+            handleCmd0514(commandBuffer.command.data);
+            break;
+
+        case 0x0527:
+            //handleRssiRead();
+            break;
+
+        case 0x0529:
+            //handleAdcRead();
+            break;
+
+        case 0x05DD: // Reset command
+            //handleReset();
+            break;
+        case 0x0A03:
+            sendScreenData = true;
+            break;
+        case 0x0A04:
+            sendScreenData = false;
+            break;            
+        }
+
+    }
+
 };

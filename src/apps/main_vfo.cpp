@@ -27,37 +27,38 @@ void MainVFO::drawScreen(void) {
 
     ui.drawString(TextAlign::RIGHT, 0, 126, 6, false, false, false, "FM 26k HIGH");
     ui.setFont(Font::FONT_5_TR);
-    ui.drawString(TextAlign::RIGHT, 0, 126, 28, true, false, false, "12.5K  TX 131.8  RX D023N");
+    ui.drawString(TextAlign::RIGHT, 0, 126, 26, true, false, false, "12.5K  TX 131.8  RX D023N");
 
     ui.lcd()->setColorIndex(BLACK);
-    ui.lcd()->drawLine(5, 9, 5, 27);
+    ui.lcd()->drawLine(5, 9, 5, 25);
 
     ui.setFont(Font::FONT_8B_TR);
     //ui.lcd()->drawStr(2, 14, "A");
-    ui.drawString(TextAlign::LEFT, 2, 0, 21, true, true, false, "A");
+    ui.drawString(TextAlign::LEFT, 2, 0, 20, true, true, false, "A");
 
     if (radio.getState() == RadioNS::Radio::RadioState::RX_ON) {
         //ui.lcd()->drawStr(2, 20, "RX");
-        ui.drawString(TextAlign::LEFT, 12, 0, 21, true, true, false, "RX");
+        ui.drawString(TextAlign::LEFT, 12, 0, 20, true, true, false, "RX");
     }
-    ui.drawFrequencyBig((radio.getState() == RadioNS::Radio::RadioState::RX_ON), vfo.rx.frequency, 113, 20);
+    ui.drawFrequencyBig((radio.getState() == RadioNS::Radio::RadioState::RX_ON), vfo.rx.frequency, 113, 19);
 
 
 
+    uint8_t vfoBY = 29;
     ui.lcd()->setColorIndex(BLACK);
-    ui.lcd()->drawLine(5, 33, 5, 35);
-    ui.lcd()->drawLine(5, 44, 5, 46);
+    ui.lcd()->drawLine(5, vfoBY, 5, vfoBY + 3);
+    ui.lcd()->drawLine(5, vfoBY + 12, 5, vfoBY + 14);
     ui.setFont(Font::FONT_8B_TR);
     //ui.lcd()->drawStr(2, 38, "B");
-    ui.drawString(TextAlign::LEFT, 2, 0, 42, true, false, true, "B");
-    ui.drawFrequencySmall(false, 43932500, 126, 40);
+    ui.drawString(TextAlign::LEFT, 2, 0, vfoBY + 10, true, false, true, "B");
+    ui.drawFrequencySmall(false, 43932500, 126, vfoBY + 8);
     //ui.drawFrequencyBig(143932500, 110, 40);
 
     ui.setFont(Font::FONT_8_TR);
-    ui.drawString(TextAlign::LEFT, 12, 0, 38, true, false, false, "VIALON1234");
-    ui.drawString(TextAlign::LEFT, 12, 0, 46, true, false, false, "M103");
+    ui.drawString(TextAlign::LEFT, 12, 0, vfoBY + 5, true, false, false, "VIALON1234");
+    ui.drawString(TextAlign::LEFT, 12, 0, vfoBY + 15, true, false, false, "M103");
     ui.setFont(Font::FONT_5_TR);
-    ui.drawString(TextAlign::RIGHT, 0, 126, 46, true, false, false, "FM 26k LOW");
+    ui.drawString(TextAlign::RIGHT, 0, 126, vfoBY + 15, true, false, false, "FM 26k LOW");
 
     /*if (radio.getState() == RadioNS::RadioState::RX_ON) {
         //ui.lcd()->drawStr(2, 20, "RX");
@@ -119,7 +120,7 @@ void MainVFO::showRSSI(void) {
         rssiPixels = ui.convertRSSIToPixels(rssi_dBm); // Convert RSSI to pixel scale
     }
 
-    ui.drawRSSI(rssiPixels, 2, 52);
+    ui.drawRSSI(rssiPixels, 0, 52);
 
 }
 

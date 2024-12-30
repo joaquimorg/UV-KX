@@ -5,6 +5,7 @@
 #include "u8g2_hal.h"
 #include "spi_hal.h"
 #include "sys.h"
+#include "uart_hal.h"
 
 #include "icons.h"
 
@@ -38,7 +39,7 @@ enum class Font {
 
 class UI {
 public:
-    UI(ST7565& st7565) : st7565{ st7565 } {};
+    UI(ST7565& st7565, UART& uart) : st7565{ st7565 }, uart{ uart } {};
 
     ST7565* lcd() { return &this->st7565; };
 
@@ -54,6 +55,7 @@ public:
 
     void updateDisplay() {
         lcd()->sendBuffer();
+        uart.sendScreenBuffer(lcd()->getBufferPtr(), 1024);
     };
 
     void setFont(Font font) {
@@ -279,6 +281,7 @@ public:
 private:
 
     ST7565& st7565;
+    UART& uart;
 
 };
 

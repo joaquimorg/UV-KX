@@ -42,9 +42,9 @@ namespace System
         SystemTask() :
             spi0(SPI0),
             st7565(),
-            ui(st7565),
-            backlight(),
             uart(),
+            ui(st7565, uart),
+            backlight(),            
             keyboard(*this),
             battery(),
             bk4819(),
@@ -79,9 +79,9 @@ namespace System
 
         SPI spi0;
         ST7565 st7565;
-        UI ui;
-        Backlight backlight;
         UART uart;
+        UI ui;
+        Backlight backlight;        
         Keyboard keyboard;
         Battery battery;
         BK4819 bk4819;
