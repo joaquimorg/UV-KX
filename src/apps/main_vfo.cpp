@@ -30,7 +30,7 @@ void MainVFO::drawScreen(void) {
     ui.drawString(TextAlign::RIGHT, 0, 126, 6, false, false, false, ui.getStrValue(RadioNS::Radio::powerStr, (uint8_t)vfoA.power));
     ui.drawString(TextAlign::RIGHT, 0, 106, 6, false, false, false, ui.getStrValue(RadioNS::Radio::bandwidthStr, (uint8_t)vfoA.bw));
     ui.drawString(TextAlign::RIGHT, 0, 84, 6, false, false, false, ui.getStrValue(RadioNS::Radio::modulationStr, (uint8_t)vfoA.modulation));
-    
+
     //ui.drawStringf(TextAlign::RIGHT, 0, 126, 26, true, false, false, "%s %s %s", "12.5K", "TX 131.8", "RX D023N");
     ui.drawStringf(TextAlign::RIGHT, 0, 126, 26, true, false, false, "%s %s %s", "12.5K", "", "");
 
@@ -168,26 +168,28 @@ void MainVFO::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
                 popupList.next();
             }
         }
+        else {
 
-        if (keyCode == Keyboard::KeyCode::KEY_UP) {
-            uint32_t newFrequency = vfo.rx.frequency + 1250;
-            vfo.rx.frequency = (uint32_t)(newFrequency & 0x07FFFFFF);
+            if (keyCode == Keyboard::KeyCode::KEY_UP) {
+                uint32_t newFrequency = vfo.rx.frequency + 1250;
+                vfo.rx.frequency = (uint32_t)(newFrequency & 0x07FFFFFF);
 
-            radio.setVFO(activeVFO, vfo.rx.frequency, vfo.rx.frequency, vfo.channel, vfo.modulation);
-            radio.setupToVFO(activeVFO);
-        }
-        else if (keyCode == Keyboard::KeyCode::KEY_DOWN) {
-            uint32_t newFrequency = vfo.rx.frequency - 1250;
-            vfo.rx.frequency = (uint32_t)(newFrequency & 0x7FFFFFF);
+                radio.setVFO(activeVFO, vfo.rx.frequency, vfo.rx.frequency, vfo.channel, vfo.modulation);
+                radio.setupToVFO(activeVFO);
+            }
+            else if (keyCode == Keyboard::KeyCode::KEY_DOWN) {
+                uint32_t newFrequency = vfo.rx.frequency - 1250;
+                vfo.rx.frequency = (uint32_t)(newFrequency & 0x7FFFFFF);
 
-            radio.setVFO(activeVFO, vfo.rx.frequency, vfo.rx.frequency, vfo.channel, vfo.modulation);
-            radio.setupToVFO(activeVFO);
-        }
-        else if (keyCode == Keyboard::KeyCode::KEY_MENU) {
-            systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::Menu);
-        }
-        else if (keyCode == Keyboard::KeyCode::KEY_EXIT) {
+                radio.setVFO(activeVFO, vfo.rx.frequency, vfo.rx.frequency, vfo.channel, vfo.modulation);
+                radio.setupToVFO(activeVFO);
+            }
+            else if (keyCode == Keyboard::KeyCode::KEY_MENU) {
+                systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::Menu);
+            }
+            else if (keyCode == Keyboard::KeyCode::KEY_EXIT) {
 
+            }
         }
     }
 
