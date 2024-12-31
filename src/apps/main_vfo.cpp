@@ -121,16 +121,73 @@ void MainVFO::drawScreen(void) {
     ui.updateDisplay();
 }
 
+uint8_t MainVFO::convertRSSIToSLevel(int16_t rssi_dBm) {
+    if (rssi_dBm <= -121) {
+        return 0; // S0
+    }
+    else if (rssi_dBm <= -115) {
+        return 1; // S1
+    }
+    else if (rssi_dBm <= -109) {
+        return 2; // S2
+    }
+    else if (rssi_dBm <= -103) {
+        return 3; // S3
+    }
+    else if (rssi_dBm <= -97) {
+        return 4; // S4
+    }
+    else if (rssi_dBm <= -91) {
+        return 5; // S5
+    }
+    else if (rssi_dBm <= -85) {
+        return 6; // S6
+    }
+    else if (rssi_dBm <= -79) {
+        return 7; // S7
+    }
+    else if (rssi_dBm <= -73) {
+        return 8; // S8
+    }
+    else if (rssi_dBm <= -67) {
+        return 9; // S9
+    }
+    else {
+        return 10; // Greater than S9
+    }
+}
+
+int16_t MainVFO::convertRSSIToPlusDB(int16_t rssi_dBm) {
+    if (rssi_dBm > -67) {
+        return (rssi_dBm + 67); // Convert to +dB value
+    }
+    return 0; // Return 0 if not greater than S9
+}
+
 void MainVFO::showRSSI(void) {
 
-    int16_t rssiPixels = 0;
+    uint8_t sValue = 0;
+    int16_t plusDB = 0;
     if (radio.getState() == RadioNS::Radio::RadioState::RX_ON) {
         int16_t rssi_dBm = radio.getRSSIdBm(); // Get the RSSI value in dBm
-        rssiPixels = ui.convertRSSIToPixels(rssi_dBm); // Convert RSSI to pixel scale
+        sValue = convertRSSIToSLevel(rssi_dBm); // Convert RSSI to S-level
+        if (sValue == 10) {
+            plusDB = convertRSSIToPlusDB(rssi_dBm); // Convert to +dB value if greater than S9
+        }
     }
 
-    ui.drawRSSI(rssiPixels, 0, 52);
+    ui.drawRSSI(sValue, plusDB, 10, 52);
 
+    ui.setFont(Font::FONT_5_TR);
+    if (sValue > 0) {
+        if (sValue == 10) {
+            ui.drawString(TextAlign::LEFT, 0, 0, 59, true, false, false, "S9");
+            ui.drawStringf(TextAlign::CENTER, 48, 75, 57, true, false, false, "+%idB", plusDB);
+        }
+        else {
+            ui.drawStringf(TextAlign::LEFT, 0, 0, 59, true, false, false, "S%i", sValue);
+        }
+    }
 }
 
 void MainVFO::init(void) {

@@ -258,19 +258,25 @@ public:
         return pixels;
     }
 
-    void drawRSSI(uint16_t rssipxl, u8g2_uint_t x, u8g2_uint_t y) {
+    void drawRSSI(uint8_t sLevel, uint16_t plusDB, u8g2_uint_t x, u8g2_uint_t y) {
         draw_smeter(x, y, BLACK);
         setBlackColor();
 
-        // Draw blocks with 1 pixel spacing and each block 3 pixels wide
-        uint16_t remainingPixels = rssipxl;
-        u8g2_uint_t currentX = (u8g2_uint_t)(x + 7);
+        // Draw S1 to S9 blocks
+        u8g2_uint_t currentX = x;
+        for (uint8_t i = 0; i < sLevel && i < 9; ++i) {
+            lcd()->drawBox(currentX, y + 6, 3, 4);
+            currentX += 4; // Move to the next block position with 1 pixel spacing
+        }
 
-        while (remainingPixels > 0) {
-            uint16_t blockWidth = (remainingPixels >= 3) ? 3 : remainingPixels;
-            lcd()->drawBox(currentX, y + 6, blockWidth, 3);
-            remainingPixels -= blockWidth;
-            currentX += (u8g2_uint_t)(blockWidth + 1); // Move to the next block position with 1 pixel spacing
+        // Draw dB bar if S level is greater than S9
+        if (sLevel == 10) {
+            u8g2_uint_t dbStartX = x + 38;
+            u8g2_uint_t dbEndX = (u8g2_uint_t)(plusDB * 27 / 65); // Scale dB to fit within 27 pixels (38 to 65)
+            if (dbEndX > 27) {
+                dbEndX = 27;
+            }
+            lcd()->drawBox(dbStartX, y + 6, dbEndX, 4);
         }
     }
 

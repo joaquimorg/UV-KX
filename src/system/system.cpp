@@ -38,8 +38,8 @@ void SystemTask::initSystem(void) {
     st7565.begin();
     bk4819.setupRegisters();
 
-    radio.setVFO(0, 44601875, 44601875, 0, ModType::MOD_FM);
-    radio.setVFO(1, 44616875, 44616875, 0, ModType::MOD_FM);
+    radio.setVFO(0, 44616875, 44616875, 0, ModType::MOD_FM);
+    radio.setVFO(1, 43932500, 43932500, 0, ModType::MOD_FM);
     radio.setupToVFO(0);
 
     uart.print("UV-Kx Open Firmware - " AUTHOR_STRING " - " VERSION_STRING "\n");
