@@ -6,28 +6,21 @@
 #include "spi_sw_hal.h"
 #include "bk4819-regs.h"
 
-enum class ModType {
-    MOD_FM,
-    MOD_AM,
-    MOD_LSB,
-    MOD_USB,
-    MOD_BYP,
-    MOD_RAW,
-    MOD_WFM,
-    MOD_PRST
+enum class ModType : uint8_t {
+    MOD_FM = 0,
+    MOD_AM = 1,
+    MOD_LSB = 2,
+    MOD_USB = 3,
+    MOD_BYP = 4,
+    MOD_RAW = 5,
+    MOD_WFM = 6,
+    MOD_PRST = 7
 };
 
-enum class BK4819_Filter_Bandwidth {
-    BK4819_FILTER_BW_26k = 0, //  "W 26k",	//0
-    BK4819_FILTER_BW_23k,     //  "W 23k",	//1
-    BK4819_FILTER_BW_20k,     //  "W 20k",	//2
-    BK4819_FILTER_BW_17k,     //  "W 17k",	//3
-    BK4819_FILTER_BW_14k,     //  "W 14k",	//4
-    BK4819_FILTER_BW_12k,     //  "W 12k",	//5
-    BK4819_FILTER_BW_10k,     //  "N 10k",	//6
-    BK4819_FILTER_BW_9k,      //  "N 9k",	//7
-    BK4819_FILTER_BW_7k,      //  "U 7K",	//8
-    BK4819_FILTER_BW_6k       //  "U 6K"	//9
+enum class BK4819_Filter_Bandwidth : uint8_t {
+    BK4819_FILTER_BW_WIDE = 0,
+    BK4819_FILTER_BW_NARROW = 1,
+    BK4819_FILTER_BW_NARROWER = 2
 };
 
 // Enum class for BK4819 Audio Filter values
@@ -227,9 +220,11 @@ public:
         spi.writeRegister(BK4819_REG_7B, 0x8420);
     }
 
-    void setFilterBandwidth(BK4819_Filter_Bandwidth bw) {
+    void setFilterBandwidth(BK4819_Filter_Bandwidth bandwidth) {
 
-        uint8_t bandwidth = (uint8_t)bw;
+        // TODO: fix
+
+        /*uint8_t bandwidth = (uint8_t)bw;
 
         if (bandwidth > 9)
             return;
@@ -301,6 +296,64 @@ public:
             (0u << 2) |      //  0 Gain after FM Demodulation
             (0u << 0);       //  0
 
+        */
+
+
+        uint16_t val = 0;
+        bool weakSignal = false;
+        switch (bandwidth)
+        {
+        default:
+        case BK4819_Filter_Bandwidth::BK4819_FILTER_BW_WIDE:	// 25kHz
+            val = (4u << 12) |     // *3 RF filter bandwidth
+                (6u << 6) |     // *0 AFTxLPF2 filter Band Width
+                (2u << 4) |     //  2 BW Mode Selection
+                (1u << 3) |     //  1
+                (0u << 2);     //  0 Gain after FM Demodulation
+
+            if (weakSignal) {
+                // make the RX bandwidth the same with weak signals
+                val |= (4u << 9);     // *0 RF filter bandwidth when signal is weak
+            }
+            else {
+                /// with weak RX signals the RX bandwidth is reduced
+                val |= (2u << 9);     // *0 RF filter bandwidth when signal is weak
+            }
+
+            break;
+
+        case BK4819_Filter_Bandwidth::BK4819_FILTER_BW_NARROW:	// 12.5kHz
+            val = (4u << 12) |     // *4 RF filter bandwidth
+                (0u << 6) |     // *1 AFTxLPF2 filter Band Width
+                (0u << 4) |     //  0 BW Mode Selection
+                (1u << 3) |     //  1
+                (0u << 2);      //  0 Gain after FM Demodulation
+
+            if (weakSignal) {
+                val |= (4u << 9);     // *0 RF filter bandwidth when signal is weak
+            }
+            else {
+                val |= (2u << 9);
+            }
+
+            break;
+
+        case BK4819_Filter_Bandwidth::BK4819_FILTER_BW_NARROWER:	// 6.25kHz
+            val = (3u << 12) |     //  3 RF filter bandwidth
+                (3u << 9) |     // *0 RF filter bandwidth when signal is weak
+                (1u << 6) |     //  1 AFTxLPF2 filter Band Width
+                (1u << 4) |     //  1 BW Mode Selection
+                (1u << 3) |     //  1
+                (0u << 2);      //  0 Gain after FM Demodulation
+
+            if (weakSignal) {
+                val |= (3u << 9);
+            }
+            else {
+                val |= (0u << 9);     //  0 RF filter bandwidth when signal is weak
+            }
+            break;
+        }
         spi.writeRegister(BK4819_REG_43, val);
     }
 

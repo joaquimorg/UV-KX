@@ -26,14 +26,17 @@ void SetVFO::drawScreen(void) {
     ui.updateDisplay();
 }
 
-
 void SetVFO::init(void) {
-    menulist.set(0, 6, 80, "FREQUENCY\nMODE\nFILTER\nATTENUATOR\nAGC\nSTEP\nRIT\nXIT\nVOLUME\nSQUELCH\nSCAN\nLOCK\nRESET");
+    menulist.set(0, 6, 80, "SQUELCH\nSTEP\nMODE\nBANDWIDTH\nTX POWER\nSHIFT\nOFFSET\nRX CTCS\nTX CTCS\nRX DTCS\nTX DTCS\nTX STE\nRX STE\nCOMPANDER\nPTT ID\nAFC\nRX ACG");
 }
 
 void SetVFO::update(void) {
     drawScreen();
 }
+
+void SetVFO::timeout(void) {
+    systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::MainVFO);
+};
 
 void SetVFO::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {    
 

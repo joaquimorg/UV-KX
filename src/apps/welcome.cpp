@@ -29,9 +29,10 @@ void Welcome::drawScreen(void) {
     ui.lcd()->drawStr(64, 42, "EEPROM");
     ui.lcd()->drawStr(64, 51, "FM");
 
-    ui.lcd()->drawStr(115, 33, "-");
-    ui.lcd()->drawStr(115, 42, "-");
-    ui.lcd()->drawStr(115, 51, "-");
+    ui.setFont(Font::FONT_5_TR);
+    ui.lcd()->drawStr(110, 33, "NO");
+    ui.lcd()->drawStr(110, 42, "64");
+    ui.lcd()->drawStr(110, 51, "YES");
 
     ui.setFont(Font::FONT_5_TR);
 

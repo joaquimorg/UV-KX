@@ -95,6 +95,10 @@ public:
         lcd()->setColorIndex(WHITE);
     };
 
+    const char* getStrValue(const char* str, uint8_t index) {
+        return u8x8_GetStringLineStart(index, str);
+    };
+
     void drawStrf(u8g2_uint_t x, u8g2_uint_t y, const char* str, ...) {
         char text[52] = { 0 };
 
@@ -172,7 +176,7 @@ public:
     };
 
     void drawStringf(TextAlign tAlign, u8g2_uint_t xstart, u8g2_uint_t xend, u8g2_uint_t y, bool isBlack, bool isFill, bool isBox, const char* str, ...) {
-        char text[52] = { 0 };
+        char text[60] = { 0 };
 
         va_list va;
         va_start(va, str);
@@ -326,7 +330,7 @@ public:
         }
     }
 
-    void set(uint8_t startPos, uint8_t displayLines, uint8_t maxw, const char* sl) {    
+    void set(uint8_t startPos, uint8_t displayLines, uint8_t maxw, const char* sl) {
 
         if (startPos > 0)
             startPos--;

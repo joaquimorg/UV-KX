@@ -486,6 +486,7 @@ void boardPORTCONInit(void) {
 void boardADCInit(void) {
 	ADC_Config_t Config;
 
+	//Config.EXTTRIG_SEL = SARADC_CFG_EXTTRIG_SEL_VALUE_NONE;
 	Config.CLK_SEL = SYSCON_CLK_SEL_W_SARADC_SMPL_VALUE_DIV2;
 	Config.CH_SEL = (ADC_CH_MASK)(ADC_CH4 | ADC_CH9);
 	Config.AVG = SARADC_CFG_AVG_VALUE_8_SAMPLE;

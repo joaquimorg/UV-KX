@@ -14,6 +14,12 @@ namespace RadioNS
     class Radio {
     public:
 
+        enum class TXOutputPower : uint8_t {
+            TX_POWER_LOW = 0,
+            TX_POWER_MID = 1,
+            TX_POWER_HIGH = 2
+        };
+
         enum class BEEPType {
             BEEP_NONE = 0,
             BEEP_1KHZ_60MS_OPTIONAL,
@@ -39,17 +45,20 @@ namespace RadioNS
         };
 
         struct FREQ {
-            uint32_t frequency;
-            uint8_t codeType;
+            uint32_t frequency : 27;
+            uint8_t codeType : 4;
             uint8_t code;
-        };
+        } __attribute__((packed)); // 5 Bytes
 
         struct VFO {
             FREQ rx;
             FREQ tx;
+            char name[11];
             int16_t channel;
-            ModType modulation;
-        };
+            ModType modulation : 4;
+            BK4819_Filter_Bandwidth bw : 2;
+            TXOutputPower power : 2;
+        } __attribute__((packed));
 
         VFO radioVFO[2];
 
@@ -80,6 +89,15 @@ namespace RadioNS
             // TODO: RSSI gRxVfo->Band
             return rssidbm + dBmCorrTable[6];
         }
+
+
+        /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+        static constexpr const char* powerStr = "LOW\nMID\nHIGH";
+        
+        static constexpr const char* modulationStr = "FM\nAM\nLSB\nUSB\nBYP\nRAW\nWFM\nPRST";        
+
+        static constexpr const char* bandwidthStr = "25k\n12.5k\n6.25k";
 
     private:
         System::SystemTask& systask;

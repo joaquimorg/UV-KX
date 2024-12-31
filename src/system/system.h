@@ -15,6 +15,7 @@
 #include "radio.h"
 #include "ui.h"
 
+#include "settings.h"
 #include "apps.h"
 
 #include "welcome.h"
@@ -41,6 +42,7 @@ namespace System
 
         SystemTask() :
             spi0(SPI0),
+            settings(*this),
             st7565(),
             uart(),
             ui(st7565, uart),
@@ -78,6 +80,7 @@ namespace System
     private:
 
         SPI spi0;
+        Settings settings;
         ST7565 st7565;
         UART uart;
         UI ui;

@@ -28,12 +28,16 @@ void SetRadio::drawScreen(void) {
 
 
 void SetRadio::init(void) {
-    menulist.set(0, 6, 80, "FREQUENCY\nMODE\nFILTER\nATTENUATOR\nAGC\nSTEP\nRIT\nXIT\nVOLUME\nSQUELCH\nSCAN\nLOCK\nRESET");
+    menulist.set(0, 6, 120, "MIC DB\nBATTERY SAVE\nBUSY LOCKOUT\nBACKLIGHT LEVEL\nBACKLIGHT TIME\nBACKLIGHT MODE\nLCD CONTRAST\nTX TOT\nBEEP\nRESET");
 }
 
 void SetRadio::update(void) {
     drawScreen();
 }
+
+void SetRadio::timeout(void) {
+    systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::MainVFO);
+};
 
 void SetRadio::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {    
 

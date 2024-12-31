@@ -9,7 +9,8 @@ using namespace Applications;
 
 void MainVFO::drawScreen(void) {
 
-    RadioNS::Radio::VFO vfo = radio.getVFO(activeVFO);
+    RadioNS::Radio::VFO vfoA = radio.getVFO(activeVFO);
+    RadioNS::Radio::VFO vfoB = radio.getVFO(activeVFO == 0 ? 1 : 0);
 
     //char key = '-';
 
@@ -20,27 +21,31 @@ void MainVFO::drawScreen(void) {
     ui.lcd()->drawBox(0, 0, 128, 7);
 
     ui.setFont(Font::FONT_8B_TR);
-    ui.drawString(TextAlign::LEFT, 2, 0, 6, false, false, false, "PMR-14-FRN");
+    ui.drawString(TextAlign::LEFT, 2, 0, 6, false, false, false, vfoA.name);
     ui.setFont(Font::FONT_8_TR);
     ui.lcd()->setColorIndex(BLACK);
-    ui.lcd()->drawStr(12, 14, "M195");
+    //ui.lcd()->drawStr(12, 14, "VFO");
 
-    ui.drawString(TextAlign::RIGHT, 0, 126, 6, false, false, false, "FM 26k HIGH");
     ui.setFont(Font::FONT_5_TR);
-    ui.drawString(TextAlign::RIGHT, 0, 126, 26, true, false, false, "12.5K  TX 131.8  RX D023N");
+    ui.drawString(TextAlign::RIGHT, 0, 126, 6, false, false, false, ui.getStrValue(RadioNS::Radio::powerStr, (uint8_t)vfoA.power));
+    ui.drawString(TextAlign::RIGHT, 0, 106, 6, false, false, false, ui.getStrValue(RadioNS::Radio::bandwidthStr, (uint8_t)vfoA.bw));
+    ui.drawString(TextAlign::RIGHT, 0, 84, 6, false, false, false, ui.getStrValue(RadioNS::Radio::modulationStr, (uint8_t)vfoA.modulation));
+    
+    //ui.drawStringf(TextAlign::RIGHT, 0, 126, 26, true, false, false, "%s %s %s", "12.5K", "TX 131.8", "RX D023N");
+    ui.drawStringf(TextAlign::RIGHT, 0, 126, 26, true, false, false, "%s %s %s", "12.5K", "", "");
 
     ui.lcd()->setColorIndex(BLACK);
     ui.lcd()->drawLine(5, 9, 5, 25);
 
     ui.setFont(Font::FONT_8B_TR);
     //ui.lcd()->drawStr(2, 14, "A");
-    ui.drawString(TextAlign::LEFT, 2, 0, 20, true, true, false, "A");
+    ui.drawStringf(TextAlign::LEFT, 2, 0, 20, true, true, false, "%s", activeVFO == 0 ? "A" : "B");
 
     if (radio.getState() == RadioNS::Radio::RadioState::RX_ON) {
         //ui.lcd()->drawStr(2, 20, "RX");
         ui.drawString(TextAlign::LEFT, 12, 0, 20, true, true, false, "RX");
     }
-    ui.drawFrequencyBig((radio.getState() == RadioNS::Radio::RadioState::RX_ON), vfo.rx.frequency, 113, 19);
+    ui.drawFrequencyBig((radio.getState() == RadioNS::Radio::RadioState::RX_ON), vfoA.rx.frequency, 113, 19);
 
 
 
@@ -50,15 +55,19 @@ void MainVFO::drawScreen(void) {
     ui.lcd()->drawLine(5, vfoBY + 12, 5, vfoBY + 14);
     ui.setFont(Font::FONT_8B_TR);
     //ui.lcd()->drawStr(2, 38, "B");
-    ui.drawString(TextAlign::LEFT, 2, 0, vfoBY + 10, true, false, true, "B");
-    ui.drawFrequencySmall(false, 43932500, 126, vfoBY + 8);
+    ui.drawStringf(TextAlign::LEFT, 2, 0, vfoBY + 10, true, false, true, "%s", activeVFO == 0 ? "B" : "A");
+    ui.drawFrequencySmall(false, vfoB.rx.frequency, 126, vfoBY + 8);
     //ui.drawFrequencyBig(143932500, 110, 40);
 
     ui.setFont(Font::FONT_8_TR);
-    ui.drawString(TextAlign::LEFT, 12, 0, vfoBY + 5, true, false, false, "VIALON1234");
-    ui.drawString(TextAlign::LEFT, 12, 0, vfoBY + 15, true, false, false, "M103");
+    ui.drawString(TextAlign::LEFT, 12, 0, vfoBY + 5, true, false, false, vfoB.name);
+    //ui.drawString(TextAlign::LEFT, 12, 0, vfoBY + 15, true, false, false, "VFO");
     ui.setFont(Font::FONT_5_TR);
-    ui.drawString(TextAlign::RIGHT, 0, 126, vfoBY + 15, true, false, false, "FM 26k LOW");
+    //ui.drawStringf(TextAlign::RIGHT, 0, 126, vfoBY + 15, true, false, false, "%s %s %s", ui.getStrValue(RadioNS::Radio::modulationStr, (uint8_t)vfoB.modulation), ui.getStrValue(RadioNS::Radio::bandwidthStr, (uint8_t)vfoB.bw), ui.getStrValue(RadioNS::Radio::powerStr, (uint8_t)vfoB.power));
+
+    ui.drawString(TextAlign::RIGHT, 0, 126, vfoBY + 15, true, false, false, ui.getStrValue(RadioNS::Radio::powerStr, (uint8_t)vfoB.power));
+    ui.drawString(TextAlign::RIGHT, 0, 106, vfoBY + 15, true, false, false, ui.getStrValue(RadioNS::Radio::bandwidthStr, (uint8_t)vfoB.bw));
+    ui.drawString(TextAlign::RIGHT, 0, 84, vfoBY + 15, true, false, false, ui.getStrValue(RadioNS::Radio::modulationStr, (uint8_t)vfoB.modulation));
 
     /*if (radio.getState() == RadioNS::RadioState::RX_ON) {
         //ui.lcd()->drawStr(2, 20, "RX");
@@ -161,13 +170,17 @@ void MainVFO::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
         }
 
         if (keyCode == Keyboard::KeyCode::KEY_UP) {
-            vfo.rx.frequency += 1250;
-            radio.setVFO(activeVFO, vfo.rx.frequency, vfo.rx.frequency, 0, ModType::MOD_FM);
+            uint32_t newFrequency = vfo.rx.frequency + 1250;
+            vfo.rx.frequency = (uint32_t)(newFrequency & 0x07FFFFFF);
+
+            radio.setVFO(activeVFO, vfo.rx.frequency, vfo.rx.frequency, vfo.channel, vfo.modulation);
             radio.setupToVFO(activeVFO);
         }
         else if (keyCode == Keyboard::KeyCode::KEY_DOWN) {
-            vfo.rx.frequency -= 1250;
-            radio.setVFO(activeVFO, vfo.rx.frequency, vfo.rx.frequency, 0, ModType::MOD_FM);
+            uint32_t newFrequency = vfo.rx.frequency - 1250;
+            vfo.rx.frequency = (uint32_t)(newFrequency & 0x7FFFFFF);
+
+            radio.setVFO(activeVFO, vfo.rx.frequency, vfo.rx.frequency, vfo.channel, vfo.modulation);
             radio.setupToVFO(activeVFO);
         }
         else if (keyCode == Keyboard::KeyCode::KEY_MENU) {
@@ -179,20 +192,26 @@ void MainVFO::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
     }
 
     if (keyState == Keyboard::KeyState::KEY_LONG_PRESSED || keyState == Keyboard::KeyState::KEY_PRESSED_WITH_F) {
+
+        if (keyCode == Keyboard::KeyCode::KEY_2) {
+            activeVFO = 1 - activeVFO;
+            radio.setupToVFO(activeVFO);
+        }
+
         if (keyCode == Keyboard::KeyCode::KEY_4) {
-            popupList.set(0, 3, 0, "W 26k\nW 23k\nW 20k\nW 17k\nW 14k\nW 12k\nN 10k\nN 9k\nU 7k\nU 6k");
+            popupList.set((uint8_t)vfo.bw, 3, 0, RadioNS::Radio::bandwidthStr);
             popupList.setPopupTitle("BANDWIDTH");
             showPopup = true;
         }
 
         if (keyCode == Keyboard::KeyCode::KEY_5) {
-            popupList.set(0, 3, 0, "FM\nAM\nUSB");
+            popupList.set((uint8_t)vfo.modulation, 3, 0, RadioNS::Radio::modulationStr);
             popupList.setPopupTitle("MODULATION");
             showPopup = true;
         }
 
         if (keyCode == Keyboard::KeyCode::KEY_6) {
-            popupList.set(0, 3, 0, "HIGH\nMID\nLOW");
+            popupList.set((uint8_t)vfo.power, 3, 0, RadioNS::Radio::powerStr);
             popupList.setPopupTitle("TX POWER");
             showPopup = true;
         }

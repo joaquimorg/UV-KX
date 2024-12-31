@@ -93,7 +93,7 @@ public:
 private:
 
     // Internal helper methods
-    uint8_t getDeviceAddress(uint32_t address) const {
+    uint8_t getDeviceAddress(__attribute__((unused)) uint32_t address) const {
         //return static_cast<uint8_t>(BASE_ADDRESS | ((address / 0x10000) << 1));
         return static_cast<uint8_t>(BASE_ADDRESS);
     }

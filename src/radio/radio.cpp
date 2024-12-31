@@ -1,7 +1,10 @@
+#include <cstring>
+
 #include "radio.h"
 #include "sys.h"
 #include "gpio.h"
 #include "system.h"
+
 
 using namespace RadioNS;
 
@@ -21,10 +24,14 @@ void Radio::setSquelch(uint32_t f, uint8_t sql) {
 }
 
 void Radio::setVFO(uint8_t vfo, uint32_t rx, uint32_t tx, int16_t channel, ModType modulation) {
-    radioVFO[vfo].rx.frequency = rx;
-    radioVFO[vfo].tx.frequency = tx;
+    radioVFO[vfo].rx.frequency = (uint32_t)(rx & 0x07FFFFFF);;
+    radioVFO[vfo].tx.frequency = (uint32_t)(tx & 0x07FFFFFF);;
     radioVFO[vfo].channel = channel;
     radioVFO[vfo].modulation = modulation;
+    radioVFO[vfo].bw = BK4819_Filter_Bandwidth::BK4819_FILTER_BW_NARROW;
+    radioVFO[vfo].power = TXOutputPower::TX_POWER_HIGH;
+    strncpy(radioVFO[vfo].name, "PMR 446", sizeof(radioVFO[vfo].name) - 1);
+    radioVFO[vfo].name[sizeof(radioVFO[vfo].name) - 1] = '\0'; // Ensure null termination
 }
 
 void Radio::setupToVFO(uint8_t vfo) {
@@ -35,7 +42,7 @@ void Radio::setupToVFO(uint8_t vfo) {
     bk4819.setModulation(radioVFO[vfo].modulation);
 
     bk4819.setAGC(radioVFO[vfo].modulation != ModType::MOD_AM, 18);
-    bk4819.setFilterBandwidth(BK4819_Filter_Bandwidth::BK4819_FILTER_BW_12k);
+    bk4819.setFilterBandwidth(radioVFO[vfo].bw);
 
     bk4819.rxTurnOn();
 
