@@ -10,7 +10,7 @@ namespace Applications
     class SetVFO : public Application {
     public:
         SetVFO(System::SystemTask& systask, UI& ui, RadioNS::Radio::VFOAB vfoab)
-            : Application(systask, ui), menulist(ui), vfoab{ vfoab } {
+            : Application(systask, ui), menulist(ui), optionlist(ui), vfoab{ vfoab } {
         }
 
         void drawScreen(void);
@@ -22,7 +22,10 @@ namespace Applications
     private:
         SelectionList menulist;
 
+        SelectionListPopup optionlist;
+
         RadioNS::Radio::VFOAB vfoab;
+        uint8_t optionSelected = 0;
 
     };
 

@@ -26,8 +26,6 @@ namespace Applications
 
         bool showPopup = false;
 
-        uint8_t activeVFO = 0;
-
         uint8_t convertRSSIToSLevel(int16_t rssi_dBm);
         int16_t convertRSSIToPlusDB(int16_t rssi_dBm);
         void showRSSI(void);

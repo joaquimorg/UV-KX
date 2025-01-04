@@ -50,7 +50,7 @@ namespace System
             keyboard(*this),
             battery(),
             bk4819(),
-            radio(*this, uart, bk4819),
+            radio(*this, uart, bk4819, settings),
             welcomeApp(*this, ui),
             mainVFOApp(*this, ui, radio),
             menuApp(*this, ui),

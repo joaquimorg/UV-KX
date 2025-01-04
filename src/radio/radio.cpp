@@ -8,6 +8,49 @@
 
 using namespace RadioNS;
 
+uint8_t Radio::convertRSSIToSLevel(int16_t rssi_dBm) {
+    if (rssi_dBm <= -121) {
+        return 0; // S0
+    }
+    else if (rssi_dBm <= -115) {
+        return 1; // S1
+    }
+    else if (rssi_dBm <= -109) {
+        return 2; // S2
+    }
+    else if (rssi_dBm <= -103) {
+        return 3; // S3
+    }
+    else if (rssi_dBm <= -97) {
+        return 4; // S4
+    }
+    else if (rssi_dBm <= -91) {
+        return 5; // S5
+    }
+    else if (rssi_dBm <= -85) {
+        return 6; // S6
+    }
+    else if (rssi_dBm <= -79) {
+        return 7; // S7
+    }
+    else if (rssi_dBm <= -73) {
+        return 8; // S8
+    }
+    else if (rssi_dBm <= -67) {
+        return 9; // S9
+    }
+    else {
+        return 10; // Greater than S9
+    }
+}
+
+int16_t Radio::convertRSSIToPlusDB(int16_t rssi_dBm) {
+    if (rssi_dBm > -67) {
+        return (rssi_dBm + 67); // Convert to +dB value
+    }
+    return 0; // Return 0 if not greater than S9
+}
+
 void Radio::toggleSpeaker(bool on) {
     speakerOn = on;
     if (on) {
@@ -23,43 +66,51 @@ void Radio::setSquelch(uint32_t f, uint8_t sql) {
     bk4819.squelch(sql, f, 1, 1);
 }
 
-void Radio::setVFO(uint8_t vfo, uint32_t rx, uint32_t tx, int16_t channel, ModType modulation) {
-    radioVFO[vfo].rx.frequency = (uint32_t)(rx & 0x07FFFFFF);;
-    radioVFO[vfo].tx.frequency = (uint32_t)(tx & 0x07FFFFFF);;
-    radioVFO[vfo].channel = channel;
-    radioVFO[vfo].modulation = modulation;
-    radioVFO[vfo].bw = BK4819_Filter_Bandwidth::BK4819_FILTER_BW_NARROW;
-    radioVFO[vfo].power = TXOutputPower::TX_POWER_HIGH;
-    strncpy(radioVFO[vfo].name, "PMR 446", sizeof(radioVFO[vfo].name) - 1);
-    radioVFO[vfo].name[sizeof(radioVFO[vfo].name) - 1] = '\0'; // Ensure null termination
+void Radio::setVFO(VFOAB vfo, uint32_t rx, uint32_t tx, int16_t channel, ModType modulation) {
+    uint8_t vfoIndex = (uint8_t)vfo;
+    radioVFO[vfoIndex].rx.frequency = (uint32_t)(rx & 0x07FFFFFF);;
+    radioVFO[vfoIndex].tx.frequency = (uint32_t)(tx & 0x07FFFFFF);;
+    radioVFO[vfoIndex].channel = channel;
+    radioVFO[vfoIndex].modulation = modulation;
+    radioVFO[vfoIndex].bw = BK4819_Filter_Bandwidth::BK4819_FILTER_BW_NARROW;
+    radioVFO[vfoIndex].power = TXOutputPower::TX_POWER_HIGH;
+    if (channel > 0) {
+        snprintf(radioVFO[vfoIndex].name, sizeof(radioVFO[vfoIndex].name), "CH-%03d", channel);
+    }
+    else {
+        strncpy(radioVFO[vfoIndex].name, getBandName(rx), sizeof(radioVFO[vfoIndex].name) - 1);
+        radioVFO[vfoIndex].name[sizeof(radioVFO[vfoIndex].name) - 1] = '\0'; // Ensure null termination
+    }
 }
 
-void Radio::setupToVFO(uint8_t vfo) {
-
+void Radio::setupToVFO(VFOAB vfo) {
+    uint8_t vfoIndex = (uint8_t)vfo;
     bk4819.squelchType(SquelchType::SQUELCH_RSSI_NOISE_GLITCH);
-    setSquelch(radioVFO[vfo].rx.frequency, 4);
+    setSquelch(radioVFO[vfoIndex].rx.frequency, 4);
 
-    bk4819.setModulation(radioVFO[vfo].modulation);
+    bk4819.setModulation(radioVFO[vfoIndex].modulation);
 
-    bk4819.setAGC(radioVFO[vfo].modulation != ModType::MOD_AM, 18);
-    bk4819.setFilterBandwidth(radioVFO[vfo].bw);
+    bk4819.setAGC(radioVFO[vfoIndex].modulation != ModType::MOD_AM, 18);
+    bk4819.setFilterBandwidth(radioVFO[vfoIndex].bw);
 
     bk4819.rxTurnOn();
 
-    bk4819.tuneTo(radioVFO[vfo].rx.frequency, false);
+    bk4819.tuneTo(radioVFO[vfoIndex].rx.frequency, false);
 
 }
 
 void Radio::toggleBK4819(bool on) {
+    //bk4819.rxTurnOn();
+
     if (on) {
         bk4819.toggleAFDAC(true);
         bk4819.toggleAFBit(true);
-        delayMs(8);
+        //delayMs(8);
         toggleSpeaker(true);
     }
     else {
         toggleSpeaker(false);
-        delayMs(8);
+        //delayMs(8);
         bk4819.toggleAFDAC(false);
         bk4819.toggleAFBit(false);
     }
@@ -162,6 +213,24 @@ void Radio::playBeep(BEEPType beep) {
     toggleSpeaker(isSpeakerWasOn);
 }
 
+
+void Radio::runDualWatch(void) {
+    if (dualWatch && state == RadioState::IDLE) {
+        if (dualWatchTimer == 0) {
+            dualWatchTimer = dualWatchTime;
+        }
+        else {
+            dualWatchTimer--;
+        }
+        if (dualWatchTimer == 0) {
+            setRXVFO((rxVFO == VFOAB::VFOA) ? VFOAB::VFOB : VFOAB::VFOA);
+        }
+    }
+    else if (dualWatch && state == RadioState::RX_ON) {
+        dualWatchTimer = dualWatchTime;
+    }
+}
+
 void Radio::checkRadioInterrupts(void) {
 
     while (bk4819.getInterruptRequest() & 1u) { // BK chip interrupt request
@@ -196,14 +265,18 @@ void Radio::checkRadioInterrupts(void) {
         //uart.print("interrupts %0.16b \r\n", interrupts);
 
         if (interrupts.flags.sqlLost) {
-            toggleRX(true);
-            state = RadioState::RX_ON;
-            systask.pushMessage(System::SystemTask::SystemMSG::MSG_RADIO_RX, 0);
+            if (state != RadioState::RX_ON) {
+                toggleRX(true);
+                state = RadioState::RX_ON;
+                systask.pushMessage(System::SystemTask::SystemMSG::MSG_RADIO_RX, 0);
+            }
         }
 
         if (interrupts.flags.sqlFound) {
-            toggleRX(false);
-            state = RadioState::IDLE;
+            if (state != RadioState::IDLE) {
+                toggleRX(false);
+                state = RadioState::IDLE;
+            }
         }
 
     }

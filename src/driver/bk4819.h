@@ -118,14 +118,14 @@ public:
         spi.writeRegister(BK4819_REG_33, gpioOutState);
         spi.writeRegister(BK4819_REG_3F, 0);
 
-        setAGC(true, 0);
+        setAGC(true, 18);
 
         //Automatic MIC PGA Gain Controller
         spi.writeRegister(BK4819_REG_19, 0x1041);
         // MIC sensitivity
         spi.writeRegister(BK4819_REG_7D, 0xE94F);
         // AF
-        spi.writeRegister(BK4819_REG_48, 0xB3A8);
+        //spi.writeRegister(BK4819_REG_48, 0xB3A8);
 
         // DTMF_COEFFS ???
 
@@ -157,15 +157,33 @@ public:
         spi.writeRegister(BK4819_REG_7D, 0xE94F | 10); // mic
         // TX
         // spi.writeRegister(0x44, 38888);  // 300 resp TX
-        spi.writeRegister(0x74, 0xAF1F); // 3k resp TX
+        spi.writeRegister(BK4819_REG_74, 0xAF1F); // 3k resp TX
 
         toggleGpioOut(BK4819_GPIO0_PIN28_RX_ENABLE, true);
-        spi.writeRegister(
-            BK4819_REG_48,
-            (11u << 12) |    // ??? .. 0 ~ 15, doesn't seem to make any difference
-            (1u << 10) | // AF Rx Gain-1
-            (56 << 4) |  // AF Rx Gain-2
-            (8 << 0));   // AF DAC Gain (after Gain-1 and Gain-2)
+
+        // REG_48 .. RX AF level
+        //
+        // <15:12> 11  ???  0 to 15
+        //
+        // <11:10> 0 AF Rx Gain-1
+        //         0 =   0dB
+        //         1 =  -6dB
+        //         2 = -12dB
+        //         3 = -18dB
+        //
+        // <9:4>   60 AF Rx Gain-2  -26dB ~ 5.5dB   0.5dB/step
+        //         63 = max
+        //          0 = mute
+        //
+        // <3:0>   15 AF DAC Gain (after Gain-1 and Gain-2) approx 2dB/step
+        //         15 = max
+        //          0 = min
+        //
+        spi.writeRegister(BK4819_REG_48, //  0xB3A8);     // 1011 00 111010 1000
+            (11u << 12) |     // ??? 0..15
+            (0u << 10) |     // AF Rx Gain-1
+            (50u << 4) |     // AF Rx Gain-2
+            (0u << 0));     // AF DAC Gain (after Gain-1 and Gain-2)
 
         // disableScramble(); // default is off
         // disableVox() // default is off;
@@ -220,15 +238,16 @@ public:
         spi.writeRegister(BK4819_REG_7B, 0x8420);
     }
 
-    void setFilterBandwidth(BK4819_Filter_Bandwidth bandwidth) {
+    void setFilterBandwidth(BK4819_Filter_Bandwidth bw) {
 
         // TODO: fix
 
-        /*uint8_t bandwidth = (uint8_t)bw;
+        uint8_t bandwidth = (uint8_t)bw;
 
         if (bandwidth > 9)
             return;
 
+        bandwidth = 8;
         // REG_43
         // <15>    0 ???
         //
@@ -296,9 +315,9 @@ public:
             (0u << 2) |      //  0 Gain after FM Demodulation
             (0u << 0);       //  0
 
-        */
 
 
+        /*
         uint16_t val = 0;
         bool weakSignal = false;
         switch (bandwidth)
@@ -353,7 +372,8 @@ public:
                 val |= (0u << 9);     //  0 RF filter bandwidth when signal is weak
             }
             break;
-        }
+        }*/
+
         spi.writeRegister(BK4819_REG_43, val);
     }
 
@@ -367,6 +387,7 @@ public:
         uint16_t reg = spi.readRegister(BK4819_REG_30);
         if (precise) {
             spi.writeRegister(BK4819_REG_30, 0x0200);
+            //spi.writeRegister(BK4819_REG_30, 0x0000);
         }
         else {
             spi.writeRegister(BK4819_REG_30, reg & ~BK4819_REG_30_ENABLE_VCO_CALIB);
@@ -377,6 +398,7 @@ public:
     void rxTurnOn(void) {
         spi.writeRegister(BK4819_REG_37, 0x1F0F);
         spi.writeRegister(BK4819_REG_30, 0x0200);
+        //spi.writeRegister(BK4819_REG_30, 0x0000);
         delayMs(10);
         spi.writeRegister(
             BK4819_REG_30,
@@ -388,7 +410,8 @@ public:
     }
 
     void setAF(BK4819_AF af) {
-        spi.writeRegister(BK4819_REG_47, 0x6040 | ((int)af << 8));
+        //spi.writeRegister(BK4819_REG_47, 0x6040 | ((int)af << 8));
+        spi.writeRegister(BK4819_REG_47, (6u << 12) | ((int)(af) << 8) | (1u << 6));
     }
 
     void toggleAFBit(bool on) {

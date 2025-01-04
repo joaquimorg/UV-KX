@@ -38,9 +38,9 @@ void SystemTask::initSystem(void) {
     st7565.begin();
     bk4819.setupRegisters();
 
-    radio.setVFO(0, 44616875, 44616875, 0, ModType::MOD_FM);
-    radio.setVFO(1, 43932500, 43932500, 0, ModType::MOD_FM);
-    radio.setupToVFO(0);
+    radio.setVFO(RadioNS::Radio::VFOAB::VFOA, 44616875, 44616875, 0, ModType::MOD_FM);
+    radio.setVFO(RadioNS::Radio::VFOAB::VFOB, 43932500, 43932500, 0, ModType::MOD_FM);
+    radio.setupToVFO(RadioNS::Radio::VFOAB::VFOA);
 
     uart.print("UV-Kx Open Firmware - " AUTHOR_STRING " - " VERSION_STRING "\n");
 }
@@ -64,7 +64,7 @@ void SystemTask::statusTaskImpl() {
 
     battery.getReadings(); // Update battery readings
 
-    appTimer = xTimerCreateStatic("app", pdMS_TO_TICKS(200), pdTRUE, this, SystemTask::appTimerCallback, &appTimerBuffer);
+    appTimer = xTimerCreateStatic("app", pdMS_TO_TICKS(100), pdTRUE, this, SystemTask::appTimerCallback, &appTimerBuffer);
     runTimer = xTimerCreateStatic("run", pdMS_TO_TICKS(1000), pdFALSE, this, SystemTask::runTimerCallback, &runTimerBuffer);
 
     // Load the Welcome application        
@@ -90,6 +90,7 @@ void SystemTask::statusTaskImpl() {
         }
 
         radio.checkRadioInterrupts(); // Check for radio interrupts
+        radio.runDualWatch(); // Run dual watch
         vTaskDelay(pdMS_TO_TICKS(1));
     }
 }
