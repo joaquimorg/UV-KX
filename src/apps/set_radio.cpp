@@ -9,7 +9,7 @@ using namespace Applications;
 
 void SetRadio::drawScreen(void) {
 
-    ui.lcd()->clearBuffer();
+    ui.clearDisplay();
 
     ui.setBlackColor();
 

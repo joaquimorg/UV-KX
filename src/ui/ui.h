@@ -48,9 +48,10 @@ public:
     uint8_t menu_pos = 1;
 
     void clearDisplay() {
-        lcd()->setColorIndex(WHITE);
-        lcd()->drawBox(0, 0, W, H);
-        lcd()->sendBuffer();
+        //lcd()->setColorIndex(WHITE);
+        //lcd()->drawBox(0, 0, W, H);
+        //lcd()->sendBuffer();
+        lcd()->clearBuffer();
     };
 
     void updateDisplay() {

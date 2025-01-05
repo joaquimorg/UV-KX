@@ -17,7 +17,7 @@ void MainVFO::drawScreen(void) {
     bool rxVFO1 = (radio.getState() == RadioNS::Radio::RadioState::RX_ON && activeVFO1 == radio.getRXVFO());
     bool rxVFO2 = (radio.getState() == RadioNS::Radio::RadioState::RX_ON && activeVFO2 == radio.getRXVFO());
 
-    ui.lcd()->clearBuffer();
+    ui.clearDisplay();
 
     ui.lcd()->setColorIndex(BLACK);
 
@@ -163,6 +163,7 @@ void MainVFO::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
                 popupList.next();
             }
             else if (keyCode == Keyboard::KeyCode::KEY_MENU) {
+                showPopup = false;
             }
             else if (keyCode == Keyboard::KeyCode::KEY_EXIT) {
                 showPopup = false;

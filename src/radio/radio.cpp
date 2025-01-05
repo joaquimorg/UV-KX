@@ -141,7 +141,7 @@ void Radio::playBeep(BEEPType beep) {
     }
 
     toggleSpeaker(false);
-    delayMs(5);
+    delayMs(1);
 
     uint16_t toneFrequency;
     switch (beep)
@@ -170,9 +170,9 @@ void Radio::playBeep(BEEPType beep) {
     }
 
     bk4819.playTone(toneFrequency, true);
-    delayMs(2);
+    delayMs(1);
     toggleSpeaker(true);
-    delayMs(5);
+    delayMs(1);
 
     uint16_t duration;
     switch (beep)
@@ -181,14 +181,14 @@ void Radio::playBeep(BEEPType beep) {
         bk4819.exitTxMute();
         delayMs(60);
         bk4819.enterTxMute();
-        delayMs(5);
+        delayMs(1);
         [[fallthrough]];
     case BEEPType::BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL:
     case BEEPType::BEEP_500HZ_60MS_DOUBLE_BEEP:
         bk4819.exitTxMute();
         delayMs(60);
         bk4819.enterTxMute();
-        delayMs(5);
+        delayMs(1);
         [[fallthrough]];
     case BEEPType::BEEP_1KHZ_60MS_OPTIONAL:
         bk4819.exitTxMute();
@@ -214,7 +214,7 @@ void Radio::playBeep(BEEPType beep) {
     delayMs(duration);
     bk4819.enterTxMute();
     toggleSpeaker(false);
-    delayMs(10);
+    delayMs(1);
 
     bk4819.turnsOffTonesTurnsOnRX();
 

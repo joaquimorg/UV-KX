@@ -47,13 +47,13 @@ void SystemTask::initSystem(void) {
 
 void SystemTask::pushMessage(SystemMSG msg, uint32_t value) {
     SystemMessages appMSG = { msg, value, (Keyboard::KeyCode)0, (Keyboard::KeyState)0 };
-    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+    BaseType_t xHigherPriorityTaskWoken = pdTRUE;
     xQueueSendFromISR(systemMessageQueue, (void*)&appMSG, &xHigherPriorityTaskWoken);
 }
 
 void SystemTask::pushMessageKey(Keyboard::KeyCode key, Keyboard::KeyState state) {
     SystemMessages appMSG = { SystemMSG::MSG_KEYPRESSED, 0, key, state };
-    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+    BaseType_t xHigherPriorityTaskWoken = pdTRUE;
     xQueueSendFromISR(systemMessageQueue, (void*)&appMSG, &xHigherPriorityTaskWoken);
 }
 
@@ -72,12 +72,12 @@ void SystemTask::statusTaskImpl() {
 
     backlight.setBacklight(Backlight::backLightState::ON); // Turn on backlight    
 
-    xTimerStart(appTimer, 0);
-    xTimerStart(runTimer, 0);
-
     keyboard.init(); // Initialize the keyboard
 
     playBeep(RadioNS::Radio::BEEPType::BEEP_880HZ_200MS);
+
+    xTimerStart(appTimer, 0);
+    xTimerStart(runTimer, 0);
     for (;;) {
         // Wait for notifications or messages
         if (xQueueReceive(systemMessageQueue, &notification, pdMS_TO_TICKS(5)) == pdTRUE) {
@@ -91,7 +91,7 @@ void SystemTask::statusTaskImpl() {
 
         radio.checkRadioInterrupts(); // Check for radio interrupts
         radio.runDualWatch(); // Run dual watch
-        vTaskDelay(pdMS_TO_TICKS(1));
+        //vTaskDelay(pdMS_TO_TICKS(1));
     }
 }
 
@@ -130,6 +130,10 @@ void SystemTask::processSystemNotification(SystemMessages notification) {
         Keyboard::KeyCode key = notification.key;
         Keyboard::KeyState state = notification.state;
 
+        if (currentApp != Applications::Applications::None) {
+            currentApplication->action(key, state);
+        }
+
         if (state == Keyboard::KeyState::KEY_PRESSED || state == Keyboard::KeyState::KEY_LONG_PRESSED) {
             timeoutCount = 0;
             timeoutLightCount = 0;
@@ -140,11 +144,7 @@ void SystemTask::processSystemNotification(SystemMessages notification) {
             else {
                 pushMessage(SystemMSG::MSG_RADIO_TX, 0);
             }
-        }
-
-        if (currentApp != Applications::Applications::None) {
-            currentApplication->action(key, state);
-        }
+        }        
 
         break;
     }
@@ -194,8 +194,10 @@ void SystemTask::appTimerImpl(void) {
 
 void SystemTask::loadApplication(Applications::Applications app) {
     if (app == Applications::Applications::None) return;
-    xTimerStop(appTimer, 0);
+    taskENTER_CRITICAL();
+
     currentApp = Applications::Applications::None;
+    xTimerStop(appTimer, 0);
     switch (app) {
     case Applications::Applications::Welcome:
         currentApplication = &welcomeApp;
@@ -235,8 +237,9 @@ void SystemTask::loadApplication(Applications::Applications app) {
     }
     currentApp = app;
     currentApplication->init();
-    vTaskDelay(pdMS_TO_TICKS(10));
     xTimerStart(appTimer, 0);
+
+    taskEXIT_CRITICAL();
 }
 
 

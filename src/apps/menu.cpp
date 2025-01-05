@@ -9,7 +9,7 @@ using namespace Applications;
 
 void Menu::drawScreen(void) {
 
-    ui.lcd()->clearBuffer();
+    ui.clearDisplay();
 
     ui.setBlackColor();
 
@@ -29,6 +29,7 @@ void Menu::drawScreen(void) {
 
 void Menu::init(void) {
     menulist.set(0, 6, 120, "VFO A SETTINGS\nVFO B SETTINGS\nRADIO SETTINGS\nMESSENGER\nSCANNER\nABOUT");
+    drawScreen();
 }
 
 void Menu::update(void) {

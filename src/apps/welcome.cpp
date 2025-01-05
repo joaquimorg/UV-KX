@@ -10,7 +10,7 @@ using namespace Applications;
 
 void Welcome::drawScreen(void) {
 
-    ui.lcd()->clearBuffer();
+    ui.clearDisplay();
 
     ui.lcd()->setColorIndex(BLACK);
 
@@ -45,8 +45,7 @@ void Welcome::drawScreen(void) {
 }
 
 
-void Welcome::init(void) {
-    drawScreen();
+void Welcome::init(void) {    
 }
 
 void Welcome::update(void) {
