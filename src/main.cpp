@@ -84,7 +84,7 @@ void operator delete(void* ptr, size_t) noexcept {
 }
 */
 
-StackType_t systemTaskStack[configMINIMAL_STACK_SIZE + 100];
+StackType_t systemTaskStack[configMINIMAL_STACK_SIZE + 200];
 StaticTask_t systemTaskBuffer;
 
 int main(void) {

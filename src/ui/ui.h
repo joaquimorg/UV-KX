@@ -163,7 +163,11 @@ public:
         lcd()->setColorIndex(isBlack ? BLACK : WHITE);
         if (isFill) {
             //lcd()->drawRBox(xx, yy, ww, hh, 3);
-            lcd()->drawBox(xx, yy, ww, hh);
+            if (tAlign == TextAlign::CENTER) {
+                lcd()->drawBox(xstart, yy, xend - xstart, hh);
+            } else {
+                lcd()->drawBox(xx, yy, ww, hh);
+            }
             lcd()->setColorIndex(isBlack ? WHITE : BLACK);
         }
         else if (isBox) {
@@ -258,7 +262,7 @@ public:
         return pixels;
     }
 
-    void drawRSSI(uint8_t sLevel, uint16_t plusDB, u8g2_uint_t x, u8g2_uint_t y) {
+    void drawRSSI(uint8_t sLevel, /*uint16_t plusDB, */u8g2_uint_t x, u8g2_uint_t y) {
         draw_smeter(x, y, BLACK);
         setBlackColor();
 
@@ -271,12 +275,12 @@ public:
 
         // Draw dB bar if S level is greater than S9
         if (sLevel == 10) {
-            u8g2_uint_t dbStartX = x + 38;
+            /*u8g2_uint_t dbStartX = x + 38;
             u8g2_uint_t dbEndX = (u8g2_uint_t)(plusDB * 27 / 65); // Scale dB to fit within 27 pixels (38 to 65)
             if (dbEndX > 27) {
                 dbEndX = 27;
             }
-            lcd()->drawBox(dbStartX, y + 6, dbEndX, 4);
+            lcd()->drawBox(dbStartX, y + 6, dbEndX, 4);*/
         }
     }
 
@@ -286,6 +290,14 @@ public:
         // fill size 10
         uint8_t fill = (uint8_t)((level * 10) / 100);
         lcd()->drawBox(x + 1, y + 1, fill, 3);
+    }
+
+    int stringLengthNL(const char* str) {
+        int length = 0;
+        while (str[length] != '\n' && str[length] != '\0') {
+            ++length;
+        }
+        return length;
     }
 
 private:
@@ -338,8 +350,8 @@ public:
 
     void set(uint8_t startPos, uint8_t displayLines, uint8_t maxw, const char* sl, const char* sf = NULL) {
 
-        if (startPos > 0)
-            startPos--;
+        /*if (startPos > 0)
+            startPos--;*/
 
         u8sl.visible = displayLines;
 
@@ -394,15 +406,7 @@ private:
     const char* suffix;
     uint8_t maxWidth = 75;
     uint8_t startXPos = 2;
-    bool showLineNumbers = true;
-
-    int stringLengthNL(const char* str) {
-        int length = 0;
-        while (str[length] != '\n' && str[length] != '\0') {
-            ++length;
-        }
-        return length;
-    }
+    bool showLineNumbers = true;    
 
     u8g2_uint_t drawSelectionListLine(u8g2_uint_t y, uint8_t idx, const char* s) {
 
@@ -443,7 +447,7 @@ private:
             if (suffix == NULL) {                
                 ui.drawString(TextAlign::CENTER, startXPos, maxWidth, y, is_invert, true, false, s);
             } else {
-                ui.drawStringf(TextAlign::CENTER, startXPos, maxWidth, y, is_invert, true, false, "%.*s %s", stringLengthNL(s), s, suffix);
+                ui.drawStringf(TextAlign::CENTER, startXPos, maxWidth, y, is_invert, true, false, "%.*s %s", ui.stringLengthNL(s), s, suffix);
             }            
         }
 

@@ -15,6 +15,12 @@ namespace RadioNS
     class Radio {
     public:
 
+        enum class BatteryType : uint8_t {
+            BAT_1600 = 0,
+            BAT_2200 = 1,
+            BAT_3500 = 2,
+        };
+
         enum class TXOutputPower : uint8_t {
             TX_POWER_LOW = 0,
             TX_POWER_MID = 1,
@@ -46,9 +52,68 @@ namespace RadioNS
             NONE = 2
         };
 
+        enum class Step : uint8_t {
+            STEP_0_5kHz = 0,
+            STEP_1_0kHz = 1,
+            STEP_2_5kHz = 2,
+            STEP_5_0kHz = 3,
+            STEP_6_25kHz = 4,
+            STEP_10_0kHz = 5,
+            STEP_12_5kHz = 6,
+            STEP_15_0kHz = 7,
+            STEP_20_0kHz = 8,
+            STEP_25_0kHz = 9,
+            STEP_50_0kHz = 10,
+            STEP_100_0kHz = 11,
+            STEP_500_0kHz = 12,
+        };
+
+        enum class OffsetDirection : uint8_t {
+            OFFSET_NONE = 0,
+            OFFSET_PLUS = 1,
+            OFFSET_MINUS = 2,
+        };
+
+        enum class TXRX : uint8_t {
+            OFF = 0,
+            RX = 1,
+            TX = 2,
+            RX_TX = 3
+        };
+
+        enum class ONOFF : uint8_t {
+            OFF = 0,
+            ON = 1
+        };
+
+        enum class CodeType : uint8_t {
+            NONE = 0,
+            CT = 1,
+            DCS = 2,
+            NDCS = 3
+        };
+
+        /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+        static constexpr const char* codetypeStr = "NONE\nCT\nDCS\n-DCS";
+
+        static constexpr const char* txrxStr = "OFF\nRX\nTX\nRX/TX";
+
+        static constexpr const char* onoffStr = "OFF\nON";
+
+        static constexpr const char* powerStr = "LOW\nMID\nHIGH";
+
+        static constexpr const char* offsetStr = "OFF\n+\n-";
+
+        static constexpr const char* modulationStr = "FM\nAM\nLSB\nUSB\nBYP\nRAW\nWFM\nPRST";
+
+        static constexpr const char* bandwidthStr = "W 26\nW 23\nW 20\nW 17\nW 14\nW 12\nN 10\nN 9\nU 7\nU 6";
+
+        static constexpr const char* stepStr = "0.5\n1.0\n2.5\n5.0\n6.25\n10.0\n12.5\n15.0\n20.0\n25.0\n30.0\n50.0\n100.0\n500.0";
+
         struct FREQ {
             uint32_t frequency : 27;
-            uint8_t codeType : 4;
+            CodeType codeType : 4;
             uint8_t code;
         } __attribute__((packed)); // 5 Bytes
 
@@ -57,9 +122,18 @@ namespace RadioNS
             FREQ tx;
             char name[11];
             int16_t channel;
+            uint8_t squelch : 4;
+            Step step : 4;
             ModType modulation : 4;
-            BK4819_Filter_Bandwidth bw : 2;
+            BK4819_Filter_Bandwidth bw : 4;
             TXOutputPower power : 2;
+            OffsetDirection shift : 2;
+            ONOFF repeaterSte : 1;
+            ONOFF ste : 1;
+            TXRX compander : 2;
+            uint8_t pttid : 4;
+            uint8_t afc : 4;
+            uint8_t rxagc : 4;
         } __attribute__((packed));
 
         VFO radioVFO[2];
@@ -85,6 +159,10 @@ namespace RadioNS
         // get VFO
         VFO getActiveVFO() { return radioVFO[(uint8_t)activeVFO]; };
         VFO getVFO(VFOAB vfo) { return radioVFO[(uint8_t)vfo]; };
+        void setVFO(VFOAB vfoab, VFO vfo) { 
+            radioVFO[(uint8_t)vfoab] = vfo;
+            setupToVFO(vfoab);
+        };
         // get active VFO
         VFOAB getCurrentVFO(void) { return activeVFO; };
 
@@ -133,15 +211,6 @@ namespace RadioNS
 
             return "";
         }
-
-
-        /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-        static constexpr const char* powerStr = "LOW\nMID\nHIGH";
-
-        static constexpr const char* modulationStr = "FM\nAM\nLSB\nUSB\nBYP\nRAW\nWFM\nPRST";
-
-        static constexpr const char* bandwidthStr = "25k\n12.5k\n6.25k";
 
     private:
         System::SystemTask& systask;

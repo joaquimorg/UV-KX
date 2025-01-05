@@ -9,13 +9,13 @@ using namespace Applications;
 
 void MainVFO::drawScreen(void) {
 
-    RadioNS::Radio::VFOAB activeVFOA = radio.getCurrentVFO();
-    RadioNS::Radio::VFOAB activeVFOB = activeVFOA == RadioNS::Radio::VFOAB::VFOA ? RadioNS::Radio::VFOAB::VFOB : RadioNS::Radio::VFOAB::VFOA;
+    RadioNS::Radio::VFOAB activeVFO1 = radio.getCurrentVFO();
+    RadioNS::Radio::VFOAB activeVFO2 = activeVFO1 == RadioNS::Radio::VFOAB::VFOA ? RadioNS::Radio::VFOAB::VFOB : RadioNS::Radio::VFOAB::VFOA;
 
-    RadioNS::Radio::VFO vfoA = radio.getVFO(activeVFOA);
-    RadioNS::Radio::VFO vfoB = radio.getVFO(activeVFOB);
-
-    //char key = '-';
+    RadioNS::Radio::VFO vfo1 = radio.getVFO(activeVFO1);
+    RadioNS::Radio::VFO vfo2 = radio.getVFO(activeVFO2);
+    bool rxVFO1 = (radio.getState() == RadioNS::Radio::RadioState::RX_ON && activeVFO1 == radio.getRXVFO());
+    bool rxVFO2 = (radio.getState() == RadioNS::Radio::RadioState::RX_ON && activeVFO2 == radio.getRXVFO());
 
     ui.lcd()->clearBuffer();
 
@@ -24,79 +24,60 @@ void MainVFO::drawScreen(void) {
     ui.lcd()->drawBox(0, 0, 128, 7);
 
     ui.setFont(Font::FONT_8B_TR);
-    ui.drawString(TextAlign::LEFT, 2, 0, 6, false, false, false, vfoA.name);
+    ui.drawString(TextAlign::LEFT, 1, 0, 6, false, false, false, vfo1.name);
+
     ui.setFont(Font::FONT_8_TR);
     ui.lcd()->setColorIndex(BLACK);
-    //ui.lcd()->drawStr(12, 14, "VFO");
+    ui.drawString(TextAlign::LEFT, 12, 0, 14, true, false, false, "VFO");
 
     ui.setFont(Font::FONT_5_TR);
-    ui.drawString(TextAlign::RIGHT, 0, 126, 6, false, false, false, ui.getStrValue(RadioNS::Radio::powerStr, (uint8_t)vfoA.power));
-    ui.drawString(TextAlign::RIGHT, 0, 106, 6, false, false, false, ui.getStrValue(RadioNS::Radio::bandwidthStr, (uint8_t)vfoA.bw));
-    ui.drawString(TextAlign::RIGHT, 0, 84, 6, false, false, false, ui.getStrValue(RadioNS::Radio::modulationStr, (uint8_t)vfoA.modulation));
-
+    const char* powerA = ui.getStrValue(RadioNS::Radio::powerStr, (uint8_t)vfo1.power);
+    const char* bandwidthA = ui.getStrValue(RadioNS::Radio::bandwidthStr, (uint8_t)vfo1.bw);
+    const char* modulationA = ui.getStrValue(RadioNS::Radio::modulationStr, (uint8_t)vfo1.modulation);
+    
+    ui.drawStringf(TextAlign::RIGHT, 0, 127, 6, false, false, false, "%.*s %.*sK %.*s", ui.stringLengthNL(modulationA), modulationA, ui.stringLengthNL(bandwidthA), bandwidthA, ui.stringLengthNL(powerA), powerA);
+    
     //ui.drawStringf(TextAlign::RIGHT, 0, 126, 26, true, false, false, "%s %s %s", "12.5K", "TX 131.8", "RX D023N");
-    ui.drawStringf(TextAlign::RIGHT, 0, 126, 26, true, false, false, "%s %s %s", "12.5K", "", "");
+    ui.drawStringf(TextAlign::RIGHT, 0, 126, 26, true, false, false, "%s %s %s", "", "", "");
 
     ui.lcd()->setColorIndex(BLACK);
     ui.lcd()->drawLine(5, 9, 5, 25);
 
     ui.setFont(Font::FONT_8B_TR);
-    //ui.lcd()->drawStr(2, 14, "A");
-    ui.drawStringf(TextAlign::LEFT, 2, 0, 20, true, true, false, "%s", activeVFOA == RadioNS::Radio::VFOAB::VFOA ? "A" : "B");
+    ui.drawStringf(TextAlign::LEFT, 2, 0, 20, true, true, false, "%s", activeVFO1 == RadioNS::Radio::VFOAB::VFOA ? "A" : "B");
 
-    if (radio.getState() == RadioNS::Radio::RadioState::RX_ON && activeVFOA == radio.getRXVFO()) {
-        //ui.lcd()->drawStr(2, 20, "RX");
+    if (rxVFO1) {
         ui.drawString(TextAlign::LEFT, 12, 0, 20, true, true, false, "RX");
     }
-    ui.drawFrequencyBig((radio.getState() == RadioNS::Radio::RadioState::RX_ON && activeVFOA == radio.getRXVFO()), vfoA.rx.frequency, 113, 19);
+                                     
+    ui.drawFrequencyBig(rxVFO1, vfo1.rx.frequency, 115, 19);
 
     uint8_t vfoBY = 29;
     ui.lcd()->setColorIndex(BLACK);
     ui.lcd()->drawLine(5, vfoBY, 5, vfoBY + 3);
     ui.lcd()->drawLine(5, vfoBY + 12, 5, vfoBY + 14);
     ui.setFont(Font::FONT_8B_TR);
-    //ui.lcd()->drawStr(2, 38, "B");
-    ui.drawStringf(TextAlign::LEFT, 2, 0, vfoBY + 10, true, false, true, "%s", activeVFOB == RadioNS::Radio::VFOAB::VFOB ? "B" : "A");
-    ui.drawFrequencySmall((radio.getState() == RadioNS::Radio::RadioState::RX_ON && activeVFOB == radio.getRXVFO()), vfoB.rx.frequency, 126, vfoBY + 8);
-    //ui.drawFrequencyBig(143932500, 110, 40);
+    ui.drawStringf(TextAlign::LEFT, 2, 0, vfoBY + 10, true, false, true, "%s", activeVFO2 == RadioNS::Radio::VFOAB::VFOB ? "B" : "A");
+    ui.drawFrequencySmall(rxVFO2, vfo2.rx.frequency, 128, vfoBY + 8);
 
-    ui.setFont(Font::FONT_8_TR);
-    
-    //ui.drawString(TextAlign::LEFT, 12, 0, vfoBY + 5, true, (radio.getState() == RadioNS::Radio::RadioState::RX_ON && activeVFOB == radio.getRXVFO()), false, vfoB.name);
-    //ui.drawString(TextAlign::LEFT, 12, 0, vfoBY + 15, true, false, false, "VFO");
-    
-    ui.drawString(TextAlign::LEFT, 14, 0, vfoBY + 10, true, (radio.getState() == RadioNS::Radio::RadioState::RX_ON && activeVFOB == radio.getRXVFO()), false, vfoB.name);        
+    ui.lcd()->setColorIndex(BLACK);
+    ui.setFont(Font::FONT_8_TR);    
+    ui.drawString(TextAlign::LEFT, 12, 0, vfoBY + 5, true, rxVFO2, false, vfo2.name);
+
+    if (rxVFO2) {
+        ui.setFont(Font::FONT_8B_TR);
+        ui.drawString(TextAlign::LEFT, 12, 0, vfoBY + 15, true, true, false, "RX");
+    } else {    
+        ui.drawString(TextAlign::LEFT, 12, 0, vfoBY + 15, true, false, false, "VFO");   
+    }
 
     ui.setFont(Font::FONT_5_TR);
-    //ui.drawStringf(TextAlign::RIGHT, 0, 126, vfoBY + 15, true, false, false, "%s %s %s", ui.getStrValue(RadioNS::Radio::modulationStr, (uint8_t)vfoB.modulation), ui.getStrValue(RadioNS::Radio::bandwidthStr, (uint8_t)vfoB.bw), ui.getStrValue(RadioNS::Radio::powerStr, (uint8_t)vfoB.power));
-
-    ui.drawString(TextAlign::RIGHT, 0, 126, vfoBY + 15, true, false, false, ui.getStrValue(RadioNS::Radio::powerStr, (uint8_t)vfoB.power));
-    ui.drawString(TextAlign::RIGHT, 0, 106, vfoBY + 15, true, false, false, ui.getStrValue(RadioNS::Radio::bandwidthStr, (uint8_t)vfoB.bw));
-    ui.drawString(TextAlign::RIGHT, 0, 84, vfoBY + 15, true, false, false, ui.getStrValue(RadioNS::Radio::modulationStr, (uint8_t)vfoB.modulation));
-
-    /*if ((radio.getState() == RadioNS::Radio::RadioState::RX_ON && activeVFOB == radio.getRXVFO())) {
-        ui.setFont(Font::FONT_8B_TR);
-        ui.drawString(TextAlign::LEFT, 2, 0, 48, true, true, false, "RX");
-    } else {
-
-    }*/
-
-
-
-    /*ui.lcd()->setColorIndex(BLACK);
-    ui.setFont(Font::FONT_8_TR);
-    ui.lcd()->drawStr(2, 50, "C");
-    ui.drawFrequencySmall(143865000, 126, 50);*/
-
-    //ui.setFont(Font::FONT_8B_TR);
-    //ui.drawString(TextAlign::LEFT, 10, 0, 62, true, false, false, "M049 LISBOA1234");
-
-    //ui.lcd()->setColorIndex(BLACK);
-
-    //ui.drawStrf(10, 30, "BATT : %u.%02uV - %3i%%", systask.getBattery().getBatteryVoltageAverage() / 100, systask.getBattery().getBatteryVoltageAverage() % 100, systask.getBattery().getBatteryPercentage());
-
-    /*ui.setFont(Font::FONT_5_TR);
-    ui.drawStrf(5, 63, "%i", getElapsedMilliseconds());*/
+    
+    const char* powerB = ui.getStrValue(RadioNS::Radio::powerStr, (uint8_t)vfo2.power);
+    const char* bandwidthB = ui.getStrValue(RadioNS::Radio::bandwidthStr, (uint8_t)vfo2.bw);
+    const char* modulationB = ui.getStrValue(RadioNS::Radio::modulationStr, (uint8_t)vfo2.modulation);
+    
+    ui.drawStringf(TextAlign::RIGHT, 0, 128, vfoBY + 15, true, false, false, "%.*s %.*sK %.*s", ui.stringLengthNL(modulationB), modulationB, ui.stringLengthNL(bandwidthB), bandwidthB, ui.stringLengthNL(powerB), powerB);
 
     showRSSI();
 
@@ -114,8 +95,11 @@ void MainVFO::drawScreen(void) {
         ui.drawStringf(TextAlign::RIGHT, 0, 120, 57, true, true, false, "F");
     }
     else {
-        ui.drawStringf(TextAlign::RIGHT, 0, 128, 58, true, false, false, "A/B");
-        //ui.drawString(TextAlign::RIGHT, 0, 128, 58, true, false, false, activeVFOA == RadioNS::Radio::VFOAB::VFOA ? "A" : "B");
+        if (radio.getState() == RadioNS::Radio::RadioState::RX_ON) {
+            ui.drawString(TextAlign::RIGHT, 0, 128, 58, true, false, false, activeVFO1 == radio.getRXVFO() ? "A" : "B");
+        } else {
+            ui.drawStringf(TextAlign::RIGHT, 0, 128, 58, true, false, false, "A/B");
+        }
     }
 
     if (showPopup) {
@@ -136,13 +120,13 @@ void MainVFO::showRSSI(void) {
             plusDB = radio.convertRSSIToPlusDB(rssi_dBm); // Convert to +dB value if greater than S9
         }
 
-        ui.drawRSSI(sValue, plusDB, 10, 52);
+        ui.drawRSSI(sValue, /*plusDB, */12, 52);
 
-        ui.setFont(Font::FONT_5_TR);
+        ui.setFont(Font::FONT_8_TR);
         if (sValue > 0) {
             if (sValue == 10) {
                 ui.drawString(TextAlign::LEFT, 0, 0, 59, true, false, false, "S9");
-                ui.drawStringf(TextAlign::CENTER, 48, 75, 57, true, false, false, "+%idB", plusDB);
+                ui.drawStringf(TextAlign::CENTER, 48, 70, 59, true, false, false, "+%idB", plusDB);
             }
             else {
                 ui.drawStringf(TextAlign::LEFT, 0, 0, 59, true, false, false, "S%i", sValue);
@@ -219,7 +203,7 @@ void MainVFO::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
         }
 
         if (keyCode == Keyboard::KeyCode::KEY_4) {
-            popupList.set((uint8_t)vfo.bw, 3, 0, RadioNS::Radio::bandwidthStr);
+            popupList.set((uint8_t)vfo.bw, 3, 0, RadioNS::Radio::bandwidthStr, "K");
             popupList.setPopupTitle("BANDWIDTH");
             showPopup = true;
         }

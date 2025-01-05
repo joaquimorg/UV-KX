@@ -2,6 +2,7 @@
 
 #include "apps.h"
 #include "radio.h"
+#include "settings.h"
 #include "ui.h"
 
 namespace Applications
@@ -9,8 +10,8 @@ namespace Applications
 
     class SetVFO : public Application {
     public:
-        SetVFO(System::SystemTask& systask, UI& ui, RadioNS::Radio::VFOAB vfoab)
-            : Application(systask, ui), menulist(ui), optionlist(ui), vfoab{ vfoab } {
+        SetVFO(System::SystemTask& systask, UI& ui, RadioNS::Radio::VFOAB vfoab, Settings& settings, RadioNS::Radio& radio)
+            : Application(systask, ui), menulist(ui), optionlist(ui), vfoab{ vfoab }, settings{ settings }, radio{ radio } {
         }
 
         void drawScreen(void);
@@ -21,11 +22,18 @@ namespace Applications
 
     private:
         SelectionList menulist;
-
         SelectionListPopup optionlist;
 
         RadioNS::Radio::VFOAB vfoab;
+        Settings& settings;
+        RadioNS::Radio& radio;
+
+        RadioNS::Radio::VFO vfo;
+
         uint8_t optionSelected = 0;
+
+        void loadOptions();
+        void setOptions();
 
     };
 

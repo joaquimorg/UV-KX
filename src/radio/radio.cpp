@@ -71,9 +71,19 @@ void Radio::setVFO(VFOAB vfo, uint32_t rx, uint32_t tx, int16_t channel, ModType
     radioVFO[vfoIndex].rx.frequency = (uint32_t)(rx & 0x07FFFFFF);;
     radioVFO[vfoIndex].tx.frequency = (uint32_t)(tx & 0x07FFFFFF);;
     radioVFO[vfoIndex].channel = channel;
+    radioVFO[vfoIndex].squelch = 1;
+    radioVFO[vfoIndex].step = Step::STEP_12_5kHz;
     radioVFO[vfoIndex].modulation = modulation;
-    radioVFO[vfoIndex].bw = BK4819_Filter_Bandwidth::BK4819_FILTER_BW_NARROW;
+    radioVFO[vfoIndex].bw = BK4819_Filter_Bandwidth::BK4819_FILTER_BW_20k;
     radioVFO[vfoIndex].power = TXOutputPower::TX_POWER_HIGH;
+    radioVFO[vfoIndex].shift = OffsetDirection::OFFSET_NONE;
+    radioVFO[vfoIndex].repeaterSte = ONOFF::OFF;
+    radioVFO[vfoIndex].ste = ONOFF::OFF;
+    radioVFO[vfoIndex].compander = TXRX::OFF;
+    radioVFO[vfoIndex].pttid = 0;
+    radioVFO[vfoIndex].afc = 0;
+    radioVFO[vfoIndex].rxagc = 0;
+
     if (channel > 0) {
         snprintf(radioVFO[vfoIndex].name, sizeof(radioVFO[vfoIndex].name), "CH-%03d", channel);
     }

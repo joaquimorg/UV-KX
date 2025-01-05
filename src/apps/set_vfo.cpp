@@ -31,7 +31,7 @@ void SetVFO::drawScreen(void) {
 }
 
 void SetVFO::init(void) {
-    menulist.set(0, 6, 80, "SQUELCH\nSTEP\nMODE\nBANDWIDTH\nTX POWER\nSHIFT\nOFFSET\nRX CTCS\nTX CTCS\nRX DTCS\nTX DTCS\nTX STE\nRX STE\nCOMPANDER\nPTT ID\nAFC\nRX ACG");
+    menulist.set(0, 6, 90, "SQUELCH\nSTEP\nMODE\nBANDWIDTH\nTX POWER\nSHIFT\nOFFSET\nRX CODE TYPE\nRX CODE\nTX CODE TYPE\nTX CODE\nTX STE\nRX STE\nCOMPANDER\nPTT ID\nAFC\nRX ACG");
 }
 
 void SetVFO::update(void) {
@@ -41,10 +41,127 @@ void SetVFO::update(void) {
 void SetVFO::timeout(void) {
     if (optionSelected == 0) {
         systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::MainVFO);
-    } else {
+    }
+    else {
         optionSelected = 0;
     }
 };
+
+void SetVFO::loadOptions() {
+    switch (optionSelected) {
+    case 1: // SQUELCH
+        optionlist.set((uint8_t)vfo.squelch, 5, 0, "OFF\n1\n2\n3\n4\n5\n6\n7\n8\n9");
+        break;
+    case 2: // STEP
+        optionlist.set((uint8_t)vfo.step, 5, 0, RadioNS::Radio::stepStr, "KHz");
+        break;
+    case 3: // MODE
+        optionlist.set((uint8_t)vfo.modulation, 5, 0, RadioNS::Radio::modulationStr);
+        break;
+    case 4: // BANDWIDTH
+        optionlist.set((uint8_t)vfo.bw, 5, 0, RadioNS::Radio::bandwidthStr, "K");
+        break;
+    case 5: // TX POWER
+        optionlist.set((uint8_t)vfo.power, 5, 0, RadioNS::Radio::powerStr);
+        break;
+    case 6: // SHIFT
+        optionlist.set((uint8_t)vfo.shift, 3, 0, RadioNS::Radio::offsetStr);
+        break;
+    case 7: // OFFSET
+        optionlist.set(0, 5, 0, "0.0\n1.6\n2.5\n3.0", "KHz");
+        break;
+    case 8: // RX CODE TYPE
+        optionlist.set((uint8_t)vfo.rx.codeType, 5, 0, RadioNS::Radio::codetypeStr);
+        break;
+    case 10: // TX CODE TYPE
+        optionlist.set((uint8_t)vfo.tx.codeType, 5, 0, RadioNS::Radio::codetypeStr);
+        break;
+    case 9: // RX CODE
+        optionlist.set((uint8_t)vfo.rx.code, 5, 0, "1\n2\n3\n4");
+        break;
+    case 11: // TX CODE
+        optionlist.set((uint8_t)vfo.tx.code, 5, 0, "1\n2\n3\n4");
+        break;
+    case 12: // TX STE
+        optionlist.set((uint8_t)vfo.repeaterSte, 5, 0, RadioNS::Radio::onoffStr);
+        break;
+    case 13: // RX STE
+        optionlist.set((uint8_t)vfo.ste, 5, 0, RadioNS::Radio::onoffStr);
+        break;
+    case 14: // COMPANDER
+        optionlist.set((uint8_t)vfo.compander, 5, 0, RadioNS::Radio::txrxStr);
+        break;
+    case 15: // PTT ID
+        optionlist.set((uint8_t)vfo.pttid, 5, 0, "0\n1");
+        break;
+    case 16: // AFC
+        optionlist.set((uint8_t)vfo.afc, 5, 0, "0\n1");
+        break;
+    case 17: // RX ACG
+        optionlist.set((uint8_t)vfo.rxagc, 5, 0, "0\n1");
+        break;
+    default:
+        break;
+    }
+}
+
+void SetVFO::setOptions() {
+    uint8_t optionlistSelected = optionlist.getListPos();
+    switch (optionSelected) {
+    case 1: // SQUELCH
+        vfo.squelch = optionlistSelected & 0xF;
+        break;
+    case 2: // STEP
+        vfo.step = (RadioNS::Radio::Step)optionlistSelected;
+        break;
+    case 3: // MODE
+        vfo.modulation = (ModType)optionlistSelected;
+        break;
+    case 4: // BANDWIDTH
+        vfo.bw = (BK4819_Filter_Bandwidth)optionlistSelected;
+        break;
+    case 5: // TX POWER
+        vfo.power = (RadioNS::Radio::TXOutputPower)optionlistSelected;
+        break;
+    case 6: // SHIFT
+        vfo.shift = (RadioNS::Radio::OffsetDirection)optionlistSelected;
+        break;
+    case 7: // OFFSET        
+        break;
+    case 8: // RX CODE TYPE
+        vfo.rx.codeType = (RadioNS::Radio::CodeType)optionlistSelected;
+        break;
+    case 10: // TX CODE TYPE
+        vfo.tx.codeType = (RadioNS::Radio::CodeType)optionlistSelected;
+        break;
+    case 9: // RX CODE
+        vfo.rx.code = optionlistSelected;
+        break;
+    case 11: // TX CODE
+        vfo.tx.code = optionlistSelected;
+        break;
+    case 12: // TX STE
+        vfo.repeaterSte = (RadioNS::Radio::ONOFF)optionlistSelected;
+        break;
+    case 13: // RX STE
+        vfo.ste = (RadioNS::Radio::ONOFF)optionlistSelected;
+        break;
+    case 14: // COMPANDER
+        vfo.compander = (RadioNS::Radio::TXRX)optionlistSelected;
+        break;
+    case 15: // PTT ID
+        vfo.pttid = optionlistSelected & 0xF;
+        break;
+    case 16: // AFC
+        vfo.afc = optionlistSelected & 0xF;
+        break;
+    case 17: // RX ACG
+        vfo.rxagc = optionlistSelected & 0xF;
+        break;
+    default:
+        break;
+    }
+}
 
 void SetVFO::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
 
@@ -58,39 +175,15 @@ void SetVFO::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
                 menulist.next();
             }
             else if (keyCode == Keyboard::KeyCode::KEY_EXIT) {
+                // TODO : save ???                
+                
                 systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::MainVFO);
             }
 
             if (keyCode == Keyboard::KeyCode::KEY_MENU) {
+                vfo = radio.getVFO(vfoab);
                 optionSelected = menulist.getListPos() + 1;
-                switch (optionSelected) {
-                case 1: // SQUELCH
-                    optionlist.set(0, 5, 0, "OFF\n1\n2\n3\n4\n5\n6\n7\n8\n9");                    
-                    break;
-                case 2: // STEP
-                    optionlist.set(0, 5, 0, "0.5\n1.0\n2.5\n5.0\n6.25\n10.0\n12.5\n15.0\n20.0\n25.0\n30.0\n50.0\n100.0\n500.0", "KHz");                    
-                    break;
-                case 3: // MODE
-                    optionlist.set(0, 5, 0, RadioNS::Radio::modulationStr);                    
-                    break;
-                case 4: // BANDWIDTH
-                    optionlist.set(0, 5, 0, RadioNS::Radio::bandwidthStr);                    
-                    break;
-                case 5: // TX POWER
-                    optionlist.set(0, 5, 0, RadioNS::Radio::powerStr);                    
-                    break;
-                case 6: // SHIFT
-                    optionlist.set(0, 3, 0, "OFF\n+\n-");                    
-                    break;
-                case 7: // OFFSET
-                    //optionlist.set(0, 5, 0, "0.0\n1.6\n2.5\n3.0\n5.0\n6.0\n7.6\n8.0\n9.0\n10.0\n12.5\n15.0\n20.0\n25.0\n30.0\n50.0\n100.0\n500.0", "KHz");                    
-                    break;
-                case 8: // RX CTCS
-                    optionlist.set(0, 5, 0, "OFF\n67.0\n69.3\n71.9\n74.4\n77.0\n79.7\n82.5\n85.4\n88.5\n91.5\n94.8\n97.4\n100.0\n103.5\n107.2\n110.9\n114.8\n118.8\n123.0\n127.3\n131.8\n136.5\n141.3\n146.2\n151.4\n156.7\n162.2\n167.9\n173.8\n179.9\n186.2\n192.8\n203.5\n210.7\n218.1\n225.7\n233.6\n241.8\n250.3\n254.1", "Hz");
-                    break;
-                default:
-                    break;
-                }
+                loadOptions();
                 optionlist.setPopupTitle(menulist.getStringLine());
             }
         }
@@ -103,7 +196,10 @@ void SetVFO::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
             }
             else if (keyCode == Keyboard::KeyCode::KEY_EXIT) {
                 optionSelected = 0;
-            } else if (keyCode == Keyboard::KeyCode::KEY_MENU) {
+            }
+            else if (keyCode == Keyboard::KeyCode::KEY_MENU) {
+                setOptions();
+                radio.setVFO(vfoab, vfo);
                 optionSelected = 0;
             }
         }

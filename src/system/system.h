@@ -54,8 +54,8 @@ namespace System
             welcomeApp(*this, ui),
             mainVFOApp(*this, ui, radio),
             menuApp(*this, ui),
-            setVFOAApp(*this, ui, RadioNS::Radio::VFOAB::VFOA),
-            setVFOBApp(*this, ui, RadioNS::Radio::VFOAB::VFOB),
+            setVFOAApp(*this, ui, RadioNS::Radio::VFOAB::VFOA, settings, radio),
+            setVFOBApp(*this, ui, RadioNS::Radio::VFOAB::VFOB, settings, radio),
             setRadioApp(*this, ui)
         {
             initSystem(); // Initialize system

@@ -18,23 +18,30 @@ enum class ModType : uint8_t {
 };
 
 enum class BK4819_Filter_Bandwidth : uint8_t {
-    BK4819_FILTER_BW_WIDE = 0,
-    BK4819_FILTER_BW_NARROW = 1,
-    BK4819_FILTER_BW_NARROWER = 2
+    BK4819_FILTER_BW_26k = 0,   //	"W 26k",	//0
+	BK4819_FILTER_BW_23k = 1,   //  "W 23k",	//1
+	BK4819_FILTER_BW_20k = 2,   //  "W 20k",	//2
+	BK4819_FILTER_BW_17k = 3,   //  "W 17k",	//3
+	BK4819_FILTER_BW_14k = 4,   //  "W 14k",	//4
+	BK4819_FILTER_BW_12k = 5,   //  "W 12k",	//5
+	BK4819_FILTER_BW_10k = 6,   //  "N 10k",	//6
+	BK4819_FILTER_BW_9k  = 7,   //  "N 9k",		//7
+	BK4819_FILTER_BW_7k  = 8,   //  "U 7K",		//8
+	BK4819_FILTER_BW_6k  = 9    //  "U 6K"		//9
 };
 
 // Enum class for BK4819 Audio Filter values
 enum class BK4819_AF : uint16_t {
-    MUTE = 0x0000, // BK4819_AF_MUTE
-    FM = 0x0001, // BK4819_AF_FM
-    ALAM = 0x0002, // BK4819_AF_ALAM (tone)
-    BEEP = 0x0003, // BK4819_AF_BEEP (for tx)
-    RAW = 0x0004, // BK4819_AF_RAW (SSB without IF filter)
-    USB = 0x0005, // BK4819_AF_USB (LSB and USB at the same time)
-    CTCO = 0x0006, // BK4819_AF_CTCO (CTCSS/DCS filter)
-    AM = 0x0007, // BK4819_AF_AM
-    FSKO = 0x0008, // BK4819_AF_FSKO (FSK output test)
-    BYPASS = 0x0009  // BK4819_AF_BYPASS (FM without filter)
+    MUTE    = 0x0000, // BK4819_AF_MUTE
+    FM      = 0x0001, // BK4819_AF_FM
+    ALAM    = 0x0002, // BK4819_AF_ALAM (tone)
+    BEEP    = 0x0003, // BK4819_AF_BEEP (for tx)
+    RAW     = 0x0004, // BK4819_AF_RAW (SSB without IF filter)
+    USB     = 0x0005, // BK4819_AF_USB (LSB and USB at the same time)
+    CTCO    = 0x0006, // BK4819_AF_CTCO (CTCSS/DCS filter)
+    AM      = 0x0007, // BK4819_AF_AM
+    FSKO    = 0x0008, // BK4819_AF_FSKO (FSK output test)
+    BYPASS  = 0x0009  // BK4819_AF_BYPASS (FM without filter)
 };
 
 enum class SquelchType {
@@ -247,7 +254,6 @@ public:
         if (bandwidth > 9)
             return;
 
-        bandwidth = 8;
         // REG_43
         // <15>    0 ???
         //
