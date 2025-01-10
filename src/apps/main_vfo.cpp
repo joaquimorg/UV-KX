@@ -103,7 +103,7 @@ void MainVFO::drawScreen(void) {
     }
 
     if (showPopup) {
-        popupList.drawPopup();
+        popupList.drawPopup(ui);
     }
 
     ui.updateDisplay();

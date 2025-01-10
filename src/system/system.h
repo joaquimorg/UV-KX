@@ -65,6 +65,9 @@ namespace System
         void pushMessage(SystemMSG msg, uint32_t value);
         void pushMessageKey(Keyboard::KeyCode key, Keyboard::KeyState state);
         bool wasFKeyPressed() const { return keyboard.wasFKeyPressed(); };
+        void setActionTimeout( uint16_t timeout ) {
+            actionTimeout = timeout;
+        }
 
         Battery getBattery() { return battery; }
 
@@ -119,7 +122,7 @@ namespace System
         Applications::Application* currentApplication;
         Applications::Applications currentApp = Applications::Applications::None;
 
-        static constexpr uint16_t actionTimeout = 5; // Timeout for action 5 seconds
+        uint16_t actionTimeout = 2; // Timeout for action 2 seconds
         uint16_t backlightTimeout = 30; // Timeout for backlight 30 seconds default
         uint16_t timeoutCount = 0;
         uint16_t timeoutLightCount = 0;

@@ -24,7 +24,11 @@ void SetVFO::drawScreen(void) {
     menulist.draw(15);
 
     if (optionSelected != 0) {
-        optionlist.drawPopup(true);
+        optionlist.drawPopup(ui, true);
+    }
+    if (userOptionSelected != 0) {
+        // display user input
+        ui.drawPopupWindow(36, 15, 90, 34, menulist.getStringLine());
     }
 
     ui.updateDisplay();
@@ -39,11 +43,13 @@ void SetVFO::update(void) {
 }
 
 void SetVFO::timeout(void) {
-    if (optionSelected == 0) {
+    if (optionSelected == 0 && userOptionSelected == 0) {
         systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::MainVFO);
     }
     else {
-        optionSelected = 0;
+        //optionSelected = 0;
+        //userOptionSelected = 0;
+        inputSelect = 0;
     }
 };
 
@@ -68,7 +74,7 @@ void SetVFO::loadOptions() {
         optionlist.set((uint8_t)vfo.shift, 3, 0, RadioNS::Radio::offsetStr);
         break;
     case 7: // OFFSET
-        optionlist.set(0, 5, 0, "0.0\n1.6\n2.5\n3.0", "KHz");
+        userOptionInput = uint32_t(vfo.rx.frequency - vfo.tx.frequency);
         break;
     case 8: // RX CODE TYPE
         optionlist.set((uint8_t)vfo.rx.codeType, 5, 0, RadioNS::Radio::codetypeStr);
@@ -126,7 +132,13 @@ void SetVFO::setOptions() {
     case 6: // SHIFT
         vfo.shift = (RadioNS::Radio::OffsetDirection)optionlistSelected;
         break;
-    case 7: // OFFSET        
+    case 7: // OFFSET
+        if (vfo.shift == RadioNS::Radio::OffsetDirection::OFFSET_PLUS) {
+            vfo.tx.frequency = static_cast<unsigned int>(vfo.rx.frequency + userOptionInput) & 0x7FFFFFF;
+        }
+        else if (vfo.shift == RadioNS::Radio::OffsetDirection::OFFSET_MINUS) {
+            vfo.tx.frequency = static_cast<unsigned int>(vfo.rx.frequency - userOptionInput) & 0x7FFFFFF;
+        }
         break;
     case 8: // RX CODE TYPE
         vfo.rx.codeType = (RadioNS::Radio::CodeType)optionlistSelected;
@@ -164,9 +176,10 @@ void SetVFO::setOptions() {
 }
 
 void SetVFO::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
+    uint8_t optionListSelected = 0;
 
     if (keyState == Keyboard::KeyState::KEY_PRESSED || keyState == Keyboard::KeyState::KEY_LONG_PRESSED_CONT) {
-        if (optionSelected == 0) {
+        if (optionSelected == 0 && userOptionSelected == 0) {
 
             if (keyCode == Keyboard::KeyCode::KEY_UP) {
                 menulist.prev();
@@ -176,31 +189,64 @@ void SetVFO::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
             }
             else if (keyCode == Keyboard::KeyCode::KEY_EXIT) {
                 // TODO : save ???                
-                
+
                 systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::MainVFO);
             }
 
             if (keyCode == Keyboard::KeyCode::KEY_MENU) {
+                inputSelect = 0;
                 vfo = radio.getVFO(vfoab);
-                optionSelected = menulist.getListPos() + 1;
+                optionListSelected = menulist.getListPos() + 1;
+                if (optionListSelected == 7) {
+                    // not a list, user input
+                    if (vfo.shift == RadioNS::Radio::OffsetDirection::OFFSET_NONE) {
+                        systask.pushMessage(System::SystemTask::SystemMSG::MSG_PLAY_BEEP, (uint32_t)RadioNS::Radio::BEEPType::BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL);
+                    }
+                    else {
+                        userOptionSelected = optionListSelected;
+                    }
+                }
+                else {
+                    optionSelected = optionListSelected;
+                    optionlist.setPopupTitle(menulist.getStringLine());
+                }
                 loadOptions();
-                optionlist.setPopupTitle(menulist.getStringLine());
             }
+
+            if (keyCode >= Keyboard::KeyCode::KEY_0 && keyCode <= Keyboard::KeyCode::KEY_9) {
+                inputSelect = (inputSelect == 0) ? ui.keycodeToNumber(keyCode) : (uint8_t)((inputSelect * 10) + ui.keycodeToNumber(keyCode));
+
+                if (inputSelect > menulist.getTotal()) {
+                    inputSelect = 0;
+                }
+                else {
+                    menulist.setCurrentPos(inputSelect - 1);
+                    menulist.next();
+                    menulist.prev();
+                }
+            }
+
         }
         else {
             if (keyCode == Keyboard::KeyCode::KEY_UP) {
-                optionlist.prev();
+                if (optionSelected != 0) {
+                    optionlist.prev();
+                }
             }
             else if (keyCode == Keyboard::KeyCode::KEY_DOWN) {
-                optionlist.next();
+                if (optionSelected != 0) {
+                    optionlist.next();
+                }
             }
             else if (keyCode == Keyboard::KeyCode::KEY_EXIT) {
                 optionSelected = 0;
+                userOptionSelected = 0;
             }
             else if (keyCode == Keyboard::KeyCode::KEY_MENU) {
                 setOptions();
                 radio.setVFO(vfoab, vfo);
                 optionSelected = 0;
+                userOptionSelected = 0;
             }
         }
     }

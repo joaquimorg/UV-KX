@@ -30,7 +30,10 @@ namespace Applications
 
         RadioNS::Radio::VFO vfo;
 
+        uint8_t inputSelect = 0;
         uint8_t optionSelected = 0;
+        uint8_t userOptionSelected = 0;
+        uint32_t userOptionInput = 0;
 
         void loadOptions();
         void setOptions();

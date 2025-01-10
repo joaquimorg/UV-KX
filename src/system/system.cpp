@@ -65,7 +65,7 @@ void SystemTask::statusTaskImpl() {
     battery.getReadings(); // Update battery readings
 
     appTimer = xTimerCreateStatic("app", pdMS_TO_TICKS(100), pdTRUE, this, SystemTask::appTimerCallback, &appTimerBuffer);
-    runTimer = xTimerCreateStatic("run", pdMS_TO_TICKS(1000), pdFALSE, this, SystemTask::runTimerCallback, &runTimerBuffer);
+    runTimer = xTimerCreateStatic("run", pdMS_TO_TICKS(500), pdFALSE, this, SystemTask::runTimerCallback, &runTimerBuffer);
 
     // Load the Welcome application        
     loadApplication(Applications::Applications::Welcome);
@@ -159,13 +159,13 @@ void SystemTask::processSystemNotification(SystemMessages notification) {
 
 void SystemTask::runTimerImpl(void) {
 
-    // 1 second timer
+    // 0.5 second timer
 
     battery.getReadings(); // Update battery readings
     if (currentApp != Applications::Applications::None) {
     }
 
-    if (timeoutCount > actionTimeout) {
+    if (timeoutCount > (actionTimeout * 2)) {
         timeoutCount = 0;
         pushMessage(SystemMSG::MSG_TIMEOUT, 0);
     }
@@ -174,7 +174,7 @@ void SystemTask::runTimerImpl(void) {
     }
 
     if (backlight.getBacklightState() == Backlight::backLightState::ON) {
-        if (timeoutLightCount > backlightTimeout) {
+        if (timeoutLightCount > (backlightTimeout * 2)) {
             //timeoutLightCount = 0;
             pushMessage(SystemMSG::MSG_BKCLIGHT, (uint32_t)Backlight::backLightState::OFF);
         }
@@ -194,10 +194,11 @@ void SystemTask::appTimerImpl(void) {
 
 void SystemTask::loadApplication(Applications::Applications app) {
     if (app == Applications::Applications::None) return;
-    taskENTER_CRITICAL();
+    //taskENTER_CRITICAL();
 
     currentApp = Applications::Applications::None;
     xTimerStop(appTimer, 0);
+    setActionTimeout(2);
     switch (app) {
     case Applications::Applications::Welcome:
         currentApplication = &welcomeApp;
@@ -210,12 +211,15 @@ void SystemTask::loadApplication(Applications::Applications app) {
         break;
     case Applications::Applications::SETVFOA:
         currentApplication = &setVFOAApp;
+        setActionTimeout(5);
         break;
     case Applications::Applications::SETVFOB:
         currentApplication = &setVFOBApp;
+        setActionTimeout(5);
         break;
     case Applications::Applications::SETRADIO:
         currentApplication = &setRadioApp;
+        setActionTimeout(5);
         break;
     case Applications::Applications::MESSENGER:
         // TODO: Implement Messenger
@@ -236,10 +240,10 @@ void SystemTask::loadApplication(Applications::Applications app) {
         break;
     }
     currentApp = app;
-    currentApplication->init();
     xTimerStart(appTimer, 0);
+    currentApplication->init();    
 
-    taskEXIT_CRITICAL();
+    //taskEXIT_CRITICAL();
 }
 
 

@@ -6,6 +6,7 @@
 #include "spi_hal.h"
 #include "sys.h"
 #include "uart_hal.h"
+#include "keyboard.h"
 
 #include "icons.h"
 
@@ -52,12 +53,12 @@ public:
         //lcd()->drawBox(0, 0, W, H);
         //lcd()->sendBuffer();
         lcd()->clearBuffer();
-    };
+    }
 
     void updateDisplay() {
         lcd()->sendBuffer();
         uart.sendScreenBuffer(lcd()->getBufferPtr(), 1024);
-    };
+    }
 
     void setFont(Font font) {
         switch (font) {
@@ -86,22 +87,18 @@ public:
                 lcd()->setFont(u8g2_font_56_nf);
                 break;*/
         }
-    };
+    }
 
     void setBlackColor() {
         lcd()->setColorIndex(BLACK);
-    };
+    }
 
     void setWhiteColor() {
         lcd()->setColorIndex(WHITE);
-    };
-
-    const char* getStrValue(const char* str, uint8_t index) {
-        return u8x8_GetStringLineStart(index, str);
-    };
+    }
 
     void drawStrf(u8g2_uint_t x, u8g2_uint_t y, const char* str, ...) {
-        char text[52] = { 0 };
+        char text[40] = { 0 };
 
         va_list va;
         va_start(va, str);
@@ -109,7 +106,7 @@ public:
         va_end(va);
 
         lcd()->drawStr(x, y, text);
-    };
+    }
 
     void drawString(TextAlign tAlign, u8g2_uint_t xstart, u8g2_uint_t xend, u8g2_uint_t y, bool isBlack, bool isFill, bool isBox, const char* str) {
 
@@ -166,7 +163,8 @@ public:
             //lcd()->drawRBox(xx, yy, ww, hh, 3);
             if (tAlign == TextAlign::CENTER) {
                 lcd()->drawBox(xstart, yy, xend - xstart, hh);
-            } else {
+            }
+            else {
                 lcd()->drawBox(xx, yy, ww, hh);
             }
             lcd()->setColorIndex(isBlack ? WHITE : BLACK);
@@ -178,10 +176,10 @@ public:
 
         lcd()->drawStr(startX, y, str);
 
-    };
+    }
 
     void drawStringf(TextAlign tAlign, u8g2_uint_t xstart, u8g2_uint_t xend, u8g2_uint_t y, bool isBlack, bool isFill, bool isBox, const char* str, ...) {
-        char text[60] = { 0 };
+        char text[40] = { 0 };
 
         va_list va;
         va_start(va, str);
@@ -189,17 +187,50 @@ public:
         va_end(va);
 
         drawString(tAlign, xstart, xend, y, isBlack, isFill, isBox, text);
-    };
+    }
+
+    const char* getStrValue(const char* str, uint8_t index) {
+        return u8x8_GetStringLineStart(index, str);
+    }
+
+    int stringLengthNL(const char* str) {
+        int length = 0;
+        while (str[length] != '\n' && str[length] != '\0') {
+            ++length;
+        }
+        return length;
+    }
+
+    void drawPopupWindow(uint8_t x, uint8_t y, uint8_t w, uint8_t h, const char* title) {
+        // Draw the popup background
+        setWhiteColor();
+        lcd()->drawRBox(x - 1, y - 1, w + 3, h + 3, 5);
+        setBlackColor();
+        lcd()->drawRFrame(x, y, w, h, 5);
+        lcd()->drawRFrame(x, y, w + 1, h + 1, 5);
+
+        lcd()->drawBox(x + 1, y + 1, w - 1, 6);
+
+        setFont(Font::FONT_5_TR);
+        drawString(TextAlign::CENTER, x, x + w, y + 6, false, false, false, title);
+    }
+
+    uint8_t keycodeToNumber(Keyboard::KeyCode keyCode) {
+        if (keyCode >= Keyboard::KeyCode::KEY_0 && keyCode <= Keyboard::KeyCode::KEY_9) {
+            return static_cast<uint8_t>(keyCode);
+        }
+        return 0;
+    }
 
     /* - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-    void draw_ic8_battery50(u8g2_uint_t x, u8g2_uint_t y, bool color) { lcd()->setColorIndex(color);  lcd()->drawXBM(x, y, batt_50_width, batt_50_height, batt_50_bits); };
+    void draw_ic8_battery50(u8g2_uint_t x, u8g2_uint_t y, bool color) { lcd()->setColorIndex(color);  lcd()->drawXBM(x, y, batt_50_width, batt_50_height, batt_50_bits); }
 
-    void draw_ic8_charging(u8g2_uint_t x, u8g2_uint_t y, bool color) { lcd()->setColorIndex(color);  lcd()->drawXBM(x, y, charging_width, charging_height, charging_bits); };
+    void draw_ic8_charging(u8g2_uint_t x, u8g2_uint_t y, bool color) { lcd()->setColorIndex(color);  lcd()->drawXBM(x, y, charging_width, charging_height, charging_bits); }
 
-    void draw_smeter(u8g2_uint_t x, u8g2_uint_t y, bool color) { lcd()->setColorIndex(color);  lcd()->drawXBM(x, y, smeter_width, smeter_height, smeter_bits); };
+    void draw_smeter(u8g2_uint_t x, u8g2_uint_t y, bool color) { lcd()->setColorIndex(color);  lcd()->drawXBM(x, y, smeter_width, smeter_height, smeter_bits); }
 
-    void draw_mmeter(u8g2_uint_t x, u8g2_uint_t y, bool color) { lcd()->setColorIndex(color);  lcd()->drawXBM(x, y, mmeter_width, mmeter_height, mmeter_bits); };
+    void draw_mmeter(u8g2_uint_t x, u8g2_uint_t y, bool color) { lcd()->setColorIndex(color);  lcd()->drawXBM(x, y, mmeter_width, mmeter_height, mmeter_bits); }
 
     /* - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -220,7 +251,7 @@ public:
 
         setFont(Font::FONT_10_TR);
         drawStringf(TextAlign::LEFT, xend + 2, 0, y, true, invert, false, "%02u", (freq % 100));
-    };
+    }
 
     void drawFrequencySmall(bool invert, uint32_t freq, u8g2_uint_t xend, u8g2_uint_t y) {
 
@@ -234,7 +265,7 @@ public:
         else {
             drawStringf(TextAlign::RIGHT, 0, xend, y, true, invert, false, "%2u.%03u.%02u", (freq / 100000), (freq % 100000) / 100, (freq % 100));
         }
-    };
+    }
 
     int16_t convertRSSIToPixels(int16_t rssi_dBm) {
         int16_t pixels = 0;
@@ -291,14 +322,6 @@ public:
         // fill size 10
         uint8_t fill = (uint8_t)((level * 10) / 100);
         lcd()->drawBox(x + 1, y + 1, fill, 3);
-    }
-
-    int stringLengthNL(const char* str) {
-        int length = 0;
-        while (str[length] != '\n' && str[length] != '\0') {
-            ++length;
-        }
-        return length;
     }
 
 private:
@@ -369,7 +392,11 @@ public:
 
         slines = sl;
         suffix = sf;
-        maxWidth = maxw;        
+        maxWidth = maxw;
+    }
+
+    void setCurrentPos(uint8_t pos) {
+        u8sl.current_pos = pos;
     }
 
     uint8_t getListPos() {
@@ -407,7 +434,7 @@ private:
     const char* suffix;
     uint8_t maxWidth = 75;
     uint8_t startXPos = 2;
-    bool showLineNumbers = true;    
+    bool showLineNumbers = true;
 
     u8g2_uint_t drawSelectionListLine(u8g2_uint_t y, uint8_t idx, const char* s) {
 
@@ -445,11 +472,12 @@ private:
             ui.drawString(TextAlign::LEFT, startXPos + 14, maxWidth, y, is_invert, true, false, s);
         }
         else {
-            if (suffix == NULL) {                
+            if (suffix == NULL) {
                 ui.drawString(TextAlign::CENTER, startXPos, maxWidth, y, is_invert, true, false, s);
-            } else {
+            }
+            else {
                 ui.drawStringf(TextAlign::CENTER, startXPos, maxWidth, y, is_invert, true, false, "%.*s %s", ui.stringLengthNL(s), s, suffix);
-            }            
+            }
         }
 
         return line_height;
@@ -473,7 +501,7 @@ class SelectionListPopup : public SelectionList {
 public:
     SelectionListPopup(UI& ui) : SelectionList(ui) {}
 
-    void drawPopup(bool isSetttings = false) {
+    void drawPopup(UI& ui, bool isSetttings = false) {
         uint8_t popupWidth, popupHeight, x, y;
         if (isSetttings) {
             popupWidth = 90; // Width of the popup
@@ -488,8 +516,9 @@ public:
             y = (uint8_t)((H - popupHeight) / 2); // Center the popup vertically
         }
 
+        ui.drawPopupWindow(x, y, popupWidth, popupHeight, title);
         // Draw the popup background
-        ui.setWhiteColor();
+        /*ui.setWhiteColor();
         ui.lcd()->drawRBox(x - 1, y - 1, popupWidth + 3, popupHeight + 3, 5);
         ui.setBlackColor();
         ui.lcd()->drawRFrame(x, y, popupWidth, popupHeight, 5);
@@ -498,7 +527,7 @@ public:
         ui.lcd()->drawBox(x + 1, y + 1, popupWidth - 1, 6);
 
         ui.setFont(Font::FONT_5_TR);
-        ui.drawString(TextAlign::CENTER, x, x + popupWidth, y + 6, false, false, false, title);
+        ui.drawString(TextAlign::CENTER, x, x + popupWidth, y + 6, false, false, false, title);*/
 
         // Draw the selection list inside the popup
         setShowLineNumbers(false);
