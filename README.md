@@ -23,6 +23,11 @@ $ make
 
 $ make prog COMPORT=com3
 
+## Radio
+
+<img src="images/uv-k5-screenshot_home.png" alt="Welcome" width="400" />
+<img src="images/uv-k5-screenshot_vfo.png" alt="VFO" width="400" />
+
 ## Open implementation of the Quansheng UV-K5/K6/5R firmware
 
 Based on the work of DualTachyon's open firmware found [here](https://github.com/DualTachyon/uv-k5-firmware) ... a cool achievement !
