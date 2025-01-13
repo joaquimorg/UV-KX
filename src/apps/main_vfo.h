@@ -3,6 +3,7 @@
 #include "apps.h"
 #include "ui.h"
 #include "radio.h"
+#include "settings.h"
 
 namespace Applications
 {

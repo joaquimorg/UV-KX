@@ -16,7 +16,7 @@ void SetVFO::drawScreen(void) {
     ui.lcd()->drawBox(0, 0, 128, 7);
 
     ui.setFont(Font::FONT_8B_TR);
-    ui.drawStringf(TextAlign::LEFT, 2, 0, 6, false, false, false, "VFO %s", vfoab == RadioNS::Radio::VFOAB::VFOA ? "A" : "B");
+    ui.drawStringf(TextAlign::LEFT, 2, 0, 6, false, false, false, "VFO %s", vfoab == Settings::VFOAB::VFOA ? "A" : "B");
     ui.drawStringf(TextAlign::RIGHT, 0, 126, 6, false, false, false, "%02u / %02u", menulist.getListPos() + 1, menulist.getTotal());
 
     ui.setBlackColor();
@@ -118,7 +118,7 @@ void SetVFO::setOptions() {
         vfo.squelch = optionlistSelected & 0xF;
         break;
     case 2: // STEP
-        vfo.step = (RadioNS::Radio::Step)optionlistSelected;
+        vfo.step = (Settings::Step)optionlistSelected;
         break;
     case 3: // MODE
         vfo.modulation = (ModType)optionlistSelected;
@@ -127,24 +127,24 @@ void SetVFO::setOptions() {
         vfo.bw = (BK4819_Filter_Bandwidth)optionlistSelected;
         break;
     case 5: // TX POWER
-        vfo.power = (RadioNS::Radio::TXOutputPower)optionlistSelected;
+        vfo.power = (Settings::TXOutputPower)optionlistSelected;
         break;
     case 6: // SHIFT
-        vfo.shift = (RadioNS::Radio::OffsetDirection)optionlistSelected;
+        vfo.shift = (Settings::OffsetDirection)optionlistSelected;
         break;
     case 7: // OFFSET
-        if (vfo.shift == RadioNS::Radio::OffsetDirection::OFFSET_PLUS) {
+        if (vfo.shift == Settings::OffsetDirection::OFFSET_PLUS) {
             vfo.tx.frequency = static_cast<unsigned int>(vfo.rx.frequency + userOptionInput) & 0x7FFFFFF;
         }
-        else if (vfo.shift == RadioNS::Radio::OffsetDirection::OFFSET_MINUS) {
+        else if (vfo.shift == Settings::OffsetDirection::OFFSET_MINUS) {
             vfo.tx.frequency = static_cast<unsigned int>(vfo.rx.frequency - userOptionInput) & 0x7FFFFFF;
         }
         break;
     case 8: // RX CODE TYPE
-        vfo.rx.codeType = (RadioNS::Radio::CodeType)optionlistSelected;
+        vfo.rx.codeType = (Settings::CodeType)optionlistSelected;
         break;
     case 10: // TX CODE TYPE
-        vfo.tx.codeType = (RadioNS::Radio::CodeType)optionlistSelected;
+        vfo.tx.codeType = (Settings::CodeType)optionlistSelected;
         break;
     case 9: // RX CODE
         vfo.rx.code = optionlistSelected;
@@ -153,13 +153,13 @@ void SetVFO::setOptions() {
         vfo.tx.code = optionlistSelected;
         break;
     case 12: // TX STE
-        vfo.repeaterSte = (RadioNS::Radio::ONOFF)optionlistSelected;
+        vfo.repeaterSte = (Settings::ONOFF)optionlistSelected;
         break;
     case 13: // RX STE
-        vfo.ste = (RadioNS::Radio::ONOFF)optionlistSelected;
+        vfo.ste = (Settings::ONOFF)optionlistSelected;
         break;
     case 14: // COMPANDER
-        vfo.compander = (RadioNS::Radio::TXRX)optionlistSelected;
+        vfo.compander = (Settings::TXRX)optionlistSelected;
         break;
     case 15: // PTT ID
         vfo.pttid = optionlistSelected & 0xF;
@@ -199,8 +199,8 @@ void SetVFO::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
                 optionListSelected = menulist.getListPos() + 1;
                 if (optionListSelected == 7) {
                     // not a list, user input
-                    if (vfo.shift == RadioNS::Radio::OffsetDirection::OFFSET_NONE) {
-                        systask.pushMessage(System::SystemTask::SystemMSG::MSG_PLAY_BEEP, (uint32_t)RadioNS::Radio::BEEPType::BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL);
+                    if (vfo.shift == Settings::OffsetDirection::OFFSET_NONE) {
+                        systask.pushMessage(System::SystemTask::SystemMSG::MSG_PLAY_BEEP, (uint32_t)Settings::BEEPType::BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL);
                     }
                     else {
                         userOptionSelected = optionListSelected;

@@ -3,7 +3,7 @@
 #include <cstdint>
 #include "sys.h"
 #include "eeprom.h"
-
+#include "radio.h"
 
 /*
 
@@ -65,14 +65,147 @@
 
 */
 
+/*
+
+    EEPROM Layout:
+
+    [0x0000] - Settings Version
+    [0x0002] - Settings VFO A
+    [0x0004] - Settings VFO B
+
+
+*/
+
 namespace System {
     class SystemTask;
 }
+
 class Settings {
 public:
+
+    enum class BatteryType : uint8_t {
+        BAT_1600 = 0,
+        BAT_2200 = 1,
+        BAT_3500 = 2,
+    };
+
+    enum class TXOutputPower : uint8_t {
+        TX_POWER_LOW = 0,
+        TX_POWER_MID = 1,
+        TX_POWER_HIGH = 2
+    };
+
+    enum class BEEPType : uint8_t {
+        BEEP_NONE = 0,
+        BEEP_1KHZ_60MS_OPTIONAL = 1,
+        BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL = 2,
+        BEEP_440HZ_500MS = 3,
+        BEEP_880HZ_200MS = 4,
+        BEEP_880HZ_500MS = 5,
+        BEEP_500HZ_60MS_DOUBLE_BEEP = 6,
+        BEEP_440HZ_40MS_OPTIONAL = 7,
+        BEEP_880HZ_40MS_OPTIONAL = 8,
+        BEEP_880HZ_60MS_TRIPLE_BEEP = 9
+    };
+
+    enum class RadioState : uint8_t {
+        IDLE = 0,
+        RX_ON = 1,
+        TX_ON = 2,
+    };
+
+    enum class VFOAB : uint8_t {
+        VFOA = 0,
+        VFOB = 1,
+        NONE = 2
+    };
+
+    enum class Step : uint8_t {
+        STEP_0_5kHz = 0,
+        STEP_1_0kHz = 1,
+        STEP_2_5kHz = 2,
+        STEP_5_0kHz = 3,
+        STEP_6_25kHz = 4,
+        STEP_10_0kHz = 5,
+        STEP_12_5kHz = 6,
+        STEP_15_0kHz = 7,
+        STEP_20_0kHz = 8,
+        STEP_25_0kHz = 9,
+        STEP_50_0kHz = 10,
+        STEP_100_0kHz = 11,
+        STEP_500_0kHz = 12,
+    };
+
+    enum class OffsetDirection : uint8_t {
+        OFFSET_NONE = 0,
+        OFFSET_PLUS = 1,
+        OFFSET_MINUS = 2,
+    };
+
+    enum class TXRX : uint8_t {
+        OFF = 0,
+        RX = 1,
+        TX = 2,
+        RX_TX = 3
+    };
+
+    enum class ONOFF : uint8_t {
+        OFF = 0,
+        ON = 1
+    };
+
+    enum class CodeType : uint8_t {
+        NONE = 0,
+        CT = 1,
+        DCS = 2,
+        NDCS = 3
+    };
+
+    struct FREQ {
+        uint32_t frequency : 27;
+        CodeType codeType : 4;
+        uint8_t code;
+    } __attribute__((packed)); // 5 Bytes
+
+    struct VFO {
+        FREQ rx;
+        FREQ tx;
+        char name[11];
+        int16_t channel;
+        uint8_t squelch : 4;
+        Step step : 4;
+        ModType modulation : 4;
+        BK4819_Filter_Bandwidth bw : 4;
+        TXOutputPower power : 2;
+        OffsetDirection shift : 2;
+        ONOFF repeaterSte : 1;
+        ONOFF ste : 1;
+        TXRX compander : 2;
+        uint8_t pttid : 4;
+        uint8_t afc : 4;
+        uint8_t rxagc : 4;
+    } __attribute__((packed));
+
     Settings(System::SystemTask& systask) : systask{ systask }, eeprom() {}
     void factoryReset() {};
 
+    uint16_t getSettingsVersion() {
+        uint16_t version = 0;
+        eeprom.readBuffer(0x0000, &version, sizeof(version));
+        return version;
+    }
+
+    void setSettingsVersion(uint16_t version) {
+        eeprom.writeBuffer(0x0000, &version, sizeof(version));
+    }
+
+    bool validateSettingsVersion() {
+        uint16_t version = getSettingsVersion();
+        if (version == settingsVersion) {
+            return true;
+        }
+        return false;
+    }
 
     // Memory Name compression
     // 
@@ -160,8 +293,9 @@ public:
 private:
 
     static constexpr char decodeTable[] = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-.#/:";
-
+    static constexpr uint16_t settingsVersion = 0x015A;
     System::SystemTask& systask;
+
     EEPROM eeprom;
 
 };

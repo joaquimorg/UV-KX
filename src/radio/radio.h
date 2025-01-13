@@ -13,85 +13,7 @@ namespace RadioNS
 {
 
     class Radio {
-    public:
-
-        enum class BatteryType : uint8_t {
-            BAT_1600 = 0,
-            BAT_2200 = 1,
-            BAT_3500 = 2,
-        };
-
-        enum class TXOutputPower : uint8_t {
-            TX_POWER_LOW = 0,
-            TX_POWER_MID = 1,
-            TX_POWER_HIGH = 2
-        };
-
-        enum class BEEPType : uint8_t {
-            BEEP_NONE = 0,
-            BEEP_1KHZ_60MS_OPTIONAL = 1,
-            BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL = 2,
-            BEEP_440HZ_500MS = 3,
-            BEEP_880HZ_200MS = 4,
-            BEEP_880HZ_500MS = 5,
-            BEEP_500HZ_60MS_DOUBLE_BEEP = 6,
-            BEEP_440HZ_40MS_OPTIONAL = 7,
-            BEEP_880HZ_40MS_OPTIONAL = 8,
-            BEEP_880HZ_60MS_TRIPLE_BEEP = 9
-        };
-
-        enum class RadioState : uint8_t {
-            IDLE = 0,
-            RX_ON = 1,
-            TX_ON = 2,
-        };
-
-        enum class VFOAB : uint8_t {
-            VFOA = 0,
-            VFOB = 1,
-            NONE = 2
-        };
-
-        enum class Step : uint8_t {
-            STEP_0_5kHz = 0,
-            STEP_1_0kHz = 1,
-            STEP_2_5kHz = 2,
-            STEP_5_0kHz = 3,
-            STEP_6_25kHz = 4,
-            STEP_10_0kHz = 5,
-            STEP_12_5kHz = 6,
-            STEP_15_0kHz = 7,
-            STEP_20_0kHz = 8,
-            STEP_25_0kHz = 9,
-            STEP_50_0kHz = 10,
-            STEP_100_0kHz = 11,
-            STEP_500_0kHz = 12,
-        };
-
-        enum class OffsetDirection : uint8_t {
-            OFFSET_NONE = 0,
-            OFFSET_PLUS = 1,
-            OFFSET_MINUS = 2,
-        };
-
-        enum class TXRX : uint8_t {
-            OFF = 0,
-            RX = 1,
-            TX = 2,
-            RX_TX = 3
-        };
-
-        enum class ONOFF : uint8_t {
-            OFF = 0,
-            ON = 1
-        };
-
-        enum class CodeType : uint8_t {
-            NONE = 0,
-            CT = 1,
-            DCS = 2,
-            NDCS = 3
-        };
+    public:        
 
         /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -111,32 +33,7 @@ namespace RadioNS
 
         static constexpr const char* stepStr = "0.5\n1.0\n2.5\n5.0\n6.25\n10.0\n12.5\n15.0\n20.0\n25.0\n30.0\n50.0\n100.0\n500.0";
 
-        struct FREQ {
-            uint32_t frequency : 27;
-            CodeType codeType : 4;
-            uint8_t code;
-        } __attribute__((packed)); // 5 Bytes
-
-        struct VFO {
-            FREQ rx;
-            FREQ tx;
-            char name[11];
-            int16_t channel;
-            uint8_t squelch : 4;
-            Step step : 4;
-            ModType modulation : 4;
-            BK4819_Filter_Bandwidth bw : 4;
-            TXOutputPower power : 2;
-            OffsetDirection shift : 2;
-            ONOFF repeaterSte : 1;
-            ONOFF ste : 1;
-            TXRX compander : 2;
-            uint8_t pttid : 4;
-            uint8_t afc : 4;
-            uint8_t rxagc : 4;
-        } __attribute__((packed));
-
-        VFO radioVFO[2];
+        Settings::VFO radioVFO[2];
 
         struct FrequencyBand {
             char name[11];
@@ -151,32 +48,32 @@ namespace RadioNS
 
         void setSquelch(uint32_t f, uint8_t sql);
         void setFilterBandwidth(BK4819_Filter_Bandwidth bw) { bk4819.setFilterBandwidth(bw); }
-        void setVFO(VFOAB vfo, uint32_t rx, uint32_t tx, int16_t channel, ModType modulation);
-        void setupToVFO(VFOAB vfo);
+        void setVFO(Settings::VFOAB vfo, uint32_t rx, uint32_t tx, int16_t channel, ModType modulation);
+        void setupToVFO(Settings::VFOAB vfo);
 
-        void playBeep(BEEPType beep);
+        void playBeep(Settings::BEEPType beep);
 
         // get VFO
-        VFO getActiveVFO() { return radioVFO[(uint8_t)activeVFO]; };
-        VFO getVFO(VFOAB vfo) { return radioVFO[(uint8_t)vfo]; };
-        void setVFO(VFOAB vfoab, VFO vfo) { 
+        Settings::VFO getActiveVFO() { return radioVFO[(uint8_t)activeVFO]; };
+        Settings::VFO getVFO(Settings::VFOAB vfo) { return radioVFO[(uint8_t)vfo]; };
+        void setVFO(Settings::VFOAB vfoab, Settings::VFO vfo) { 
             radioVFO[(uint8_t)vfoab] = vfo;
             setupToVFO(vfoab);
         };
         // get active VFO
-        VFOAB getCurrentVFO(void) { return activeVFO; };
+        Settings::VFOAB getCurrentVFO(void) { return activeVFO; };
 
         // Change Active VFO
         void changeActiveVFO(void) {
-            activeVFO = (activeVFO == VFOAB::VFOA) ? VFOAB::VFOB : VFOAB::VFOA;
+            activeVFO = (activeVFO == Settings::VFOAB::VFOA) ? Settings::VFOAB::VFOB : Settings::VFOAB::VFOA;
             rxVFO = activeVFO;
             setupToVFO(activeVFO);
         }
 
-        VFOAB getRXVFO(void) { return rxVFO; };
+        Settings::VFOAB getRXVFO(void) { return rxVFO; };
 
 
-        void setRXVFO(VFOAB vfo) {
+        void setRXVFO(Settings::VFOAB vfo) {
             rxVFO = vfo;
             setupToVFO(vfo);
         }
@@ -184,7 +81,7 @@ namespace RadioNS
         void toggleRX(bool on);
         void checkRadioInterrupts(void);
 
-        RadioState getState() { return state; }
+        Settings::RadioState getState() { return state; }
 
         uint16_t getRSSI() { return bk4819.getRSSI(); }
 
@@ -224,10 +121,10 @@ namespace RadioNS
         static constexpr uint8_t dualWatchTime = 20;
 
         bool speakerOn = false; // speaker on/off
-        RadioState state = RadioState::IDLE;
-        VFOAB activeVFO = VFOAB::VFOA;
-        VFOAB rxVFO = VFOAB::VFOA;
-        VFOAB lastRXVFO = VFOAB::NONE;
+        Settings::RadioState state = Settings::RadioState::IDLE;
+        Settings::VFOAB activeVFO = Settings::VFOAB::VFOA;
+        Settings::VFOAB rxVFO = Settings::VFOAB::VFOA;
+        Settings::VFOAB lastRXVFO = Settings::VFOAB::NONE;
 
         static constexpr int8_t dBmCorrTable[7] = {
                 -15, // band 1

@@ -38,9 +38,9 @@ void SystemTask::initSystem(void) {
     st7565.begin();
     bk4819.setupRegisters();
 
-    radio.setVFO(RadioNS::Radio::VFOAB::VFOA, 44616875, 44616875, 0, ModType::MOD_FM);
-    radio.setVFO(RadioNS::Radio::VFOAB::VFOB, 43932500, 43932500, 0, ModType::MOD_FM);
-    radio.setupToVFO(RadioNS::Radio::VFOAB::VFOA);
+    radio.setVFO(Settings::VFOAB::VFOA, 44616875, 44616875, 0, ModType::MOD_FM);
+    radio.setVFO(Settings::VFOAB::VFOB, 43932500, 43932500, 0, ModType::MOD_FM);
+    radio.setupToVFO(Settings::VFOAB::VFOA);
 
     uart.print("UV-Kx Open Firmware - " AUTHOR_STRING " - " VERSION_STRING "\n");
 }
@@ -74,7 +74,7 @@ void SystemTask::statusTaskImpl() {
 
     keyboard.init(); // Initialize the keyboard
 
-    playBeep(RadioNS::Radio::BEEPType::BEEP_880HZ_200MS);
+    playBeep(Settings::BEEPType::BEEP_880HZ_200MS);
 
     xTimerStart(appTimer, 0);
     xTimerStart(runTimer, 0);
@@ -114,7 +114,7 @@ void SystemTask::processSystemNotification(SystemMessages notification) {
         backlight.setBacklight((Backlight::backLightState)notification.payload);
         break;
     case SystemMSG::MSG_PLAY_BEEP:
-        playBeep((RadioNS::Radio::BEEPType)notification.payload);
+        playBeep((Settings::BEEPType)notification.payload);
         break;
     case SystemMSG::MSG_RADIO_RX:
         //uart.sendLog("MSG_RADIO_RX\n");        
@@ -139,7 +139,7 @@ void SystemTask::processSystemNotification(SystemMessages notification) {
             timeoutLightCount = 0;
             pushMessage(SystemMSG::MSG_BKCLIGHT, (uint32_t)Backlight::backLightState::ON);
             if (key != Keyboard::KeyCode::KEY_PTT) {
-                pushMessage(SystemMSG::MSG_PLAY_BEEP, (uint32_t)RadioNS::Radio::BEEPType::BEEP_1KHZ_60MS_OPTIONAL);
+                pushMessage(SystemMSG::MSG_PLAY_BEEP, (uint32_t)Settings::BEEPType::BEEP_1KHZ_60MS_OPTIONAL);
             }
             else {
                 pushMessage(SystemMSG::MSG_RADIO_TX, 0);
@@ -225,13 +225,13 @@ void SystemTask::loadApplication(Applications::Applications app) {
         // TODO: Implement Messenger
         //currentApplication = &messengerApp;
         currentApplication = &mainVFOApp;
-        pushMessage(SystemMSG::MSG_PLAY_BEEP, (uint32_t)RadioNS::Radio::BEEPType::BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL);
+        pushMessage(SystemMSG::MSG_PLAY_BEEP, (uint32_t)Settings::BEEPType::BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL);
         break;
     case Applications::Applications::SCANNER:
         // TODO: Implement Scanner
         //currentApplication = &scannerApp;
         currentApplication = &mainVFOApp;
-        pushMessage(SystemMSG::MSG_PLAY_BEEP, (uint32_t)RadioNS::Radio::BEEPType::BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL);
+        pushMessage(SystemMSG::MSG_PLAY_BEEP, (uint32_t)Settings::BEEPType::BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL);
         break;
     case Applications::Applications::ABOUT:
         currentApplication = &welcomeApp;

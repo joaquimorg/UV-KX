@@ -66,20 +66,20 @@ void Radio::setSquelch(uint32_t f, uint8_t sql) {
     bk4819.squelch(sql, f, 1, 1);
 }
 
-void Radio::setVFO(VFOAB vfo, uint32_t rx, uint32_t tx, int16_t channel, ModType modulation) {
+void Radio::setVFO(Settings::VFOAB vfo, uint32_t rx, uint32_t tx, int16_t channel, ModType modulation) {
     uint8_t vfoIndex = (uint8_t)vfo;
     radioVFO[vfoIndex].rx.frequency = (uint32_t)(rx & 0x07FFFFFF);;
     radioVFO[vfoIndex].tx.frequency = (uint32_t)(tx & 0x07FFFFFF);;
     radioVFO[vfoIndex].channel = channel;
     radioVFO[vfoIndex].squelch = 1;
-    radioVFO[vfoIndex].step = Step::STEP_12_5kHz;
+    radioVFO[vfoIndex].step = Settings::Step::STEP_12_5kHz;
     radioVFO[vfoIndex].modulation = modulation;
     radioVFO[vfoIndex].bw = BK4819_Filter_Bandwidth::BK4819_FILTER_BW_20k;
-    radioVFO[vfoIndex].power = TXOutputPower::TX_POWER_HIGH;
-    radioVFO[vfoIndex].shift = OffsetDirection::OFFSET_NONE;
-    radioVFO[vfoIndex].repeaterSte = ONOFF::OFF;
-    radioVFO[vfoIndex].ste = ONOFF::OFF;
-    radioVFO[vfoIndex].compander = TXRX::OFF;
+    radioVFO[vfoIndex].power = Settings::TXOutputPower::TX_POWER_HIGH;
+    radioVFO[vfoIndex].shift = Settings::OffsetDirection::OFFSET_NONE;
+    radioVFO[vfoIndex].repeaterSte = Settings::ONOFF::OFF;
+    radioVFO[vfoIndex].ste = Settings::ONOFF::OFF;
+    radioVFO[vfoIndex].compander = Settings::TXRX::OFF;
     radioVFO[vfoIndex].pttid = 0;
     radioVFO[vfoIndex].afc = 0;
     radioVFO[vfoIndex].rxagc = 0;
@@ -93,7 +93,7 @@ void Radio::setVFO(VFOAB vfo, uint32_t rx, uint32_t tx, int16_t channel, ModType
     }
 }
 
-void Radio::setupToVFO(VFOAB vfo) {
+void Radio::setupToVFO(Settings::VFOAB vfo) {
     uint8_t vfoIndex = (uint8_t)vfo;
     bk4819.squelchType(SquelchType::SQUELCH_RSSI_NOISE_GLITCH);
     setSquelch(radioVFO[vfoIndex].rx.frequency, 4);
@@ -131,12 +131,12 @@ void Radio::toggleRX(bool on) {
     toggleBK4819(on);
 }
 
-void Radio::playBeep(BEEPType beep) {
+void Radio::playBeep(Settings::BEEPType beep) {
     bool isSpeakerWasOn = speakerOn;
     uint16_t toneConfig = bk4819.getToneRegister();
 
     // validate Radio state
-    if (state != RadioState::IDLE) {
+    if (state != Settings::RadioState::IDLE) {
         return;
     }
 
@@ -147,24 +147,24 @@ void Radio::playBeep(BEEPType beep) {
     switch (beep)
     {
     default:
-    case BEEPType::BEEP_NONE:
+    case Settings::BEEPType::BEEP_NONE:
         toneFrequency = 220;
         break;
-    case BEEPType::BEEP_1KHZ_60MS_OPTIONAL:
+    case Settings::BEEPType::BEEP_1KHZ_60MS_OPTIONAL:
         toneFrequency = 1000;
         break;
-    case BEEPType::BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL:
-    case BEEPType::BEEP_500HZ_60MS_DOUBLE_BEEP:
+    case Settings::BEEPType::BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL:
+    case Settings::BEEPType::BEEP_500HZ_60MS_DOUBLE_BEEP:
         toneFrequency = 500;
         break;
-    case BEEPType::BEEP_440HZ_40MS_OPTIONAL:
-    case BEEPType::BEEP_440HZ_500MS:
+    case Settings::BEEPType::BEEP_440HZ_40MS_OPTIONAL:
+    case Settings::BEEPType::BEEP_440HZ_500MS:
         toneFrequency = 440;
         break;
-    case BEEPType::BEEP_880HZ_40MS_OPTIONAL:
-    case BEEPType::BEEP_880HZ_60MS_TRIPLE_BEEP:
-    case BEEPType::BEEP_880HZ_200MS:
-    case BEEPType::BEEP_880HZ_500MS:
+    case Settings::BEEPType::BEEP_880HZ_40MS_OPTIONAL:
+    case Settings::BEEPType::BEEP_880HZ_60MS_TRIPLE_BEEP:
+    case Settings::BEEPType::BEEP_880HZ_200MS:
+    case Settings::BEEPType::BEEP_880HZ_500MS:
         toneFrequency = 880;
         break;
     }
@@ -177,34 +177,34 @@ void Radio::playBeep(BEEPType beep) {
     uint16_t duration;
     switch (beep)
     {
-    case BEEPType::BEEP_880HZ_60MS_TRIPLE_BEEP:
+    case Settings::BEEPType::BEEP_880HZ_60MS_TRIPLE_BEEP:
         bk4819.exitTxMute();
         delayMs(60);
         bk4819.enterTxMute();
         delayMs(1);
         [[fallthrough]];
-    case BEEPType::BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL:
-    case BEEPType::BEEP_500HZ_60MS_DOUBLE_BEEP:
+    case Settings::BEEPType::BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL:
+    case Settings::BEEPType::BEEP_500HZ_60MS_DOUBLE_BEEP:
         bk4819.exitTxMute();
         delayMs(60);
         bk4819.enterTxMute();
         delayMs(1);
         [[fallthrough]];
-    case BEEPType::BEEP_1KHZ_60MS_OPTIONAL:
+    case Settings::BEEPType::BEEP_1KHZ_60MS_OPTIONAL:
         bk4819.exitTxMute();
         duration = 60;
         break;
-    case BEEPType::BEEP_880HZ_40MS_OPTIONAL:
-    case BEEPType::BEEP_440HZ_40MS_OPTIONAL:
+    case Settings::BEEPType::BEEP_880HZ_40MS_OPTIONAL:
+    case Settings::BEEPType::BEEP_440HZ_40MS_OPTIONAL:
         bk4819.exitTxMute();
         duration = 40;
         break;
-    case BEEPType::BEEP_880HZ_200MS:
+    case Settings::BEEPType::BEEP_880HZ_200MS:
         bk4819.exitTxMute();
         duration = 200;
         break;
-    case BEEPType::BEEP_440HZ_500MS:
-    case BEEPType::BEEP_880HZ_500MS:
+    case Settings::BEEPType::BEEP_440HZ_500MS:
+    case Settings::BEEPType::BEEP_880HZ_500MS:
     default:
         bk4819.exitTxMute();
         duration = 500;
@@ -225,7 +225,7 @@ void Radio::playBeep(BEEPType beep) {
 
 
 void Radio::runDualWatch(void) {
-    if (dualWatch && state == RadioState::IDLE) {
+    if (dualWatch && state == Settings::RadioState::IDLE) {
         if (dualWatchTimer == 0) {
             dualWatchTimer = dualWatchTime;
         }
@@ -233,10 +233,10 @@ void Radio::runDualWatch(void) {
             dualWatchTimer--;
         }
         if (dualWatchTimer == 0) {
-            setRXVFO((rxVFO == VFOAB::VFOA) ? VFOAB::VFOB : VFOAB::VFOA);
+            setRXVFO((rxVFO == Settings::VFOAB::VFOA) ? Settings::VFOAB::VFOB : Settings::VFOAB::VFOA);
         }
     }
-    else if (dualWatch && state == RadioState::RX_ON) {
+    else if (dualWatch && state == Settings::RadioState::RX_ON) {
         dualWatchTimer = dualWatchTime;
     }
 }
@@ -275,17 +275,17 @@ void Radio::checkRadioInterrupts(void) {
         //uart.print("interrupts %0.16b \r\n", interrupts);
 
         if (interrupts.flags.sqlLost) {
-            if (state != RadioState::RX_ON) {
+            if (state != Settings::RadioState::RX_ON) {
                 toggleRX(true);
-                state = RadioState::RX_ON;
+                state = Settings::RadioState::RX_ON;
                 systask.pushMessage(System::SystemTask::SystemMSG::MSG_RADIO_RX, 0);
             }
         }
 
         if (interrupts.flags.sqlFound) {
-            if (state != RadioState::IDLE) {
+            if (state != Settings::RadioState::IDLE) {
                 toggleRX(false);
-                state = RadioState::IDLE;
+                state = Settings::RadioState::IDLE;
             }
         }
 

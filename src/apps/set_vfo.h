@@ -10,7 +10,7 @@ namespace Applications
 
     class SetVFO : public Application {
     public:
-        SetVFO(System::SystemTask& systask, UI& ui, RadioNS::Radio::VFOAB vfoab, Settings& settings, RadioNS::Radio& radio)
+        SetVFO(System::SystemTask& systask, UI& ui,Settings::VFOAB vfoab, Settings& settings, RadioNS::Radio& radio)
             : Application(systask, ui), menulist(ui), optionlist(ui), vfoab{ vfoab }, settings{ settings }, radio{ radio } {
         }
 
@@ -24,11 +24,11 @@ namespace Applications
         SelectionList menulist;
         SelectionListPopup optionlist;
 
-        RadioNS::Radio::VFOAB vfoab;
+        Settings::VFOAB vfoab;
         Settings& settings;
         RadioNS::Radio& radio;
 
-        RadioNS::Radio::VFO vfo;
+        Settings::VFO vfo;
 
         uint8_t inputSelect = 0;
         uint8_t optionSelected = 0;

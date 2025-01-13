@@ -9,13 +9,13 @@ using namespace Applications;
 
 void MainVFO::drawScreen(void) {
 
-    RadioNS::Radio::VFOAB activeVFO1 = radio.getCurrentVFO();
-    RadioNS::Radio::VFOAB activeVFO2 = activeVFO1 == RadioNS::Radio::VFOAB::VFOA ? RadioNS::Radio::VFOAB::VFOB : RadioNS::Radio::VFOAB::VFOA;
+    Settings::VFOAB activeVFO1 = radio.getCurrentVFO();
+    Settings::VFOAB activeVFO2 = activeVFO1 == Settings::VFOAB::VFOA ? Settings::VFOAB::VFOB : Settings::VFOAB::VFOA;
 
-    RadioNS::Radio::VFO vfo1 = radio.getVFO(activeVFO1);
-    RadioNS::Radio::VFO vfo2 = radio.getVFO(activeVFO2);
-    bool rxVFO1 = (radio.getState() == RadioNS::Radio::RadioState::RX_ON && activeVFO1 == radio.getRXVFO());
-    bool rxVFO2 = (radio.getState() == RadioNS::Radio::RadioState::RX_ON && activeVFO2 == radio.getRXVFO());
+    Settings::VFO vfo1 = radio.getVFO(activeVFO1);
+    Settings::VFO vfo2 = radio.getVFO(activeVFO2);
+    bool rxVFO1 = (radio.getState() == Settings::RadioState::RX_ON && activeVFO1 == radio.getRXVFO());
+    bool rxVFO2 = (radio.getState() == Settings::RadioState::RX_ON && activeVFO2 == radio.getRXVFO());
 
     ui.clearDisplay();
 
@@ -44,7 +44,7 @@ void MainVFO::drawScreen(void) {
     ui.lcd()->drawLine(5, 9, 5, 25);
 
     ui.setFont(Font::FONT_8B_TR);
-    ui.drawStringf(TextAlign::LEFT, 2, 0, 20, true, true, false, "%s", activeVFO1 == RadioNS::Radio::VFOAB::VFOA ? "A" : "B");
+    ui.drawStringf(TextAlign::LEFT, 2, 0, 20, true, true, false, "%s", activeVFO1 == Settings::VFOAB::VFOA ? "A" : "B");
 
     if (rxVFO1) {
         ui.drawString(TextAlign::LEFT, 12, 0, 20, true, true, false, "RX");
@@ -57,7 +57,7 @@ void MainVFO::drawScreen(void) {
     ui.lcd()->drawLine(5, vfoBY, 5, vfoBY + 3);
     ui.lcd()->drawLine(5, vfoBY + 12, 5, vfoBY + 14);
     ui.setFont(Font::FONT_8B_TR);
-    ui.drawStringf(TextAlign::LEFT, 2, 0, vfoBY + 10, true, false, true, "%s", activeVFO2 == RadioNS::Radio::VFOAB::VFOB ? "B" : "A");
+    ui.drawStringf(TextAlign::LEFT, 2, 0, vfoBY + 10, true, false, true, "%s", activeVFO2 == Settings::VFOAB::VFOB ? "B" : "A");
     ui.drawFrequencySmall(rxVFO2, vfo2.rx.frequency, 128, vfoBY + 8);
 
     ui.lcd()->setColorIndex(BLACK);
@@ -95,7 +95,7 @@ void MainVFO::drawScreen(void) {
         ui.drawStringf(TextAlign::RIGHT, 0, 120, 57, true, true, false, "F");
     }
     else {
-        if (radio.getState() == RadioNS::Radio::RadioState::RX_ON) {
+        if (radio.getState() == Settings::RadioState::RX_ON) {
             ui.drawString(TextAlign::RIGHT, 0, 128, 58, true, false, false, activeVFO1 == radio.getRXVFO() ? "A" : "B");
         } else {
             ui.drawStringf(TextAlign::RIGHT, 0, 128, 58, true, false, false, "A/B");
@@ -113,7 +113,7 @@ void MainVFO::showRSSI(void) {
 
     uint8_t sValue = 0;
     int16_t plusDB = 0;
-    if (radio.getState() == RadioNS::Radio::RadioState::RX_ON) {
+    if (radio.getState() == Settings::RadioState::RX_ON) {
         int16_t rssi_dBm = radio.getRSSIdBm(); // Get the RSSI value in dBm
         sValue = radio.convertRSSIToSLevel(rssi_dBm); // Convert RSSI to S-level
         if (sValue == 10) {
@@ -151,7 +151,7 @@ void MainVFO::timeout(void) {
 
 void MainVFO::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
 
-    RadioNS::Radio::VFO vfo = radio.getActiveVFO();
+    Settings::VFO vfo = radio.getActiveVFO();
 
     if (keyState == Keyboard::KeyState::KEY_RELEASED) {
 
