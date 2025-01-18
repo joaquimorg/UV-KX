@@ -407,9 +407,9 @@ public:
         return u8sl.total;
     }
 
-    void draw(uint8_t y) {
+    void draw(uint8_t y, const char* info = NULL) {
         ui.lcd()->setFontPosBaseline();
-        drawSelectionList(y, slines);
+        drawSelectionList(y, slines, info);
     }
 
     void setStartXPos(uint8_t x) {
@@ -428,6 +428,10 @@ public:
         return u8x8_GetStringLineStart(u8sl.current_pos, slines);
     }
 
+    void setSuffix(const char* sf) {
+        suffix = sf;
+    }
+
 private:
     u8sl_t u8sl;
     const char* slines;
@@ -436,7 +440,7 @@ private:
     uint8_t startXPos = 2;
     bool showLineNumbers = true;
 
-    u8g2_uint_t drawSelectionListLine(u8g2_uint_t y, uint8_t idx, const char* s) {
+    u8g2_uint_t drawSelectionListLine(u8g2_uint_t y, uint8_t idx, const char* s, const char* info) {
 
         uint8_t is_invert = 0;
 
@@ -470,6 +474,15 @@ private:
 
         if (showLineNumbers) {
             ui.drawString(TextAlign::LEFT, startXPos + 14, maxWidth, y, is_invert, true, false, s);
+            if (info != NULL && is_invert) {
+                ui.setFont(Font::FONT_8_TR);
+                if (suffix == NULL) {
+                    ui.drawString(TextAlign::RIGHT, 0, maxWidth, y, is_invert, true, false, info);
+                }
+                else {
+                    ui.drawStringf(TextAlign::RIGHT, 0, maxWidth, y, is_invert, true, false, "%.*s %s", ui.stringLengthNL(info), info, suffix);
+                }
+            }
         }
         else {
             if (suffix == NULL) {
@@ -483,10 +496,10 @@ private:
         return line_height;
     }
 
-    void drawSelectionList(u8g2_uint_t y, const char* s) {
+    void drawSelectionList(u8g2_uint_t y, const char* s, const char* info) {
         uint8_t i;
         for (i = 0; i < u8sl.visible; i++) {
-            y += drawSelectionListLine(y, i + u8sl.first_pos, s);
+            y += drawSelectionListLine(y, i + u8sl.first_pos, s, info);
         }
     }
 

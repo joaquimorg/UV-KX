@@ -17,6 +17,9 @@ namespace RadioNS
 
         /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+
+        static constexpr const char* squelchStr = "OFF\n1\n2\n3\n4\n5\n6\n7\n8\n9";
+        
         static constexpr const char* codetypeStr = "NONE\nCT\nDCS\n-DCS";
 
         static constexpr const char* txrxStr = "OFF\nRX\nTX\nRX/TX";

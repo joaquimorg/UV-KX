@@ -45,10 +45,10 @@ public:
 
     // Constructor
     Keyboard(System::SystemTask& systask);
-    
+
     // Initialize the keyboard
     void init();
-    
+
     // Get current F-key state
     bool wasFKeyPressed() const { return mWasFKeyPressed; }
 
@@ -74,17 +74,18 @@ private:
     };
 
     // Member variables
-    bool mKeyState[ROWS][COLS];
     bool mKeyPtt;
-    KeyState mPrevKeyState[ROWS][COLS];
     KeyState mPrevStatePtt;
-    TickType_t mLongPressTimer[ROWS][COLS];
+    KeyCode mKeyPressed = KeyCode::KEY_INVALID;
+    KeyCode mPrevKeyPressed = KeyCode::KEY_INVALID;
+    KeyState mPrevKeyState;
     bool mWasFKeyPressed;
-    
+    TickType_t mLongPressTimer;
+
     // Task related
     StaticTask_t mKeyTaskBuffer;
     StackType_t mKeyTaskStack[configMINIMAL_STACK_SIZE];
-    
+
     // Keyboard layout configuration
     static const KeyboardRow KEYBOARD_LAYOUT[ROWS];
 

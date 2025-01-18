@@ -101,6 +101,7 @@ void SystemTask::processSystemNotification(SystemMessages notification) {
     switch (notification.message) {
     case SystemMSG::MSG_TIMEOUT:
         //uart.sendLog("MSG_TIMEOUT\n");
+        battery.getReadings(); // Update battery readings
         if (currentApp != Applications::Applications::None) {
             currentApplication->timeout();
         }
@@ -125,26 +126,27 @@ void SystemTask::processSystemNotification(SystemMessages notification) {
         //pushMessage(SystemMSG::MSG_BKCLIGHT, (uint32_t)Backlight::backLightState::ON);
         break;
     case SystemMSG::MSG_KEYPRESSED: {
-        //uart.sendLog("MSG_KEYPRESSED\n");
-
+        //uart.sendLog("MSG_KEYPRESSED");
+        //uart.print("Key: %d\n", notification.key);
+        //uart.print("State: %d\n", notification.state);
         Keyboard::KeyCode key = notification.key;
-        Keyboard::KeyState state = notification.state;
-
-        if (currentApp != Applications::Applications::None) {
-            currentApplication->action(key, state);
-        }
+        Keyboard::KeyState state = notification.state;        
 
         if (state == Keyboard::KeyState::KEY_PRESSED || state == Keyboard::KeyState::KEY_LONG_PRESSED) {
             timeoutCount = 0;
             timeoutLightCount = 0;
             pushMessage(SystemMSG::MSG_BKCLIGHT, (uint32_t)Backlight::backLightState::ON);
             if (key != Keyboard::KeyCode::KEY_PTT) {
+                //playBeep(Settings::BEEPType::BEEP_1KHZ_60MS_OPTIONAL);
                 pushMessage(SystemMSG::MSG_PLAY_BEEP, (uint32_t)Settings::BEEPType::BEEP_1KHZ_60MS_OPTIONAL);
             }
             else {
                 pushMessage(SystemMSG::MSG_RADIO_TX, 0);
             }
-        }        
+        }
+        if (currentApp != Applications::Applications::None) {
+            currentApplication->action(key, state);
+        }
 
         break;
     }
@@ -160,8 +162,7 @@ void SystemTask::processSystemNotification(SystemMessages notification) {
 void SystemTask::runTimerImpl(void) {
 
     // 0.5 second timer
-
-    battery.getReadings(); // Update battery readings
+    
     if (currentApp != Applications::Applications::None) {
     }
 

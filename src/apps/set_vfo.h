@@ -37,6 +37,7 @@ namespace Applications
 
         void loadOptions();
         void setOptions();
+        const char* getCurrentOption();
 
     };
 
