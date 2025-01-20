@@ -68,8 +68,8 @@ void Radio::setSquelch(uint32_t f, uint8_t sql) {
 
 void Radio::setVFO(Settings::VFOAB vfo, uint32_t rx, uint32_t tx, int16_t channel, ModType modulation) {
     uint8_t vfoIndex = (uint8_t)vfo;
-    radioVFO[vfoIndex].rx.frequency = (uint32_t)(rx & 0x07FFFFFF);;
-    radioVFO[vfoIndex].tx.frequency = (uint32_t)(tx & 0x07FFFFFF);;
+    radioVFO[vfoIndex].rx.frequency = (uint32_t)(rx & 0x07FFFFFF);
+    radioVFO[vfoIndex].tx.frequency = (uint32_t)(tx & 0x07FFFFFF);
     radioVFO[vfoIndex].channel = channel;
     radioVFO[vfoIndex].squelch = 1;
     radioVFO[vfoIndex].step = Settings::Step::STEP_12_5kHz;
@@ -84,7 +84,9 @@ void Radio::setVFO(Settings::VFOAB vfo, uint32_t rx, uint32_t tx, int16_t channe
     radioVFO[vfoIndex].afc = 0;
     radioVFO[vfoIndex].rxagc = 0;
     radioVFO[vfoIndex].rx.codeType = Settings::CodeType::NONE;
+    radioVFO[vfoIndex].rx.code = 0;
     radioVFO[vfoIndex].tx.codeType = Settings::CodeType::NONE;
+    radioVFO[vfoIndex].tx.code = 0;
 
     if (channel > 0) {
         snprintf(radioVFO[vfoIndex].name, sizeof(radioVFO[vfoIndex].name), "CH-%03d", channel);

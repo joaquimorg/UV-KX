@@ -38,11 +38,20 @@ enum class Font {
 #define W 128
 #define H 64
 
+static constexpr uint16_t CHAR_BUFFER_SIZE = 600;
+static char uiBuffer[CHAR_BUFFER_SIZE];
+
 class UI {
 public:
     UI(ST7565& st7565, UART& uart) : st7565{ st7565 }, uart{ uart } {};
 
     ST7565* lcd() { return &this->st7565; };
+
+    static constexpr char TXStr[] = "TX";
+    static constexpr char RXStr[] = "RX";
+    static constexpr char HZStr[] = "Hz";
+    static constexpr char KHZStr[] = "KHz";
+    static constexpr char VFOStr[] = "VFO";
 
     uint8_t message_result = 0;
 
@@ -324,6 +333,33 @@ public:
         lcd()->drawBox(x + 1, y + 1, fill, 3);
     }
 
+    const char* generateCTDCList(const uint16_t* options, size_t count, bool isCTCSS = true) {        
+        char* ptr = uiBuffer;
+        size_t  remaining = CHAR_BUFFER_SIZE;
+        int written;
+        
+        uiBuffer[0] = '\0';
+
+        for (size_t  i = 0; i < count; i++) {
+
+            if (isCTCSS) {
+                written = snprintf(ptr, remaining, "%u.%u%s", options[i] / 10, options[i] % 10, (i == count - 1) ? "" : "\n");
+            } else {
+                written = snprintf(ptr, remaining, "D%03o%s", options[i], (i == count - 1) ? "" : "\n");
+            }
+
+            if (written < 0 || (size_t)written >= remaining) {
+                break; 
+            }
+
+            ptr += written;
+            remaining -= written;
+        }
+
+        return uiBuffer;
+    }
+
+
 private:
 
     ST7565& st7565;
@@ -480,7 +516,7 @@ private:
                     ui.drawString(TextAlign::RIGHT, 0, maxWidth, y, is_invert, true, false, info);
                 }
                 else {
-                    ui.drawStringf(TextAlign::RIGHT, 0, maxWidth, y, is_invert, true, false, "%.*s %s", ui.stringLengthNL(info), info, suffix);
+                    ui.drawStringf(TextAlign::RIGHT, 0, maxWidth, y, is_invert, true, false, "%.*s%s", ui.stringLengthNL(info), info, suffix);
                 }
             }
         }
@@ -489,7 +525,7 @@ private:
                 ui.drawString(TextAlign::CENTER, startXPos, maxWidth, y, is_invert, true, false, s);
             }
             else {
-                ui.drawStringf(TextAlign::CENTER, startXPos, maxWidth, y, is_invert, true, false, "%.*s %s", ui.stringLengthNL(s), s, suffix);
+                ui.drawStringf(TextAlign::CENTER, startXPos, maxWidth, y, is_invert, true, false, "%.*s%s", ui.stringLengthNL(s), s, suffix);
             }
         }
 

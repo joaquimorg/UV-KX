@@ -78,6 +78,8 @@ void SystemTask::statusTaskImpl() {
 
     xTimerStart(appTimer, 0);
     xTimerStart(runTimer, 0);
+    
+    //uart.print("lenght : %i\n", settings.stringLength(ui.generateCTDCList(Settings::DCSOptions, 104, false)));
     for (;;) {
         // Wait for notifications or messages
         if (xQueueReceive(systemMessageQueue, &notification, pdMS_TO_TICKS(5)) == pdTRUE) {

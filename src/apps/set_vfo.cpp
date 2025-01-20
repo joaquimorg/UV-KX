@@ -16,7 +16,7 @@ void SetVFO::drawScreen(void) {
     ui.lcd()->drawBox(0, 0, 128, 7);
 
     ui.setFont(Font::FONT_8B_TR);
-    ui.drawStringf(TextAlign::LEFT, 2, 0, 6, false, false, false, "VFO %s", vfoab == Settings::VFOAB::VFOA ? "A" : "B");
+    ui.drawStringf(TextAlign::LEFT, 2, 0, 6, false, false, false, "%s %s", ui.VFOStr, vfoab == Settings::VFOAB::VFOA ? "A" : "B");
     ui.drawStringf(TextAlign::RIGHT, 0, 126, 6, false, false, false, "%02u / %02u", menulist.getListPos() + 1, menulist.getTotal());
 
     ui.setBlackColor();
@@ -60,28 +60,50 @@ const char* SetVFO::getCurrentOption() {
     case 1: // SQUELCH
         return ui.getStrValue(RadioNS::Radio::squelchStr, (uint8_t)vfo.squelch);
     case 2: // STEP
-        menulist.setSuffix("KHZ");
+        menulist.setSuffix(ui.KHZStr);
         return ui.getStrValue(RadioNS::Radio::stepStr, (uint8_t)vfo.step);
     case 3: // MODE
         return ui.getStrValue(RadioNS::Radio::modulationStr, (uint8_t)vfo.modulation);
     case 4: // BANDWIDTH
-        menulist.setSuffix("KHZ");
+        menulist.setSuffix(ui.KHZStr);
         return ui.getStrValue(RadioNS::Radio::bandwidthStr, (uint8_t)vfo.bw);
     case 5: // TX POWER
         return ui.getStrValue(RadioNS::Radio::powerStr, (uint8_t)vfo.power);
     case 6: // SHIFT
         return ui.getStrValue(RadioNS::Radio::offsetStr, (uint8_t)vfo.shift);
     case 7: // OFFSET
-        menulist.setSuffix("KHZ");
+        menulist.setSuffix(ui.KHZStr);
         return "0.00";//ui.getStrValue(RadioNS::Radio::offsetStr, vfo.rx.frequency - vfo.tx.frequency);
     case 8: // RX CODE TYPE
         return ui.getStrValue(RadioNS::Radio::codetypeStr, (uint8_t)vfo.rx.codeType);
     case 10: // TX CODE TYPE
         return ui.getStrValue(RadioNS::Radio::codetypeStr, (uint8_t)vfo.tx.codeType);
     case 9: // RX CODE
-        return ui.getStrValue("1\n2\n3\n4", (uint8_t)vfo.rx.code);
+        if (vfo.rx.codeType == Settings::CodeType::CT) {
+            menulist.setSuffix(ui.HZStr);
+            return ui.getStrValue(ui.generateCTDCList(Settings::CTCSSOptions, 50), (uint8_t)vfo.rx.code);
+        } else if (vfo.rx.codeType == Settings::CodeType::DCS) {
+            menulist.setSuffix("I");
+            return ui.getStrValue(ui.generateCTDCList(Settings::DCSOptions, 104, false), (uint8_t)vfo.rx.code);
+        } else if (vfo.rx.codeType == Settings::CodeType::NDCS) {
+            menulist.setSuffix("N");
+            return ui.getStrValue(ui.generateCTDCList(Settings::DCSOptions, 104, false), (uint8_t)vfo.rx.code);
+        } else {
+            return NULL;
+        }
     case 11: // TX CODE
-        return ui.getStrValue("1\n2\n3\n4", (uint8_t)vfo.tx.code);
+        if (vfo.tx.codeType == Settings::CodeType::CT) {
+            menulist.setSuffix(ui.HZStr);
+            return ui.getStrValue(ui.generateCTDCList(Settings::CTCSSOptions, 50), (uint8_t)vfo.tx.code);
+        } else if (vfo.tx.codeType == Settings::CodeType::DCS) {
+            menulist.setSuffix("I");
+            return ui.getStrValue(ui.generateCTDCList(Settings::DCSOptions, 104, false), (uint8_t)vfo.tx.code);
+        } else if (vfo.tx.codeType == Settings::CodeType::NDCS) {
+            menulist.setSuffix("N");
+            return ui.getStrValue(ui.generateCTDCList(Settings::DCSOptions, 104, false), (uint8_t)vfo.tx.code);
+        } else {
+            return NULL;
+        }
     case 12: // TX STE
         return ui.getStrValue(RadioNS::Radio::onoffStr, (uint8_t)vfo.repeaterSte);
     case 13: // RX STE
@@ -105,7 +127,7 @@ void SetVFO::loadOptions() {
         optionlist.set((uint8_t)vfo.squelch, 5, 0, RadioNS::Radio::squelchStr);
         break;
     case 2: // STEP
-        optionlist.set((uint8_t)vfo.step, 5, 0, RadioNS::Radio::stepStr, "KHz");
+        optionlist.set((uint8_t)vfo.step, 5, 0, RadioNS::Radio::stepStr, ui.KHZStr);
         break;
     case 3: // MODE
         optionlist.set((uint8_t)vfo.modulation, 5, 0, RadioNS::Radio::modulationStr);
@@ -129,10 +151,26 @@ void SetVFO::loadOptions() {
         optionlist.set((uint8_t)vfo.tx.codeType, 5, 0, RadioNS::Radio::codetypeStr);
         break;
     case 9: // RX CODE
-        optionlist.set((uint8_t)vfo.rx.code, 5, 0, "1\n2\n3\n4");
+        if (vfo.rx.codeType == Settings::CodeType::CT) {
+            optionlist.set((uint8_t)vfo.rx.code, 5, 0, ui.generateCTDCList(Settings::CTCSSOptions, 50), ui.HZStr);
+        } else if (vfo.rx.codeType == Settings::CodeType::DCS) {
+            optionlist.set((uint8_t)vfo.rx.code, 5, 0, ui.generateCTDCList(Settings::DCSOptions, 104, false), "I");
+        } else if (vfo.rx.codeType == Settings::CodeType::NDCS) {
+            optionlist.set((uint8_t)vfo.rx.code, 5, 0, ui.generateCTDCList(Settings::DCSOptions, 104, false), "N");
+        } else {
+            optionSelected = 0;
+        }
         break;
     case 11: // TX CODE
-        optionlist.set((uint8_t)vfo.tx.code, 5, 0, "1\n2\n3\n4");
+        if (vfo.tx.codeType == Settings::CodeType::CT) {
+            optionlist.set((uint8_t)vfo.tx.code, 5, 0, ui.generateCTDCList(Settings::CTCSSOptions, 50), ui.HZStr);
+        } else if (vfo.tx.codeType == Settings::CodeType::DCS) {
+            optionlist.set((uint8_t)vfo.tx.code, 5, 0, ui.generateCTDCList(Settings::DCSOptions, 104, false), "I");
+        } else if (vfo.tx.codeType == Settings::CodeType::NDCS) {
+            optionlist.set((uint8_t)vfo.tx.code, 5, 0, ui.generateCTDCList(Settings::DCSOptions, 104, false), "N");
+        } else {
+            optionSelected = 0;
+        }
         break;
     case 12: // TX STE
         optionlist.set((uint8_t)vfo.repeaterSte, 5, 0, RadioNS::Radio::onoffStr);

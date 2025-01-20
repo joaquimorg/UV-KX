@@ -28,7 +28,7 @@ void SetRadio::drawScreen(void) {
 
 
 void SetRadio::init(void) {
-    menulist.set(0, 6, 120, "MIC DB\nBATTERY SAVE\nBUSY LOCKOUT\nBACKLIGHT LEVEL\nBACKLIGHT TIME\nBACKLIGHT MODE\nLCD CONTRAST\nTX TOT\nBEEP\nRESET");
+    menulist.set(0, 6, 127, "MIC DB\nBATT SAVE\nBUSY LOCKOUT\nBCKLIGHT LEVEL\nBCKLIGHT TIME\nBCKLIGHT MODE\nLCD CONTRAST\nTX TOT\nBEEP\nRESET");
 }
 
 void SetRadio::update(void) {

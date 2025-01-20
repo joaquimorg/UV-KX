@@ -28,17 +28,35 @@ void MainVFO::drawScreen(void) {
 
     ui.setFont(Font::FONT_8_TR);
     ui.lcd()->setColorIndex(BLACK);
-    ui.drawString(TextAlign::LEFT, 12, 0, 14, true, false, false, "VFO");
+    ui.drawString(TextAlign::LEFT, 12, 0, 14, true, false, false, ui.VFOStr);
 
     ui.setFont(Font::FONT_5_TR);
     const char* powerA = ui.getStrValue(RadioNS::Radio::powerStr, (uint8_t)vfo1.power);
     const char* bandwidthA = ui.getStrValue(RadioNS::Radio::bandwidthStr, (uint8_t)vfo1.bw);
     const char* modulationA = ui.getStrValue(RadioNS::Radio::modulationStr, (uint8_t)vfo1.modulation);
+    const char* rxCode;
+    const char* txCode;
+    uint8_t codeXend = 125;
 
-    ui.drawStringf(TextAlign::RIGHT, 0, 127, 6, false, false, false, "%.*s %.*sK %.*s", ui.stringLengthNL(modulationA), modulationA, ui.stringLengthNL(bandwidthA), bandwidthA, ui.stringLengthNL(powerA), powerA);
+    if (vfo1.rx.codeType == Settings::CodeType::CT) {
+        rxCode = ui.getStrValue(ui.generateCTDCList(Settings::CTCSSOptions, 50), (uint8_t)vfo1.rx.code);
+        ui.drawStringf(TextAlign::RIGHT, 0, codeXend, 26, true, false, false, "%s %.*s%s", ui.RXStr, ui.stringLengthNL(rxCode), rxCode, ui.HZStr);
+        codeXend -= 51;
+    } else if (vfo1.rx.codeType == Settings::CodeType::DCS || vfo1.rx.codeType == Settings::CodeType::NDCS) {
+        rxCode = ui.getStrValue(ui.generateCTDCList(Settings::DCSOptions, 104, false), (uint8_t)vfo1.rx.code);        
+        ui.drawStringf(TextAlign::RIGHT, 0, codeXend, 26, true, false, false, "%s %.*s%s", ui.RXStr, ui.stringLengthNL(rxCode), rxCode, vfo1.rx.codeType == Settings::CodeType::NDCS ? "N" : "I");
+        codeXend -= 51;
+    }
 
-    //ui.drawStringf(TextAlign::RIGHT, 0, 126, 26, true, false, false, "%s %s %s", "12.5K", "TX 131.8", "RX D023N");
-    ui.drawStringf(TextAlign::RIGHT, 0, 126, 26, true, false, false, "%s %s %s", "", "", "");
+    if (vfo1.tx.codeType == Settings::CodeType::CT) {
+        txCode = ui.getStrValue(ui.generateCTDCList(Settings::CTCSSOptions, 50), (uint8_t)vfo1.tx.code);        
+        ui.drawStringf(TextAlign::RIGHT, 0, codeXend, 26, true, false, false, "%s %.*s%s", ui.TXStr, ui.stringLengthNL(txCode), txCode, ui.HZStr);
+    } else if (vfo1.tx.codeType == Settings::CodeType::DCS || vfo1.tx.codeType == Settings::CodeType::NDCS) {
+        txCode = ui.getStrValue(ui.generateCTDCList(Settings::DCSOptions, 104, false), (uint8_t)vfo1.tx.code);        
+        ui.drawStringf(TextAlign::RIGHT, 0, codeXend, 26, true, false, false, "%s %.*s%s", ui.TXStr, ui.stringLengthNL(txCode), txCode, vfo1.tx.codeType == Settings::CodeType::NDCS ? "N" : "I");
+    }
+
+    ui.drawStringf(TextAlign::RIGHT, 0, 127, 7, false, false, false, "%.*s %.*sK %.*s", ui.stringLengthNL(modulationA), modulationA, ui.stringLengthNL(bandwidthA), bandwidthA, ui.stringLengthNL(powerA), powerA);
 
     ui.lcd()->setColorIndex(BLACK);
     ui.lcd()->drawLine(5, 9, 5, 25);
@@ -47,7 +65,7 @@ void MainVFO::drawScreen(void) {
     ui.drawStringf(TextAlign::LEFT, 2, 0, 20, true, true, false, "%s", activeVFO1 == Settings::VFOAB::VFOA ? "A" : "B");
 
     if (rxVFO1) {
-        ui.drawString(TextAlign::LEFT, 12, 0, 20, true, true, false, "RX");
+        ui.drawString(TextAlign::LEFT, 12, 0, 20, true, true, false, ui.RXStr);
     }
 
     ui.drawFrequencyBig(rxVFO1, vfo1.rx.frequency, 115, 19);
@@ -66,10 +84,10 @@ void MainVFO::drawScreen(void) {
 
     if (rxVFO2) {
         ui.setFont(Font::FONT_8B_TR);
-        ui.drawString(TextAlign::LEFT, 12, 0, vfoBY + 15, true, true, false, "RX");
+        ui.drawString(TextAlign::LEFT, 12, 0, vfoBY + 15, true, true, false, ui.RXStr);
     }
     else {
-        ui.drawString(TextAlign::LEFT, 12, 0, vfoBY + 15, true, false, false, "VFO");
+        ui.drawString(TextAlign::LEFT, 12, 0, vfoBY + 15, true, false, false, ui.VFOStr);
     }
 
     ui.setFont(Font::FONT_5_TR);
