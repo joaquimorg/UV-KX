@@ -280,16 +280,16 @@ void Radio::checkRadioInterrupts(void) {
 
         if (interrupts.flags.sqlLost) {
             if (state != Settings::RadioState::RX_ON) {
-                toggleRX(true);
                 state = Settings::RadioState::RX_ON;
+                toggleRX(true);                
                 systask.pushMessage(System::SystemTask::SystemMSG::MSG_RADIO_RX, 0);
             }
         }
 
         if (interrupts.flags.sqlFound) {
             if (state != Settings::RadioState::IDLE) {
-                toggleRX(false);
                 state = Settings::RadioState::IDLE;
+                toggleRX(false);                
             }
         }
 

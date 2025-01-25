@@ -141,6 +141,12 @@ public:
         NONE = 2
     };
 
+    static constexpr uint16_t  StepFrequencyTable[13] = {
+        50,  100,
+        250, 500, 625, 1000, 1250, 1500, 
+        2000, 2500, 5000, 10000, 50000
+    };
+
     enum class Step : uint8_t {
         STEP_0_5kHz = 0,
         STEP_1_0kHz = 1,

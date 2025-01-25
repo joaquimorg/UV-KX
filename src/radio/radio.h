@@ -30,9 +30,10 @@ namespace RadioNS
 
         static constexpr const char* offsetStr = "OFF\n+\n-";
 
-        static constexpr const char* modulationStr = "FM\nAM\nLSB\nUSB\nBYP\nRAW\nWFM\nPRST";
+        //static constexpr const char* modulationStr = "FM\nAM\nLSB\nUSB\nBYP\nRAW\nWFM\nPRST";
+        static constexpr const char* modulationStr = "FM\nAM\nLSB";
 
-        static constexpr const char* bandwidthStr = "W 26\nW 23\nW 20\nW 17\nW 14\nW 12\nN 10\nN 9\nU 7\nU 6";
+        static constexpr const char* bandwidthStr = "26\n23\n20\n17\n14\n12\n10\n9\n7\n6";
 
         static constexpr const char* stepStr = "0.5\n1.0\n2.5\n5.0\n6.25\n10.0\n12.5\n15.0\n20.0\n25.0\n30.0\n50.0\n100.0\n500.0";
 
@@ -59,8 +60,17 @@ namespace RadioNS
         // get VFO
         Settings::VFO getActiveVFO() { return radioVFO[(uint8_t)activeVFO]; };
         Settings::VFO getVFO(Settings::VFOAB vfo) { return radioVFO[(uint8_t)vfo]; };
-        void setVFO(Settings::VFOAB vfoab, Settings::VFO vfo) { 
-            radioVFO[(uint8_t)vfoab] = vfo;
+        void setVFO(Settings::VFOAB vfoab, Settings::VFO vfo) {             
+            uint8_t vfoIndex = (uint8_t)activeVFO;
+            radioVFO[vfoIndex] = vfo;
+            rxVFO = activeVFO;
+            if (radioVFO[vfoIndex].channel > 0) {
+                snprintf(radioVFO[vfoIndex].name, sizeof(radioVFO[vfoIndex].name), "CH-%03d", radioVFO[vfoIndex].channel);
+            }
+            else {
+                strncpy(radioVFO[vfoIndex].name, getBandName(radioVFO[vfoIndex].rx.frequency), sizeof(radioVFO[vfoIndex].name) - 1);
+                radioVFO[vfoIndex].name[sizeof(radioVFO[vfoIndex].name) - 1] = '\0'; // Ensure null termination
+            }
             setupToVFO(vfoab);
         };
         // get active VFO
@@ -68,8 +78,7 @@ namespace RadioNS
 
         // Change Active VFO
         void changeActiveVFO(void) {
-            activeVFO = (activeVFO == Settings::VFOAB::VFOA) ? Settings::VFOAB::VFOB : Settings::VFOAB::VFOA;
-            rxVFO = activeVFO;
+            activeVFO = (activeVFO == Settings::VFOAB::VFOA) ? Settings::VFOAB::VFOB : Settings::VFOAB::VFOA;            
             setupToVFO(activeVFO);
         }
 

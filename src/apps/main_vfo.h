@@ -24,12 +24,23 @@ namespace Applications
         RadioNS::Radio& radio;
 
         SelectionListPopup popupList;
+        enum PopupList {
+            BANDWIDTH,
+            MODULATION,
+            POWER,
+            NONE
+        };
 
         bool showPopup = false;
+        bool showFreqInput = false;
+        uint32_t freqInput = 0;
+        PopupList popupSelected = NONE;
+        
 
         uint8_t convertRSSIToSLevel(int16_t rssi_dBm);
         int16_t convertRSSIToPlusDB(int16_t rssi_dBm);
         void showRSSI(void);
+        void savePopupValue(void);
 
     };
 

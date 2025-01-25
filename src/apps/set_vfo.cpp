@@ -139,7 +139,7 @@ void SetVFO::loadOptions() {
         optionlist.set((uint8_t)vfo.modulation, 5, 0, RadioNS::Radio::modulationStr);
         break;
     case 4: // BANDWIDTH
-        optionlist.set((uint8_t)vfo.bw, 5, 0, RadioNS::Radio::bandwidthStr, "K");
+        optionlist.set((uint8_t)vfo.bw, 5, 0, RadioNS::Radio::bandwidthStr, ui.KHZStr);
         break;
     case 5: // TX POWER
         optionlist.set((uint8_t)vfo.power, 5, 0, RadioNS::Radio::powerStr);
@@ -204,6 +204,11 @@ void SetVFO::loadOptions() {
         break;
     default:
         break;
+    }
+
+    if (optionSelected != 0) {
+        optionlist.next();
+        optionlist.prev();
     }
 }
 

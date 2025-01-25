@@ -70,7 +70,12 @@ void MainVFO::drawScreen(void) {
         ui.drawString(TextAlign::LEFT, 12, 0, 14, true, true, false, ui.RXStr);
     }
 
-    ui.drawFrequencyBig(rxVFO1, vfo1.rx.frequency, 114, 19);
+    if (showFreqInput) {
+        ui.drawFrequencyBig(true, freqInput, 114, 19);
+    }
+    else {
+        ui.drawFrequencyBig(rxVFO1, vfo1.rx.frequency, 114, 19);
+    }
 
     uint8_t vfoBY = 28;
 
@@ -99,7 +104,7 @@ void MainVFO::drawScreen(void) {
         ui.drawString(TextAlign::LEFT, 12, 0, vfoBY + 15, true, false, false, ui.VFOStr);
     }
 
-    ui.lcd()->setColorIndex(BLACK);    
+    ui.lcd()->setColorIndex(BLACK);
 
     showRSSI();
 
@@ -116,7 +121,7 @@ void MainVFO::drawScreen(void) {
     ui.drawStringf(TextAlign::RIGHT, 0, 128, 65, true, false, false, "%i%%", systask.getBattery().getBatteryPercentage());
 
     if (systask.wasFKeyPressed()) {
-        ui.drawString(TextAlign::RIGHT, 0, 74 , 65, true, true, false, "F");
+        ui.drawString(TextAlign::RIGHT, 0, 74, 65, true, true, false, "F");
     }
 
     if (radio.getState() == Settings::RadioState::RX_ON) {
@@ -127,7 +132,7 @@ void MainVFO::drawScreen(void) {
     }
 
 
-    if (showPopup) {
+    if (popupSelected != NONE) {
         popupList.drawPopup(ui);
     }
 
@@ -171,9 +176,29 @@ void MainVFO::update(void) {
 }
 
 void MainVFO::timeout(void) {
-    if (showPopup) {
-        showPopup = false;
+    if (popupSelected != NONE) {
+        popupSelected = NONE;
     }
+    if (showFreqInput) {
+        showFreqInput = false;
+    }
+}
+
+void MainVFO::savePopupValue(void) {
+    Settings::VFO vfo = radio.getActiveVFO();
+
+    if (popupSelected == BANDWIDTH) {
+        vfo.bw = (BK4819_Filter_Bandwidth)popupList.getListPos();
+    }
+    else if (popupSelected == MODULATION) {
+        vfo.modulation = (ModType)popupList.getListPos();
+    }
+    else if (popupSelected == POWER) {
+        vfo.power = (Settings::TXOutputPower)popupList.getListPos();
+    }
+
+    radio.setVFO(radio.getCurrentVFO(), vfo);
+    radio.setupToVFO(radio.getCurrentVFO());
 }
 
 void MainVFO::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
@@ -182,69 +207,109 @@ void MainVFO::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
 
     if (keyState == Keyboard::KeyState::KEY_RELEASED) {
 
-        if (showPopup) {
+        if (popupSelected != NONE) {
             if (keyCode == Keyboard::KeyCode::KEY_UP) {
                 popupList.prev();
+                savePopupValue();
             }
             else if (keyCode == Keyboard::KeyCode::KEY_DOWN) {
                 popupList.next();
+                savePopupValue();
             }
             else if (keyCode == Keyboard::KeyCode::KEY_MENU) {
-                showPopup = false;
+                popupSelected = NONE;
             }
             else if (keyCode == Keyboard::KeyCode::KEY_EXIT) {
-                showPopup = false;
+                popupSelected = NONE;
             }
             else if (keyCode == Keyboard::KeyCode::KEY_4 || keyCode == Keyboard::KeyCode::KEY_5 || keyCode == Keyboard::KeyCode::KEY_6) {
                 popupList.next();
+                savePopupValue();
             }
         }
         else {
 
             if (keyCode == Keyboard::KeyCode::KEY_UP) {
-                uint32_t newFrequency = vfo.rx.frequency + 1250;
+                uint32_t newFrequency = vfo.rx.frequency + Settings::StepFrequencyTable[(uint8_t)vfo.step];
                 vfo.rx.frequency = (uint32_t)(newFrequency & 0x07FFFFFF);
 
-                radio.setVFO(radio.getCurrentVFO(), vfo.rx.frequency, vfo.rx.frequency, vfo.channel, vfo.modulation);
+                radio.setVFO(radio.getCurrentVFO(), vfo);
                 radio.setupToVFO(radio.getCurrentVFO());
             }
             else if (keyCode == Keyboard::KeyCode::KEY_DOWN) {
-                uint32_t newFrequency = vfo.rx.frequency - 1250;
+                uint32_t newFrequency = vfo.rx.frequency - Settings::StepFrequencyTable[(uint8_t)vfo.step];
                 vfo.rx.frequency = (uint32_t)(newFrequency & 0x7FFFFFF);
 
-                radio.setVFO(radio.getCurrentVFO(), vfo.rx.frequency, vfo.rx.frequency, vfo.channel, vfo.modulation);
+                radio.setVFO(radio.getCurrentVFO(), vfo);
                 radio.setupToVFO(radio.getCurrentVFO());
             }
             else if (keyCode == Keyboard::KeyCode::KEY_MENU) {
-                systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::Menu);
+                if (showFreqInput) {
+                    showFreqInput = false;
+                    vfo.rx.frequency = (uint32_t)(freqInput & 0x7FFFFFF);
+                    vfo.tx.frequency = (uint32_t)(freqInput & 0x7FFFFFF);
+                    radio.setVFO(radio.getCurrentVFO(), vfo);
+                    radio.setupToVFO(radio.getCurrentVFO());
+                }
+                else {
+                    systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::Menu);
+                }
             }
             else if (keyCode == Keyboard::KeyCode::KEY_EXIT) {
+                if (showFreqInput) {
+                    showFreqInput = false;
+                }
+            }
+            else if (keyCode == Keyboard::KeyCode::KEY_STAR) {
+                if (showFreqInput && freqInput > 0) {
+                    freqInput /= 10;
+                }
+            }
+            else if (keyCode >= Keyboard::KeyCode::KEY_0 && keyCode <= Keyboard::KeyCode::KEY_9) {
+                if (!showFreqInput) {
+                    showFreqInput = true;
+                    freqInput = 0;
 
+                }
+                uint8_t number = ui.keycodeToNumber(keyCode);
+
+                freqInput *= (uint32_t)(10 & 0x7FFFFFF);
+                freqInput += (uint32_t)(number & 0x7FFFFFF);
+                if (freqInput >= 999999999) {
+                    showFreqInput = false;
+                }
             }
         }
     }
     else if (keyState == Keyboard::KeyState::KEY_LONG_PRESSED || keyState == Keyboard::KeyState::KEY_PRESSED_WITH_F) {
 
-        if (keyCode == Keyboard::KeyCode::KEY_2) {
-            radio.changeActiveVFO();
-        }
-        else if (keyCode == Keyboard::KeyCode::KEY_4) {
-            popupList.set((uint8_t)vfo.bw, 3, 0, RadioNS::Radio::bandwidthStr, "K");
-            popupList.setPopupTitle("BANDWIDTH");
-            showPopup = true;
-        }
-        else if (keyCode == Keyboard::KeyCode::KEY_5) {
-            popupList.set((uint8_t)vfo.modulation, 3, 0, RadioNS::Radio::modulationStr);
-            popupList.setPopupTitle("MODULATION");
-            showPopup = true;
-        }
-        else if (keyCode == Keyboard::KeyCode::KEY_6) {
-            popupList.set((uint8_t)vfo.power, 3, 0, RadioNS::Radio::powerStr);
-            popupList.setPopupTitle("TX POWER");
-            showPopup = true;
-        }
-        else if (keyCode == Keyboard::KeyCode::KEY_MENU) {
-            systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, radio.getCurrentVFO() == Settings::VFOAB::VFOA ? (uint32_t)Applications::SETVFOA : (uint32_t)Applications::SETVFOB);
+        if (!showFreqInput || popupSelected == NONE) {
+            if (keyCode == Keyboard::KeyCode::KEY_2) {
+                radio.changeActiveVFO();
+            }
+            else if (keyCode == Keyboard::KeyCode::KEY_4) {
+                popupList.set((uint8_t)vfo.bw, 3, 0, RadioNS::Radio::bandwidthStr);
+                popupList.setPopupTitle("BANDWIDTH");
+                popupSelected = BANDWIDTH;
+            }
+            else if (keyCode == Keyboard::KeyCode::KEY_5) {
+                popupList.set((uint8_t)vfo.modulation, 3, 0, RadioNS::Radio::modulationStr);
+                popupList.setPopupTitle("MODULATION");
+                popupSelected = MODULATION;
+            }
+            else if (keyCode == Keyboard::KeyCode::KEY_6) {
+                popupList.set((uint8_t)vfo.power, 3, 0, RadioNS::Radio::powerStr);
+                popupList.setPopupTitle("TX POWER");
+                popupSelected = POWER;
+            }
+            else if (keyCode == Keyboard::KeyCode::KEY_MENU) {
+                systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, radio.getCurrentVFO() == Settings::VFOAB::VFOA ? (uint32_t)Applications::SETVFOA : (uint32_t)Applications::SETVFOB);
+            }
+
+            if (popupSelected != NONE) {
+                popupList.next();
+                popupList.prev();
+            }
         }
     }
 }

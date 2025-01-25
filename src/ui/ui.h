@@ -188,7 +188,7 @@ public:
     }
 
     void drawStringf(TextAlign tAlign, u8g2_uint_t xstart, u8g2_uint_t xend, u8g2_uint_t y, bool isBlack, bool isFill, bool isBox, const char* str, ...) {
-        char text[40] = { 0 };
+        char text[60] = { 0 };
 
         va_list va;
         va_start(va, str);
@@ -478,7 +478,7 @@ private:
     uint8_t startXPos = 2;
     bool showLineNumbers = true;
 
-    u8g2_uint_t drawSelectionListLine(u8g2_uint_t y, uint8_t idx, const char* s, const char* info) {
+    u8g2_uint_t drawSelectionListLine(u8g2_uint_t y, uint8_t idx, const char* s, const char* info = NULL) {
 
         uint8_t is_invert = 0;
 
@@ -494,9 +494,13 @@ private:
         /* get the line from the array */
         s = u8x8_GetStringLineStart(idx, s);
 
+        if (s == NULL) {
+            return line_height;
+        }            
+
         /* draw the line */
-        if (s == NULL)
-            s = "";
+        /*if (s == NULL)
+            s = "";*/
 
         if (showLineNumbers) {
             ui.setFont(Font::FONT_5_TR);
@@ -518,7 +522,7 @@ private:
                     ui.drawString(TextAlign::RIGHT, 0, maxWidth, y, is_invert, true, false, info);
                 }
                 else {
-                    ui.drawStringf(TextAlign::RIGHT, 0, maxWidth, y, is_invert, true, false, "%.*s%s", ui.stringLengthNL(info), info, suffix);
+                    ui.drawStringf(TextAlign::RIGHT, 0, maxWidth, y, is_invert, true, false, "%.*s %s", ui.stringLengthNL(info), info, suffix);
                 }
             }
         }
@@ -527,14 +531,16 @@ private:
                 ui.drawString(TextAlign::CENTER, startXPos, maxWidth, y, is_invert, true, false, s);
             }
             else {
-                ui.drawStringf(TextAlign::CENTER, startXPos, maxWidth, y, is_invert, true, false, "%.*s%s", ui.stringLengthNL(s), s, suffix);
+                ui.drawStringf(TextAlign::CENTER, startXPos, maxWidth, y, is_invert, true, false, "%.*s %.*s", ui.stringLengthNL(s), s, strlen(suffix), suffix);
+                //ui.drawStringf(TextAlign::CENTER, startXPos, maxWidth, y, is_invert, true, false, "%s %s", s, suffix);
+                //ui.drawString(TextAlign::CENTER, startXPos, maxWidth, y, is_invert, true, false, s);
             }
         }
 
         return line_height;
     }
 
-    void drawSelectionList(u8g2_uint_t y, const char* s, const char* info) {
+    void drawSelectionList(u8g2_uint_t y, const char* s, const char* info = NULL) {
         uint8_t i;
         for (i = 0; i < u8sl.visible; i++) {
             y += drawSelectionListLine(y, i + u8sl.first_pos, s, info);
