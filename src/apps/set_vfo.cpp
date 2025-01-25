@@ -82,26 +82,32 @@ const char* SetVFO::getCurrentOption() {
         if (vfo.rx.codeType == Settings::CodeType::CT) {
             menulist.setSuffix(ui.HZStr);
             return ui.getStrValue(ui.generateCTDCList(Settings::CTCSSOptions, 50), (uint8_t)vfo.rx.code);
-        } else if (vfo.rx.codeType == Settings::CodeType::DCS) {
+        }
+        else if (vfo.rx.codeType == Settings::CodeType::DCS) {
             menulist.setSuffix("I");
             return ui.getStrValue(ui.generateCTDCList(Settings::DCSOptions, 104, false), (uint8_t)vfo.rx.code);
-        } else if (vfo.rx.codeType == Settings::CodeType::NDCS) {
+        }
+        else if (vfo.rx.codeType == Settings::CodeType::NDCS) {
             menulist.setSuffix("N");
             return ui.getStrValue(ui.generateCTDCList(Settings::DCSOptions, 104, false), (uint8_t)vfo.rx.code);
-        } else {
+        }
+        else {
             return NULL;
         }
     case 11: // TX CODE
         if (vfo.tx.codeType == Settings::CodeType::CT) {
             menulist.setSuffix(ui.HZStr);
             return ui.getStrValue(ui.generateCTDCList(Settings::CTCSSOptions, 50), (uint8_t)vfo.tx.code);
-        } else if (vfo.tx.codeType == Settings::CodeType::DCS) {
+        }
+        else if (vfo.tx.codeType == Settings::CodeType::DCS) {
             menulist.setSuffix("I");
             return ui.getStrValue(ui.generateCTDCList(Settings::DCSOptions, 104, false), (uint8_t)vfo.tx.code);
-        } else if (vfo.tx.codeType == Settings::CodeType::NDCS) {
+        }
+        else if (vfo.tx.codeType == Settings::CodeType::NDCS) {
             menulist.setSuffix("N");
             return ui.getStrValue(ui.generateCTDCList(Settings::DCSOptions, 104, false), (uint8_t)vfo.tx.code);
-        } else {
+        }
+        else {
             return NULL;
         }
     case 12: // TX STE
@@ -153,22 +159,28 @@ void SetVFO::loadOptions() {
     case 9: // RX CODE
         if (vfo.rx.codeType == Settings::CodeType::CT) {
             optionlist.set((uint8_t)vfo.rx.code, 5, 0, ui.generateCTDCList(Settings::CTCSSOptions, 50), ui.HZStr);
-        } else if (vfo.rx.codeType == Settings::CodeType::DCS) {
+        }
+        else if (vfo.rx.codeType == Settings::CodeType::DCS) {
             optionlist.set((uint8_t)vfo.rx.code, 5, 0, ui.generateCTDCList(Settings::DCSOptions, 104, false), "I");
-        } else if (vfo.rx.codeType == Settings::CodeType::NDCS) {
+        }
+        else if (vfo.rx.codeType == Settings::CodeType::NDCS) {
             optionlist.set((uint8_t)vfo.rx.code, 5, 0, ui.generateCTDCList(Settings::DCSOptions, 104, false), "N");
-        } else {
+        }
+        else {
             optionSelected = 0;
         }
         break;
     case 11: // TX CODE
         if (vfo.tx.codeType == Settings::CodeType::CT) {
             optionlist.set((uint8_t)vfo.tx.code, 5, 0, ui.generateCTDCList(Settings::CTCSSOptions, 50), ui.HZStr);
-        } else if (vfo.tx.codeType == Settings::CodeType::DCS) {
+        }
+        else if (vfo.tx.codeType == Settings::CodeType::DCS) {
             optionlist.set((uint8_t)vfo.tx.code, 5, 0, ui.generateCTDCList(Settings::DCSOptions, 104, false), "I");
-        } else if (vfo.tx.codeType == Settings::CodeType::NDCS) {
+        }
+        else if (vfo.tx.codeType == Settings::CodeType::NDCS) {
             optionlist.set((uint8_t)vfo.tx.code, 5, 0, ui.generateCTDCList(Settings::DCSOptions, 104, false), "N");
-        } else {
+        }
+        else {
             optionSelected = 0;
         }
         break;
@@ -271,7 +283,7 @@ void SetVFO::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
             menulist.next();
         }
         else if (keyCode == Keyboard::KeyCode::KEY_EXIT && keyState == Keyboard::KeyState::KEY_PRESSED) {
-            // TODO : save ???                
+            // TODO : save ???
 
             systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::MainVFO);
         }

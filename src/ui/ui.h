@@ -213,15 +213,15 @@ public:
     void drawPopupWindow(uint8_t x, uint8_t y, uint8_t w, uint8_t h, const char* title) {
         // Draw the popup background
         setWhiteColor();
-        lcd()->drawRBox(x - 1, y - 1, w + 3, h + 3, 5);
+        lcd()->drawRBox(x - 1, y - 1, w + 3, h + 4, 5);
         setBlackColor();
-        lcd()->drawRFrame(x, y, w, h, 5);
-        lcd()->drawRFrame(x, y, w + 1, h + 1, 5);
+        lcd()->drawRFrame(x, y, w, h + 1, 5);
+        lcd()->drawRFrame(x, y, w + 1, h + 2, 5);
 
         lcd()->drawBox(x + 1, y + 1, w - 1, 6);
 
         setFont(Font::FONT_5_TR);
-        drawString(TextAlign::CENTER, x, x + w, y + 6, false, false, false, title);
+        drawString(TextAlign::CENTER, x, x + w, y + 7, false, false, false, title);
     }
 
     uint8_t keycodeToNumber(Keyboard::KeyCode keyCode) {
@@ -240,6 +240,8 @@ public:
     void draw_smeter(u8g2_uint_t x, u8g2_uint_t y, bool color) { lcd()->setColorIndex(color);  lcd()->drawXBM(x, y, smeter_width, smeter_height, smeter_bits); }
 
     void draw_mmeter(u8g2_uint_t x, u8g2_uint_t y, bool color) { lcd()->setColorIndex(color);  lcd()->drawXBM(x, y, mmeter_width, mmeter_height, mmeter_bits); }
+
+    void draw_dotline(u8g2_uint_t x, u8g2_uint_t y, bool color) { lcd()->setColorIndex(color);  lcd()->drawXBM(x, y, dotline_width, dotline_height, dotline_bits); }
 
     /* - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -310,7 +312,7 @@ public:
         // Draw S1 to S9 blocks
         u8g2_uint_t currentX = x;
         for (uint8_t i = 0; i < sLevel && i < 9; ++i) {
-            lcd()->drawBox(currentX, y + 6, 3, 4);
+            lcd()->drawBox(currentX, y + 6, 3, 3);
             currentX += 4; // Move to the next block position with 1 pixel spacing
         }
 

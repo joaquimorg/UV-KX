@@ -27,6 +27,7 @@ $ make prog COMPORT=com3
 
 <img src="images/uv-k5-screenshot_home.png" alt="Welcome" width="400" />
 <img src="images/uv-k5-screenshot_vfo.png" alt="VFO" width="400" />
+<img src="images/uv-k5-screenshot_vfo_rx.png" alt="VFO RX" width="400" />
 
 ## Open implementation of the Quansheng UV-K5/K6/5R firmware
 

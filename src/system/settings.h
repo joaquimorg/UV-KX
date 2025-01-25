@@ -229,7 +229,7 @@ public:
     }
 
     // Memory Name compression
-    // 
+    //
 
     // Custom function to calculate string length
     int stringLength(const char* str) {
