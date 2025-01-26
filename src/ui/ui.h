@@ -27,9 +27,7 @@ enum class Font {
     FONT_8_TR,
     FONT_8B_TR,
     FONT_10_TR,
-    FONT_BN_TN,
-    FONT_BATT_TN,
-    //FONT_ICO_TN,
+    FONT_BN_TN
 };
 
 #define BLACK 1
@@ -73,28 +71,24 @@ public:
         switch (font) {
         case Font::FONT_5_TR:
             lcd()->setFont(u8g2_font_5_tr);
+            onlyUpperCase = true;
             break;
         case Font::FONT_8_TR:
             lcd()->setFont(u8g2_font_8_tr);
+            onlyUpperCase = false;
             break;
         case Font::FONT_8B_TR:
             lcd()->setFont(u8g2_font_8b_tr);
+            onlyUpperCase = false;
             break;
         case Font::FONT_10_TR:
             lcd()->setFont(u8g2_font_10_tr);
+            onlyUpperCase = true;
             break;
         case Font::FONT_BN_TN:
             lcd()->setFont(u8g2_font_bn_tn);
+            onlyUpperCase = true;
             break;
-        case Font::FONT_BATT_TN:
-            lcd()->setFont(u8g2_font_battery19_tn);
-            break;
-            /*case Font::FONT_32_NF:
-                lcd()->setFont(u8g2_font_32_nf);
-                break;
-            case Font::FONT_56_NF:
-                lcd()->setFont(u8g2_font_56_nf);
-                break;*/
         }
     }
 
@@ -221,7 +215,7 @@ public:
         lcd()->drawBox(x + 1, y + 1, w - 1, 6);
 
         setFont(Font::FONT_5_TR);
-        drawString(TextAlign::CENTER, x, x + w, y + 7, false, false, false, title);
+        drawString(TextAlign::CENTER, x, x + w, y + 6, false, false, false, title);
     }
 
     uint8_t keycodeToNumber(Keyboard::KeyCode keyCode) {
@@ -335,23 +329,24 @@ public:
         lcd()->drawBox(x + 1, y + 1, fill, 3);
     }
 
-    const char* generateCTDCList(const uint16_t* options, size_t count, bool isCTCSS = true) {        
+    const char* generateCTDCList(const uint16_t* options, size_t count, bool isCTCSS = true) {
         char* ptr = uiBuffer;
         size_t  remaining = CHAR_BUFFER_SIZE;
         int written;
-        
+
         uiBuffer[0] = '\0';
 
-        for (size_t  i = 0; i < count; i++) {
+        for (size_t i = 0; i < count; i++) {
 
             if (isCTCSS) {
                 written = snprintf(ptr, remaining, "%u.%u%s", options[i] / 10, options[i] % 10, (i == count - 1) ? "" : "\n");
-            } else {
+            }
+            else {
                 written = snprintf(ptr, remaining, "D%03o%s", options[i], (i == count - 1) ? "" : "\n");
             }
 
             if (written < 0 || (size_t)written >= remaining) {
-                break; 
+                break;
             }
 
             ptr += written;
@@ -366,6 +361,8 @@ private:
 
     ST7565& st7565;
     UART& uart;
+
+    bool onlyUpperCase = false;
 
 };
 
@@ -412,21 +409,35 @@ public:
 
     void set(uint8_t startPos, uint8_t displayLines, uint8_t maxw, const char* sl, const char* sf = NULL) {
 
-        /*if (startPos > 0)
-            startPos--;*/
-
         u8sl.visible = displayLines;
 
         u8sl.total = u8x8_GetStringLineCnt(sl);
         if (u8sl.total <= u8sl.visible)
             u8sl.visible = u8sl.total;
-        u8sl.first_pos = 0;
+
+        // Calculate the middle position
+        uint8_t middlePos = u8sl.visible / 2;
+
+        // Set the current position
         u8sl.current_pos = startPos;
 
-        if (u8sl.current_pos >= u8sl.total)
+        // Adjust first_pos to center the current_pos if possible
+        if (u8sl.current_pos >= middlePos) {
+            u8sl.first_pos = u8sl.current_pos - middlePos;
+        }
+        else {
+            u8sl.first_pos = 0;
+        }
+
+        // Ensure first_pos does not exceed the total lines
+        if (u8sl.first_pos + u8sl.visible > u8sl.total) {
+            u8sl.first_pos = u8sl.total - u8sl.visible;
+        }
+
+        // Ensure current_pos is within the valid range
+        if (u8sl.current_pos >= u8sl.total) {
             u8sl.current_pos = u8sl.total - 1;
-        if (u8sl.first_pos + u8sl.visible <= u8sl.current_pos)
-            u8sl.first_pos = (uint8_t)(u8sl.current_pos - u8sl.visible + 1);
+        }
 
         slines = sl;
         suffix = sf;
@@ -435,6 +446,24 @@ public:
 
     void setCurrentPos(uint8_t pos) {
         u8sl.current_pos = pos;
+        uint8_t middlePos = u8sl.visible / 2;
+
+        // Adjust first_pos to center the current_pos if possible
+        if (u8sl.current_pos >= middlePos) {
+            u8sl.first_pos = u8sl.current_pos - middlePos;
+        } else {
+            u8sl.first_pos = 0;
+        }
+
+        // Ensure first_pos does not exceed the total lines
+        if (u8sl.first_pos + u8sl.visible > u8sl.total) {
+            u8sl.first_pos = u8sl.total - u8sl.visible;
+        }
+
+        // Ensure current_pos is within the valid range
+        if (u8sl.current_pos >= u8sl.total) {
+            u8sl.current_pos = u8sl.total - 1;
+        }
     }
 
     uint8_t getListPos() {
@@ -496,7 +525,7 @@ private:
 
         if (s == NULL) {
             return line_height;
-        }            
+        }
 
         /* draw the line */
         /*if (s == NULL)
@@ -504,7 +533,7 @@ private:
 
         if (showLineNumbers) {
             ui.setFont(Font::FONT_5_TR);
-            ui.drawStringf(TextAlign::LEFT, startXPos, 0, y, true, false, false, "%02u", idx + 1);
+            ui.drawStringf(TextAlign::LEFT, startXPos, 0, y, is_invert, true, false, "%02u", idx + 1);
         }
 
         if (is_invert) {
@@ -527,13 +556,12 @@ private:
             }
         }
         else {
+
             if (suffix == NULL) {
                 ui.drawString(TextAlign::CENTER, startXPos, maxWidth, y, is_invert, true, false, s);
             }
             else {
-                ui.drawStringf(TextAlign::CENTER, startXPos, maxWidth, y, is_invert, true, false, "%.*s %.*s", ui.stringLengthNL(s), s, strlen(suffix), suffix);
-                //ui.drawStringf(TextAlign::CENTER, startXPos, maxWidth, y, is_invert, true, false, "%s %s", s, suffix);
-                //ui.drawString(TextAlign::CENTER, startXPos, maxWidth, y, is_invert, true, false, s);
+                ui.drawStringf(TextAlign::CENTER, startXPos, maxWidth, y, is_invert, true, false, "%.*s %s", ui.stringLengthNL(s), s, suffix);
             }
         }
 
@@ -556,7 +584,9 @@ protected:
 
 class SelectionListPopup : public SelectionList {
 public:
-    SelectionListPopup(UI& ui) : SelectionList(ui) {}
+    SelectionListPopup(UI& ui) : SelectionList(ui) {
+        setShowLineNumbers(false);
+    }
 
     void drawPopup(UI& ui, bool isSetttings = false) {
         uint8_t popupWidth, popupHeight, x, y;
@@ -574,20 +604,8 @@ public:
         }
 
         ui.drawPopupWindow(x, y, popupWidth, popupHeight, title);
-        // Draw the popup background
-        /*ui.setWhiteColor();
-        ui.lcd()->drawRBox(x - 1, y - 1, popupWidth + 3, popupHeight + 3, 5);
-        ui.setBlackColor();
-        ui.lcd()->drawRFrame(x, y, popupWidth, popupHeight, 5);
-        ui.lcd()->drawRFrame(x, y, popupWidth + 1, popupHeight + 1, 5);
 
-        ui.lcd()->drawBox(x + 1, y + 1, popupWidth - 1, 6);
-
-        ui.setFont(Font::FONT_5_TR);
-        ui.drawString(TextAlign::CENTER, x, x + popupWidth, y + 6, false, false, false, title);*/
-
-        // Draw the selection list inside the popup
-        setShowLineNumbers(false);
+        // Draw the selection list inside the popup        
         setMaxWidth((uint8_t)(x + popupWidth - 4));
         setStartXPos(x + 4);
         draw(y + 14);

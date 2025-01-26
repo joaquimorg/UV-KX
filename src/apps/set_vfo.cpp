@@ -206,10 +206,6 @@ void SetVFO::loadOptions() {
         break;
     }
 
-    if (optionSelected != 0) {
-        optionlist.next();
-        optionlist.prev();
-    }
 }
 
 void SetVFO::setOptions() {
@@ -320,12 +316,12 @@ void SetVFO::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
             }
             else {
                 menulist.setCurrentPos(inputSelect - 1);
-                menulist.next();
-                menulist.prev();
+
                 if (inputSelect >= 10) {
                     inputSelect = 0;
                 }
             }
+            
         }
 
     }

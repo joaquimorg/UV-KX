@@ -39,7 +39,7 @@ void Welcome::drawScreen(void) {
     //ui.drawString(TextAlign::CENTER, 0, 128, 55, true, false, false, "Any key to continue...");
 
     ui.lcd()->drawBox(0, 57, 128, 7);
-    ui.drawString(TextAlign::CENTER, 0, 128, 64, false, false, false, AUTHOR_STRING " - " VERSION_STRING);
+    ui.drawString(TextAlign::CENTER, 0, 128, 63, false, false, false, AUTHOR_STRING " - " VERSION_STRING);
 
     ui.updateDisplay();
 }

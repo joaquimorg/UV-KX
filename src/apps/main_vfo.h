@@ -39,7 +39,7 @@ namespace Applications
 
         uint8_t convertRSSIToSLevel(int16_t rssi_dBm);
         int16_t convertRSSIToPlusDB(int16_t rssi_dBm);
-        void showRSSI(void);
+        void showRSSI(uint8_t posX, uint8_t posY);
         void savePopupValue(void);
 
     };
