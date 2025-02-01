@@ -19,29 +19,29 @@ enum class ModType : uint8_t {
 
 enum class BK4819_Filter_Bandwidth : uint8_t {
     BK4819_FILTER_BW_26k = 0,   //	"W 26k",	//0
-	BK4819_FILTER_BW_23k = 1,   //  "W 23k",	//1
-	BK4819_FILTER_BW_20k = 2,   //  "W 20k",	//2
-	BK4819_FILTER_BW_17k = 3,   //  "W 17k",	//3
-	BK4819_FILTER_BW_14k = 4,   //  "W 14k",	//4
-	BK4819_FILTER_BW_12k = 5,   //  "W 12k",	//5
-	BK4819_FILTER_BW_10k = 6,   //  "N 10k",	//6
-	BK4819_FILTER_BW_9k  = 7,   //  "N 9k",		//7
-	BK4819_FILTER_BW_7k  = 8,   //  "U 7K",		//8
-	BK4819_FILTER_BW_6k  = 9    //  "U 6K"		//9
+    BK4819_FILTER_BW_23k = 1,   //  "W 23k",	//1
+    BK4819_FILTER_BW_20k = 2,   //  "W 20k",	//2
+    BK4819_FILTER_BW_17k = 3,   //  "W 17k",	//3
+    BK4819_FILTER_BW_14k = 4,   //  "W 14k",	//4
+    BK4819_FILTER_BW_12k = 5,   //  "W 12k",	//5
+    BK4819_FILTER_BW_10k = 6,   //  "N 10k",	//6
+    BK4819_FILTER_BW_9k = 7,   //  "N 9k",		//7
+    BK4819_FILTER_BW_7k = 8,   //  "U 7K",		//8
+    BK4819_FILTER_BW_6k = 9    //  "U 6K"		//9
 };
 
 // Enum class for BK4819 Audio Filter values
 enum class BK4819_AF : uint16_t {
-    MUTE    = 0x0000, // BK4819_AF_MUTE
-    FM      = 0x0001, // BK4819_AF_FM
-    ALAM    = 0x0002, // BK4819_AF_ALAM (tone)
-    BEEP    = 0x0003, // BK4819_AF_BEEP (for tx)
-    RAW     = 0x0004, // BK4819_AF_RAW (SSB without IF filter)
-    USB     = 0x0005, // BK4819_AF_USB (LSB and USB at the same time)
-    CTCO    = 0x0006, // BK4819_AF_CTCO (CTCSS/DCS filter)
-    AM      = 0x0007, // BK4819_AF_AM
-    FSKO    = 0x0008, // BK4819_AF_FSKO (FSK output test)
-    BYPASS  = 0x0009  // BK4819_AF_BYPASS (FM without filter)
+    MUTE = 0x0000, // BK4819_AF_MUTE
+    FM = 0x0001, // BK4819_AF_FM
+    ALAM = 0x0002, // BK4819_AF_ALAM (tone)
+    BEEP = 0x0003, // BK4819_AF_BEEP (for tx)
+    RAW = 0x0004, // BK4819_AF_RAW (SSB without IF filter)
+    USB = 0x0005, // BK4819_AF_USB (LSB and USB at the same time)
+    CTCO = 0x0006, // BK4819_AF_CTCO (CTCSS/DCS filter)
+    AM = 0x0007, // BK4819_AF_AM
+    FSKO = 0x0008, // BK4819_AF_FSKO (FSK output test)
+    BYPASS = 0x0009  // BK4819_AF_BYPASS (FM without filter)
 };
 
 enum class SquelchType {
@@ -123,7 +123,7 @@ public:
         // Set GPIO state
         gpioOutState = 0x9000;
         spi.writeRegister(BK4819_REG_33, gpioOutState);
-        spi.writeRegister(BK4819_REG_3F, 0);
+        //spi.writeRegister(BK4819_REG_3F, 0);
 
         setAGC(true, 18);
 
@@ -197,9 +197,13 @@ public:
         disableDTMF();
 
         // ToDo : Config interrupts
-        uint16_t InterruptMask = BK4819_REG_3F_SQUELCH_FOUND | BK4819_REG_3F_SQUELCH_LOST;
+        /*uint16_t InterruptMask =
+            BK4819_REG_3F_SQUELCH_FOUND |
+            BK4819_REG_3F_SQUELCH_LOST |
+            BK4819_REG_3F_DTMF_5TONE_FOUND |
+            BK4819_REG_3F_CxCSS_TAIL;
 
-        spi.writeRegister(BK4819_REG_3F, InterruptMask);
+        spi.writeRegister(BK4819_REG_3F, InterruptMask);*/
 
         spi.writeRegister(BK4819_REG_40, (spi.readRegister(BK4819_REG_40) & ~(0b11111111111)) |
             1000 | (1 << 12));
@@ -221,7 +225,7 @@ public:
         }
         else {
             spi.writeRegister(BK4819_REG_13,
-                gainTable[gainIndex].regValue | 6 | (3 << 3));
+                gainTable[gainIndex] | 6 | (3 << 3));
         }
         spi.writeRegister(BK4819_REG_12, 0x037B);
         spi.writeRegister(BK4819_REG_11, 0x027B);
@@ -583,12 +587,69 @@ public:
         return spi.readRegister(BK4819_REG_02);
     }
 
+    void setInterrupt(uint16_t mask) {
+        spi.writeRegister(BK4819_REG_3F, mask);
+    }
+
     void toggleGreen(bool on) {
         toggleGpioOut(BK4819_GPIO6_PIN2_GREEN, on);
     }
 
     void toggleRed(bool on) {
         toggleGpioOut(BK4819_GPIO5_PIN1_RED, on);
+    }
+
+    void setCDCSSCodeWord(uint32_t CodeWord) {
+        spi.writeRegister(
+            BK4819_REG_51,
+            0 | BK4819_REG_51_ENABLE_CxCSS | BK4819_REG_51_GPIO6_PIN2_NORMAL |
+            BK4819_REG_51_TX_CDCSS_POSITIVE | BK4819_REG_51_MODE_CDCSS |
+            BK4819_REG_51_CDCSS_23_BIT | BK4819_REG_51_1050HZ_NO_DETECTION |
+            BK4819_REG_51_AUTO_CDCSS_BW_ENABLE |
+            BK4819_REG_51_AUTO_CTCSS_BW_ENABLE |
+            (51U << BK4819_REG_51_SHIFT_CxCSS_TX_GAIN1));
+
+        // CTC1 Frequency Control Word = 2775
+        spi.writeRegister(BK4819_REG_07,
+            0 | BK4819_REG_07_MODE_CTC1 |
+            (2775U << BK4819_REG_07_SHIFT_FREQUENCY));
+
+        // Set the code word
+        spi.writeRegister(BK4819_REG_08, (CodeWord >> 0) & 0xFFF);
+        spi.writeRegister(BK4819_REG_08, 0x8000 | ((CodeWord >> 12) & 0xFFF));
+    }
+
+    void setCTCSSFrequency(uint32_t FreqControlWord) {
+        uint16_t Config;
+
+        if (FreqControlWord == 2625) { // Enables 1050Hz detection mode
+            // Enable TxCTCSS
+            // CTCSS Mode
+            // 1050/4 Detect Enable
+            // Enable Auto CDCSS Bw Mode
+            // Enable Auto CTCSS Bw Mode
+            // CTCSS/CDCSS Tx Gain1 Tuning = 74
+            Config = 0x944A;
+        }
+        else {
+            // Enable TxCTCSS
+            // CTCSS Mode
+            // Enable Auto CDCSS Bw Mode
+            // Enable Auto CTCSS Bw Mode
+            // CTCSS/CDCSS Tx Gain1 Tuning = 74
+            Config = 0x904A;
+        }
+        spi.writeRegister(BK4819_REG_51, Config);
+        // CTC1 Frequency Control Word
+        spi.writeRegister(BK4819_REG_07, uint16_t(0 | BK4819_REG_07_MODE_CTC1 |
+            ((FreqControlWord * 2065) / 1000)
+            << BK4819_REG_07_SHIFT_FREQUENCY));
+    }
+
+    void setTailDetection(const uint32_t freq_10Hz) {
+        spi.writeRegister(BK4819_REG_07,
+            uint16_t(BK4819_REG_07_MODE_CTC2 | ((253910 + (freq_10Hz / 2)) /
+                freq_10Hz))); // with rounding
     }
 
 private:
@@ -599,35 +660,29 @@ private:
     static constexpr uint32_t VHF_UHF_BOUND1 = 24000000;
     static constexpr uint32_t VHF_UHF_BOUND2 = 28000000;
 
-    // Structure to hold gain data
-    struct Gain {
-        uint16_t regValue;
-        int8_t gainDb;
-    };
-
     SPISoftwareInterface spi;
     uint16_t gpioOutState;
 
-    static constexpr std::array<Gain, 19> gainTable = {
-        Gain{0x000, -43},
-        Gain{0x100, -40},
-        Gain{0x020, -38},
-        Gain{0x200, -35},
-        Gain{0x040, -33},
-        Gain{0x220, -30},
-        Gain{0x060, -28},
-        Gain{0x240, -25},
-        Gain{0x0A0, -23},
-        Gain{0x260, -20},
-        Gain{0x1C0, -18},
-        Gain{0x2A0, -15},
-        Gain{0x2C0, -13},
-        Gain{0x2E0, -11},
-        Gain{0x360, -9},
-        Gain{0x380, -6},
-        Gain{0x3A0, -4},
-        Gain{0x3C0, -2},
-        Gain{0x3E0, 0}
+    static constexpr uint16_t gainTable[19] = {
+        0x000,
+        0x100,
+        0x020,
+        0x200,
+        0x040,
+        0x220,
+        0x060,
+        0x240,
+        0x0A0,
+        0x260,
+        0x1C0,
+        0x2A0,
+        0x2C0,
+        0x2E0,
+        0x360,
+        0x380,
+        0x3A0,
+        0x3C0,
+        0x3E0,
     };
 
     static constexpr uint8_t squelchTypeValues[4] = { 0x88, 0xAA, 0xCC, 0xFF };

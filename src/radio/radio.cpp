@@ -81,8 +81,7 @@ void Radio::setVFO(Settings::VFOAB vfo, uint32_t rx, uint32_t tx, int16_t channe
     radioVFO[vfoIndex].ste = Settings::ONOFF::OFF;
     radioVFO[vfoIndex].compander = Settings::TXRX::OFF;
     radioVFO[vfoIndex].pttid = 0;
-    radioVFO[vfoIndex].afc = 0;
-    radioVFO[vfoIndex].rxagc = 0;
+    radioVFO[vfoIndex].rxagc = 18;
     radioVFO[vfoIndex].rx.codeType = Settings::CodeType::NONE;
     radioVFO[vfoIndex].rx.code = 0;
     radioVFO[vfoIndex].tx.codeType = Settings::CodeType::NONE;
@@ -104,12 +103,14 @@ void Radio::setupToVFO(Settings::VFOAB vfo) {
 
     bk4819.setModulation(radioVFO[vfoIndex].modulation);
 
-    bk4819.setAGC(radioVFO[vfoIndex].modulation != ModType::MOD_AM, 18);
+    bk4819.setAGC(radioVFO[vfoIndex].modulation != ModType::MOD_AM, radioVFO[vfoIndex].rxagc);
     bk4819.setFilterBandwidth(radioVFO[vfoIndex].bw);
 
     bk4819.rxTurnOn();
 
-    bk4819.tuneTo(radioVFO[vfoIndex].rx.frequency, false);
+    setupToneDetection(vfo);
+
+    bk4819.tuneTo(radioVFO[vfoIndex].rx.frequency, true);
 
 }
 
@@ -120,19 +121,43 @@ void Radio::toggleBK4819(bool on) {
         bk4819.toggleAFDAC(true);
         bk4819.toggleAFBit(true);
         delayMs(5);
-        toggleSpeaker(true);
+        //toggleSpeaker(true);
     }
     else {
-        toggleSpeaker(false);
+        //toggleSpeaker(false);
         delayMs(5);
         bk4819.toggleAFDAC(false);
         bk4819.toggleAFBit(false);
     }
 }
 
-void Radio::toggleRX(bool on) {
-    bk4819.toggleGreen(on);
-    toggleBK4819(on);
+void Radio::toggleRX(bool on, Settings::CodeType codeType = Settings::CodeType::NONE) {
+    uint8_t vfoIndex = (uint8_t)getRXVFO();
+
+    if (on) {
+        if (state != Settings::RadioState::RX_ON) {
+            bk4819.toggleGreen(true);
+            toggleBK4819(true);
+            state = Settings::RadioState::RX_ON;
+            systask.pushMessage(System::SystemTask::SystemMSG::MSG_RADIO_RX, 0);
+        }
+
+        if (radioVFO[vfoIndex].modulation == ModType::MOD_FM &&
+            (radioVFO[vfoIndex].rx.codeType == Settings::CodeType::DCS ||
+                radioVFO[vfoIndex].rx.codeType == Settings::CodeType::NDCS ||
+                radioVFO[vfoIndex].rx.codeType == Settings::CodeType::CT) && codeType == Settings::CodeType::NONE) {
+            return;
+        }
+        toggleSpeaker(true);
+    }
+    else {
+        if (state != Settings::RadioState::IDLE) {
+            toggleSpeaker(false);
+            bk4819.toggleGreen(false);
+            toggleBK4819(false);
+            state = Settings::RadioState::IDLE;
+        }
+    }
 }
 
 void Radio::playBeep(Settings::BEEPType beep) {
@@ -245,6 +270,48 @@ void Radio::runDualWatch(void) {
     }
 }
 
+
+void Radio::setupToneDetection(Settings::VFOAB vfo) {
+    uint8_t vfoIndex = (uint8_t)vfo;
+
+    uint16_t interruptMask = 0;
+
+    /*if (dtmfdecode) {
+      bk4819.enableDTMF();
+    } else {
+      bk4819.disableDTMF();
+    }*/
+
+    interruptMask |= BK4819_REG_3F_SQUELCH_FOUND | BK4819_REG_3F_SQUELCH_LOST;
+
+    if (radioVFO[vfoIndex].modulation == ModType::MOD_FM) {
+
+        switch (radioVFO[vfoIndex].rx.codeType) {
+        case Settings::CodeType::DCS:
+        case Settings::CodeType::NDCS:
+            // Log("DCS on");
+            bk4819.setCDCSSCodeWord(DCSGetGolayCodeWord(radioVFO[vfoIndex].rx.codeType, radioVFO[vfoIndex].rx.code));
+            interruptMask |= BK4819_REG_3F_CDCSS_FOUND | BK4819_REG_3F_CDCSS_LOST;
+            break;
+        case Settings::CodeType::CT:
+            // Log("CTCSS on");
+            bk4819.setCTCSSFrequency(Settings::CTCSSOptions[radioVFO[vfoIndex].rx.code]);
+            interruptMask |= BK4819_REG_3F_CTCSS_FOUND | BK4819_REG_3F_CTCSS_LOST;
+            break;
+        default:
+            // TODO: Validate ????
+            // Log("STE on"); ????
+            bk4819.setCTCSSFrequency(550);
+            bk4819.setTailDetection(550);
+
+            interruptMask |= BK4819_REG_3F_DTMF_5TONE_FOUND | BK4819_REG_3F_CxCSS_TAIL;
+            break;
+        }
+    }
+
+    bk4819.setInterrupt(interruptMask);
+}
+
 void Radio::checkRadioInterrupts(void) {
 
     while (bk4819.getInterruptRequest() & 1u) { // BK chip interrupt request
@@ -276,22 +343,81 @@ void Radio::checkRadioInterrupts(void) {
 
         interrupts.__raw = bk4819.readInterrupt();
 
-        //uart.print("interrupts %0.16b \r\n", interrupts);
+        //uart.print("%0.16b\n", interrupts);        
+
+        /* if (interrupts.flags.fskRxFinied) {
+             uart.sendLog("FSK RX Finished");
+         }
+
+         if (interrupts.flags.fskTxFinied) {
+             uart.sendLog("FSK TX Finished");
+         }
+
+         if (interrupts.flags.fskFifoAlmostFull) {
+             uart.sendLog("FSK FIFO Almost Full");
+         }
+
+         if (interrupts.flags.fskFifoAlmostEmpty) {
+             uart.sendLog("FSK FIFO Almost Empty");
+         }
+
+         if (interrupts.flags.fskRxSync) {
+             uart.sendLog("FSK RX Sync");
+         }
+
+         if (interrupts.flags.voxLost) {
+             uart.sendLog("VOX Lost");
+         }
+
+         if (interrupts.flags.voxFound) {
+             uart.sendLog("VOX Found");
+         }
+
+         if (interrupts.flags.dtmf5ToneFound) {
+             uart.sendLog("DTMF 5 Tone Found");
+         }
+         */
+
+        if (interrupts.flags.cssTailFound) {
+            //uart.sendLog("CSS Tail Found");
+            toggleRX(false);
+        }
+
+        if (interrupts.flags.ctcssLost) {
+            //uart.sendLog("CTCSS Lost");
+            rxToneDetected = true;
+            toggleRX(true, Settings::CodeType::CT);
+        }
+
+        if (interrupts.flags.ctcssFound) {
+            //uart.sendLog("CTCSS Found");
+            rxToneDetected = false;
+            toggleRX(false, Settings::CodeType::CT);
+        }
+
+        if (interrupts.flags.cdcssLost) {
+            //uart.sendLog("CDCSS Lost");
+            rxToneDetected = true;
+            toggleRX(true, Settings::CodeType::DCS);
+        }
+
+        if (interrupts.flags.cdcssFound) {
+            //uart.sendLog("CDCSS Found");
+            rxToneDetected = false;
+            toggleRX(false, Settings::CodeType::CT);
+        }
 
         if (interrupts.flags.sqlLost) {
-            if (state != Settings::RadioState::RX_ON) {
-                state = Settings::RadioState::RX_ON;
-                toggleRX(true);                
-                systask.pushMessage(System::SystemTask::SystemMSG::MSG_RADIO_RX, 0);
-            }
+            //uart.sendLog("SQL Lost");
+            toggleRX(true);
         }
 
         if (interrupts.flags.sqlFound) {
-            if (state != Settings::RadioState::IDLE) {
-                state = Settings::RadioState::IDLE;
-                toggleRX(false);                
-            }
+            //uart.sendLog("SQL Found");
+            rxToneDetected = false;
+            toggleRX(false);
         }
+
 
     }
 }

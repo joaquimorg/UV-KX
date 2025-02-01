@@ -35,7 +35,7 @@ void SetVFO::drawScreen(void) {
 }
 
 void SetVFO::init(void) {
-    menulist.set(0, 6, 127, "SQUELCH\nSTEP\nMODE\nBANDWIDTH\nTX POWER\nSHIFT\nOFFSET\nRX CODE TYPE\nRX CODE\nTX CODE TYPE\nTX CODE\nTX STE\nRX STE\nCOMPANDER\nPTT ID\nAFC\nRX ACG");
+    menulist.set(0, 6, 127, "SQUELCH\nSTEP\nMODE\nBANDWIDTH\nTX POWER\nSHIFT\nOFFSET\nRX CODE TYPE\nRX CODE\nTX CODE TYPE\nTX CODE\nTX STE\nRX STE\nCOMPANDER\nPTT ID\nRX ACG");
     vfo = radio.getVFO(vfoab);
 }
 
@@ -118,10 +118,11 @@ const char* SetVFO::getCurrentOption() {
         return ui.getStrValue(RadioNS::Radio::txrxStr, (uint8_t)vfo.compander);
     case 15: // PTT ID
         return ui.getStrValue("0\n1", (uint8_t)vfo.pttid);
-    case 16: // AFC
-        return ui.getStrValue("0\n1", (uint8_t)vfo.afc);
-    case 17: // RX ACG
-        return ui.getStrValue("0\n1", (uint8_t)vfo.rxagc);
+    case 16: // RX ACG
+        if (vfo.rxagc < ui.stringLengthNL(RadioNS::Radio::AGCStr) - 1) {
+            menulist.setSuffix(ui.DBStr);
+        }
+        return ui.getStrValue(RadioNS::Radio::AGCStr, (uint8_t)vfo.rxagc);
     default:
         return NULL;
     }
@@ -196,11 +197,8 @@ void SetVFO::loadOptions() {
     case 15: // PTT ID
         optionlist.set((uint8_t)vfo.pttid, 5, 0, "0\n1");
         break;
-    case 16: // AFC
-        optionlist.set((uint8_t)vfo.afc, 5, 0, "0\n1");
-        break;
-    case 17: // RX ACG
-        optionlist.set((uint8_t)vfo.rxagc, 5, 0, "0\n1");
+    case 16: // RX ACG
+        optionlist.set((uint8_t)vfo.rxagc, 5, 0, RadioNS::Radio::AGCStr, ui.DBStr);
         break;
     default:
         break;
@@ -261,11 +259,8 @@ void SetVFO::setOptions() {
     case 15: // PTT ID
         vfo.pttid = optionlistSelected & 0xF;
         break;
-    case 16: // AFC
-        vfo.afc = optionlistSelected & 0xF;
-        break;
-    case 17: // RX ACG
-        vfo.rxagc = optionlistSelected & 0xF;
+    case 16: // RX ACG
+        vfo.rxagc = optionlistSelected & 0x1F;
         break;
     default:
         break;
@@ -276,75 +271,83 @@ void SetVFO::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
     uint8_t optionListSelected = 0;
 
     if (optionSelected == 0 && userOptionSelected == 0) {
-
-        if (keyCode == Keyboard::KeyCode::KEY_UP && (keyState == Keyboard::KeyState::KEY_PRESSED || keyState == Keyboard::KeyState::KEY_LONG_PRESSED_CONT)) {
-            menulist.prev();
-        }
-        else if (keyCode == Keyboard::KeyCode::KEY_DOWN && (keyState == Keyboard::KeyState::KEY_PRESSED || keyState == Keyboard::KeyState::KEY_LONG_PRESSED_CONT)) {
-            menulist.next();
-        }
-        else if (keyCode == Keyboard::KeyCode::KEY_EXIT && keyState == Keyboard::KeyState::KEY_PRESSED) {
-            // TODO : save ???
-
-            systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::MainVFO);
-        }
-
-        if (keyCode == Keyboard::KeyCode::KEY_MENU && keyState == Keyboard::KeyState::KEY_PRESSED) {
-            inputSelect = 0;
-            optionListSelected = menulist.getListPos() + 1;
-            if (optionListSelected == 7) {
-                // not a list, user input
-                if (vfo.shift == Settings::OffsetDirection::OFFSET_NONE) {
-                    systask.pushMessage(System::SystemTask::SystemMSG::MSG_PLAY_BEEP, (uint32_t)Settings::BEEPType::BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL);
+        switch (keyCode) {
+            case Keyboard::KeyCode::KEY_UP:
+                if (keyState == Keyboard::KeyState::KEY_PRESSED || keyState == Keyboard::KeyState::KEY_LONG_PRESSED_CONT) {
+                    menulist.prev();
                 }
-                else {
-                    userOptionSelected = optionListSelected;
+                break;
+            case Keyboard::KeyCode::KEY_DOWN:
+                if (keyState == Keyboard::KeyState::KEY_PRESSED || keyState == Keyboard::KeyState::KEY_LONG_PRESSED_CONT) {
+                    menulist.next();
                 }
-            }
-            else {
-                optionSelected = optionListSelected;
-                optionlist.setPopupTitle(menulist.getStringLine());
-            }
-            loadOptions();
-        }
-
-        if ((keyCode >= Keyboard::KeyCode::KEY_0 && keyCode <= Keyboard::KeyCode::KEY_9) && keyState == Keyboard::KeyState::KEY_PRESSED) {
-            inputSelect = (inputSelect == 0) ? ui.keycodeToNumber(keyCode) : (uint8_t)((inputSelect * 10) + ui.keycodeToNumber(keyCode));
-
-            if (inputSelect > menulist.getTotal()) {
-                inputSelect = 0;
-            }
-            else {
-                menulist.setCurrentPos(inputSelect - 1);
-
-                if (inputSelect >= 10) {
+                break;
+            case Keyboard::KeyCode::KEY_EXIT:
+                if (keyState == Keyboard::KeyState::KEY_PRESSED) {
+                    // TODO : save ???
+                    systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::MainVFO);
+                }
+                break;
+            case Keyboard::KeyCode::KEY_MENU:
+                if (keyState == Keyboard::KeyState::KEY_PRESSED) {
                     inputSelect = 0;
+                    optionListSelected = menulist.getListPos() + 1;
+                    if (optionListSelected == 7) {
+                        // not a list, user input
+                        if (vfo.shift == Settings::OffsetDirection::OFFSET_NONE) {
+                            systask.pushMessage(System::SystemTask::SystemMSG::MSG_PLAY_BEEP, (uint32_t)Settings::BEEPType::BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL);
+                        } else {
+                            userOptionSelected = optionListSelected;
+                        }
+                    } else {
+                        optionSelected = optionListSelected;
+                        optionlist.setPopupTitle(menulist.getStringLine());
+                    }
+                    loadOptions();
                 }
-            }
-            
+                break;
+            default:
+                if ((keyCode >= Keyboard::KeyCode::KEY_0 && keyCode <= Keyboard::KeyCode::KEY_9) && keyState == Keyboard::KeyState::KEY_PRESSED) {
+                    inputSelect = (inputSelect == 0) ? ui.keycodeToNumber(keyCode) : (uint8_t)((inputSelect * 10) + ui.keycodeToNumber(keyCode));
+                    if (inputSelect > menulist.getTotal()) {
+                        inputSelect = 0;
+                    } else {
+                        menulist.setCurrentPos(inputSelect - 1);
+                        if (inputSelect >= 10) {
+                            inputSelect = 0;
+                        }
+                    }
+                }
+                break;
         }
-
-    }
-    else {
-        if (keyCode == Keyboard::KeyCode::KEY_UP && keyState == Keyboard::KeyState::KEY_PRESSED) {
-            if (optionSelected != 0) {
-                optionlist.prev();
-            }
-        }
-        else if (keyCode == Keyboard::KeyCode::KEY_DOWN && keyState == Keyboard::KeyState::KEY_PRESSED) {
-            if (optionSelected != 0) {
-                optionlist.next();
-            }
-        }
-        else if (keyCode == Keyboard::KeyCode::KEY_EXIT && keyState == Keyboard::KeyState::KEY_PRESSED) {
-            optionSelected = 0;
-            userOptionSelected = 0;
-        }
-        else if (keyCode == Keyboard::KeyCode::KEY_MENU && keyState == Keyboard::KeyState::KEY_PRESSED) {
-            setOptions();
-            radio.setVFO(vfoab, vfo);
-            optionSelected = 0;
-            userOptionSelected = 0;
+    } else {
+        switch (keyCode) {
+            case Keyboard::KeyCode::KEY_UP:
+                if (keyState == Keyboard::KeyState::KEY_PRESSED && optionSelected != 0) {
+                    optionlist.prev();
+                }
+                break;
+            case Keyboard::KeyCode::KEY_DOWN:
+                if (keyState == Keyboard::KeyState::KEY_PRESSED && optionSelected != 0) {
+                    optionlist.next();
+                }
+                break;
+            case Keyboard::KeyCode::KEY_EXIT:
+                if (keyState == Keyboard::KeyState::KEY_PRESSED) {
+                    optionSelected = 0;
+                    userOptionSelected = 0;
+                }
+                break;
+            case Keyboard::KeyCode::KEY_MENU:
+                if (keyState == Keyboard::KeyState::KEY_PRESSED) {
+                    setOptions();
+                    radio.setVFO(vfoab, vfo);
+                    optionSelected = 0;
+                    userOptionSelected = 0;
+                }
+                break;
+            default:
+               break;
         }
     }
 

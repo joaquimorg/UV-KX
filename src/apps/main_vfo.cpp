@@ -36,12 +36,12 @@ void MainVFO::drawScreen(void) {
 
     if (vfo1.rx.codeType == Settings::CodeType::CT) {
         rxCode = ui.getStrValue(ui.generateCTDCList(Settings::CTCSSOptions, 50), (uint8_t)vfo1.rx.code);
-        ui.drawStringf(TextAlign::RIGHT, 0, codeXend, 26, true, false, false, "%s %.*s%s", ui.RXStr, ui.stringLengthNL(rxCode), rxCode, ui.HZStr);
+        ui.drawStringf(TextAlign::RIGHT, 0, codeXend, 26, true, radio.isRXToneDetected(), false, "%s %.*s%s", ui.RXStr, ui.stringLengthNL(rxCode), rxCode, ui.HZStr);
         codeXend -= 48;
     }
     else if (vfo1.rx.codeType == Settings::CodeType::DCS || vfo1.rx.codeType == Settings::CodeType::NDCS) {
         rxCode = ui.getStrValue(ui.generateCTDCList(Settings::DCSOptions, 104, false), (uint8_t)vfo1.rx.code);
-        ui.drawStringf(TextAlign::RIGHT, 0, codeXend, 26, true, false, false, "%s %.*s%s", ui.RXStr, ui.stringLengthNL(rxCode), rxCode, vfo1.rx.codeType == Settings::CodeType::NDCS ? "N" : "I");
+        ui.drawStringf(TextAlign::RIGHT, 0, codeXend, 26, true, radio.isRXToneDetected(), false, "%s %.*s%s", ui.RXStr, ui.stringLengthNL(rxCode), rxCode, vfo1.rx.codeType == Settings::CodeType::NDCS ? "N" : "I");
         codeXend -= 48;
     }
 
@@ -96,7 +96,8 @@ void MainVFO::drawScreen(void) {
     ui.setFont(Font::FONT_8B_TR);
     ui.drawStringf(TextAlign::LEFT, 2, 0, vfoBY + 15, true, false, true, "%s", activeVFO2 == Settings::VFOAB::VFOB ? "B" : "A");
 
-    if (rxVFO2) {
+    if ((rxVFO2 && vfo2.rx.codeType != Settings::CodeType::NONE && radio.isRXToneDetected()) 
+        || (rxVFO2 && vfo2.rx.codeType == Settings::CodeType::NONE)) {
         ui.drawString(TextAlign::LEFT, 12, 0, vfoBY + 15, true, true, false, ui.RXStr);
     }
     else {
@@ -106,29 +107,31 @@ void MainVFO::drawScreen(void) {
 
     ui.lcd()->setColorIndex(BLACK);
 
-    showRSSI(2, 52);
+    showRSSI(1, 52);
 
-    ui.draw_dotline(0, 47, BLACK);
+    //ui.draw_dotline(0, 47, BLACK);
+
+    // Status information
 
     if (systask.getBattery().isCharging()) {
-        ui.draw_ic8_charging(100, 59, BLACK);
+        ui.draw_ic8_charging(118, 52, BLACK);
     }
     else {
-        ui.drawBattery(systask.getBattery().getBatteryPercentage(), 96, 59);
+        ui.drawBattery(systask.getBattery().getBatteryPercentage(), 114, 52);
     }
 
     ui.setFont(Font::FONT_5_TR);
     ui.drawStringf(TextAlign::RIGHT, 0, 128, 64, true, false, false, "%i%%", systask.getBattery().getBatteryPercentage());
 
     if (systask.wasFKeyPressed()) {
-        ui.drawString(TextAlign::RIGHT, 0, 74, 64, true, true, false, "F");
+        ui.drawString(TextAlign::RIGHT, 0, 97, 56, true, true, false, "F");
     }
 
     if (radio.getState() == Settings::RadioState::RX_ON) {
-        ui.drawString(TextAlign::RIGHT, 0, 92, 64, true, false, false, radio.getRXVFO() == Settings::VFOAB::VFOA ? "A" : "B");
+        ui.drawString(TextAlign::RIGHT, 0, 100, 64, true, false, false, radio.getRXVFO() == Settings::VFOAB::VFOA ? "A" : "B");
     }
     else {
-        ui.drawString(TextAlign::RIGHT, 0, 92, 64, true, false, false, "A/B");
+        ui.drawString(TextAlign::RIGHT, 0, 100, 64, true, false, false, "A/B");
     }
 
 
@@ -152,12 +155,13 @@ void MainVFO::showRSSI(uint8_t posX, uint8_t posY) {
         }
     }
 
-    ui.drawRSSI(sValue, posX, posY);
+    ui.drawRSSI(sValue, posX, posY + 1);
 
     ui.setFont(Font::FONT_8_TR);
     if (sValue > 0) {
         if (sValue == 10) {
-            ui.drawStringf(TextAlign::LEFT, posX + 38, 0, posY + 5, true, false, false, "S9 +%idB", plusDB);
+            ui.drawString(TextAlign::LEFT, posX + 38, 0, posY + 5, true, false, false, "S9");
+            ui.drawStringf(TextAlign::LEFT, posX + 38, 0, posY + 12, true, false, false, "+%idB", plusDB);
         }
         else {
             ui.drawStringf(TextAlign::LEFT, posX + 38, 0, posY + 5, true, false, false, "S%i", sValue);

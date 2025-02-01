@@ -13,13 +13,13 @@ namespace RadioNS
 {
 
     class Radio {
-    public:        
+    public:
 
         /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 
         static constexpr const char* squelchStr = "OFF\n1\n2\n3\n4\n5\n6\n7\n8\n9";
-        
+
         static constexpr const char* codetypeStr = "NONE\nCT\nDCS\n-DCS";
 
         static constexpr const char* txrxStr = "OFF\nRX\nTX\nRX/TX";
@@ -36,6 +36,8 @@ namespace RadioNS
         static constexpr const char* bandwidthStr = "26\n23\n20\n17\n14\n12\n10\n9\n7\n6";
 
         static constexpr const char* stepStr = "0.5\n1.0\n2.5\n5.0\n6.25\n10.0\n12.5\n15.0\n20.0\n25.0\n30.0\n50.0\n100.0\n500.0";
+
+        static constexpr const char* AGCStr = "-43\n-40\n-38\n-35\n-33\n-30\n-28\n-25\n-23\n-20\n-18\n-15\n-13\n-11\n-9\n-6\n-4\n-2\nAUTO";
 
         Settings::VFO radioVFO[2];
 
@@ -60,10 +62,10 @@ namespace RadioNS
         // get VFO
         Settings::VFO getActiveVFO() { return radioVFO[(uint8_t)activeVFO]; };
         Settings::VFO getVFO(Settings::VFOAB vfo) { return radioVFO[(uint8_t)vfo]; };
-        void setVFO(Settings::VFOAB vfoab, Settings::VFO vfo) {             
-            uint8_t vfoIndex = (uint8_t)activeVFO;
+        void setVFO(Settings::VFOAB vfoab, Settings::VFO vfo) {
+            uint8_t vfoIndex = (uint8_t)vfoab;
             radioVFO[vfoIndex] = vfo;
-            rxVFO = activeVFO;
+
             if (radioVFO[vfoIndex].channel > 0) {
                 snprintf(radioVFO[vfoIndex].name, sizeof(radioVFO[vfoIndex].name), "CH-%03d", radioVFO[vfoIndex].channel);
             }
@@ -78,7 +80,7 @@ namespace RadioNS
 
         // Change Active VFO
         void changeActiveVFO(void) {
-            activeVFO = (activeVFO == Settings::VFOAB::VFOA) ? Settings::VFOAB::VFOB : Settings::VFOAB::VFOA;            
+            activeVFO = (activeVFO == Settings::VFOAB::VFOA) ? Settings::VFOAB::VFOB : Settings::VFOAB::VFOA;
             setupToVFO(activeVFO);
         }
 
@@ -90,7 +92,7 @@ namespace RadioNS
             setupToVFO(vfo);
         }
 
-        void toggleRX(bool on);
+        void toggleRX(bool on, Settings::CodeType codeType);
         void checkRadioInterrupts(void);
 
         Settings::RadioState getState() { return state; }
@@ -121,6 +123,10 @@ namespace RadioNS
             return "";
         }
 
+        void setupToneDetection(Settings::VFOAB vfo);
+
+        bool isRXToneDetected(void) { return rxToneDetected; }
+
     private:
         System::SystemTask& systask;
         UART& uart;
@@ -131,6 +137,8 @@ namespace RadioNS
         uint8_t dualWatchTimer = 0;
 
         static constexpr uint8_t dualWatchTime = 20;
+
+        bool rxToneDetected = false;
 
         bool speakerOn = false; // speaker on/off
         Settings::RadioState state = Settings::RadioState::IDLE;
@@ -169,6 +177,24 @@ namespace RadioNS
         };
 
         void toggleBK4819(bool on);
+
+        uint32_t DCSCalculateGolay(uint32_t codeWord) {
+            unsigned int i;
+            uint32_t word = codeWord;
+            for (i = 0; i < 12; i++) {
+                word <<= 1;
+                if (word & 0x1000)
+                    word ^= 0x08EA;
+            }
+            return codeWord | ((word & 0x0FFE) << 11);
+        }
+
+        uint32_t DCSGetGolayCodeWord(Settings::CodeType codeType, uint8_t option) {
+            uint32_t code = DCSCalculateGolay(Settings::DCSOptions[option] + 0x800U);
+            if (codeType == Settings::CodeType::NDCS)
+                code ^= 0x7FFFFF;
+            return code;
+        }
 
     };
 

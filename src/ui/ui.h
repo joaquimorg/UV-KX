@@ -50,6 +50,7 @@ public:
     static constexpr char HZStr[] = "Hz";
     static constexpr char KHZStr[] = "KHz";
     static constexpr char VFOStr[] = "VFO";
+    static constexpr char DBStr[] = "Db";
 
     uint8_t message_result = 0;
 
@@ -355,7 +356,6 @@ public:
 
         return uiBuffer;
     }
-
 
 private:
 

@@ -209,8 +209,8 @@ public:
         ONOFF ste : 1;
         TXRX compander : 2;
         uint8_t pttid : 4;
-        uint8_t afc : 4;
-        uint8_t rxagc : 4;
+        uint8_t : 0;  // Force alignment to next byte boundary
+        uint8_t rxagc : 5;
     } __attribute__((packed));
 
     Settings(System::SystemTask& systask) : systask{ systask }, eeprom() {}
