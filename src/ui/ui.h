@@ -56,6 +56,14 @@ public:
 
     uint8_t menu_pos = 1;
 
+    static constexpr const char* InfoMessageStr = "BATTERY LOW\nTX DISABLED";
+
+    enum class InfoMessageType : uint8_t {
+        INFO_NONE = 0,
+        LOW_BATTERY = 1,
+        TX_DISABLED = 2
+    };
+
     void clearDisplay() {
         //lcd()->setColorIndex(WHITE);
         //lcd()->drawBox(0, 0, W, H);
@@ -64,8 +72,24 @@ public:
     }
 
     void updateDisplay() {
+        // show popup info message
+        if (infoMessage != InfoMessageType::INFO_NONE) {
+            drawPopupWindow(20, 20, 88, 24, "Info");
+            setFont(Font::FONT_8B_TR);
+            drawString(TextAlign::CENTER, 22, 106, 38, true, false, false, getStrValue(InfoMessageStr, (uint8_t)infoMessage - 1));            
+        }
         lcd()->sendBuffer();
         uart.sendScreenBuffer(lcd()->getBufferPtr(), 1024);
+    }
+
+    void timeOut() {
+        if (infoMessage != InfoMessageType::INFO_NONE) {
+            infoMessage = InfoMessageType::INFO_NONE;         
+        }
+    }
+
+    void setInfoMessage(InfoMessageType message) {
+        infoMessage = message;
     }
 
     void setFont(Font font) {
@@ -363,6 +387,7 @@ private:
     UART& uart;
 
     bool onlyUpperCase = false;
+    InfoMessageType infoMessage = InfoMessageType::INFO_NONE;
 
 };
 

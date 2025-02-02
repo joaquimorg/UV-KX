@@ -407,8 +407,8 @@ public:
 
     void rxTurnOn(void) {
         spi.writeRegister(BK4819_REG_37, 0x1F0F);
-        spi.writeRegister(BK4819_REG_30, 0x0200);
-        //spi.writeRegister(BK4819_REG_30, 0x0000);
+        //spi.writeRegister(BK4819_REG_30, 0x0200);
+        spi.writeRegister(BK4819_REG_30, 0x0000);
         delayMs(10);
         spi.writeRegister(
             BK4819_REG_30,
@@ -420,8 +420,8 @@ public:
     }
 
     void setAF(BK4819_AF af) {
-        //spi.writeRegister(BK4819_REG_47, 0x6040 | ((int)af << 8));
-        spi.writeRegister(BK4819_REG_47, (6u << 12) | ((int)(af) << 8) | (1u << 6));
+        spi.writeRegister(BK4819_REG_47, 0x6040 | ((int)af << 8));
+        //spi.writeRegister(BK4819_REG_47, (6u << 12) | ((int)(af) << 8) | (1u << 6));
     }
 
     void toggleAFBit(bool on) {
@@ -507,10 +507,13 @@ public:
         exitTxMute();
         setIdle();
         spi.writeRegister(
-            BK4819_REG_30,
-            0 | BK4819_REG_30_ENABLE_VCO_CALIB | BK4819_REG_30_ENABLE_RX_LINK |
-            BK4819_REG_30_ENABLE_AF_DAC | BK4819_REG_30_ENABLE_DISC_MODE |
-            BK4819_REG_30_ENABLE_PLL_VCO | BK4819_REG_30_ENABLE_RX_DSP);
+            BK4819_REG_30, 0 | 
+            BK4819_REG_30_ENABLE_VCO_CALIB | 
+            BK4819_REG_30_ENABLE_RX_LINK |
+            BK4819_REG_30_ENABLE_AF_DAC | 
+            BK4819_REG_30_ENABLE_DISC_MODE |
+            BK4819_REG_30_ENABLE_PLL_VCO | 
+            BK4819_REG_30_ENABLE_RX_DSP);
     }
 
     void setModulation(ModType type) {

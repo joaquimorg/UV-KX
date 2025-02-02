@@ -102,14 +102,19 @@ void SystemTask::processSystemNotification(SystemMessages notification) {
 
     switch (notification.message) {
     case SystemMSG::MSG_TIMEOUT:
+        ui.timeOut();
         //uart.sendLog("MSG_TIMEOUT\n");
         battery.getReadings(); // Update battery readings
+        if (battery.isLowBattery()) {
+            ui.setInfoMessage(UI::InfoMessageType::LOW_BATTERY);
+            pushMessage(SystemMSG::MSG_PLAY_BEEP, (uint32_t)Settings::BEEPType::BEEP_880HZ_60MS_TRIPLE_BEEP);
+        }
         if (currentApp != Applications::Applications::None) {
             currentApplication->timeout();
         }
         if (keyboard.wasFKeyPressed()) {
             keyboard.clearFKeyPressed();
-        }
+        }        
         break;
     case SystemMSG::MSG_BKCLIGHT:
         //uart.sendLog("MSG_BKCLIGHT\n");
@@ -126,6 +131,7 @@ void SystemTask::processSystemNotification(SystemMessages notification) {
     case SystemMSG::MSG_RADIO_TX:
         //uart.sendLog("MSG_RADIO_TX\n");
         //pushMessage(SystemMSG::MSG_BKCLIGHT, (uint32_t)Backlight::backLightState::ON);
+        ui.setInfoMessage(UI::InfoMessageType::TX_DISABLED);
         break;
     case SystemMSG::MSG_KEYPRESSED: {
         //uart.sendLog("MSG_KEYPRESSED");
@@ -139,8 +145,8 @@ void SystemTask::processSystemNotification(SystemMessages notification) {
             timeoutLightCount = 0;
             pushMessage(SystemMSG::MSG_BKCLIGHT, (uint32_t)Backlight::backLightState::ON);
             if (key != Keyboard::KeyCode::KEY_PTT) {
-                //playBeep(Settings::BEEPType::BEEP_1KHZ_60MS_OPTIONAL);
-                pushMessage(SystemMSG::MSG_PLAY_BEEP, (uint32_t)Settings::BEEPType::BEEP_1KHZ_60MS_OPTIONAL);
+                playBeep(Settings::BEEPType::BEEP_1KHZ_60MS_OPTIONAL);
+                //pushMessage(SystemMSG::MSG_PLAY_BEEP, (uint32_t)Settings::BEEPType::BEEP_1KHZ_60MS_OPTIONAL);
             }
             else {
                 pushMessage(SystemMSG::MSG_RADIO_TX, 0);

@@ -123,12 +123,12 @@ void Radio::toggleBK4819(bool on) {
     if (on) {
         bk4819.toggleAFDAC(true);
         bk4819.toggleAFBit(true);
-        delayMs(5);
+        //delayMs(5);
         //toggleSpeaker(true);
     }
     else {
         //toggleSpeaker(false);
-        delayMs(5);
+        //delayMs(5);
         bk4819.toggleAFDAC(false);
         bk4819.toggleAFBit(false);
     }
@@ -173,7 +173,7 @@ void Radio::playBeep(Settings::BEEPType beep) {
     }
 
     toggleSpeaker(false);
-    delayMs(5);
+    delayMs(20);
 
     uint16_t toneFrequency;
     switch (beep)
@@ -202,9 +202,9 @@ void Radio::playBeep(Settings::BEEPType beep) {
     }
 
     bk4819.playTone(toneFrequency, true);
-    delayMs(5);
+    delayMs(2);
     toggleSpeaker(true);
-    delayMs(5);
+    delayMs(60);
 
     uint16_t duration;
     switch (beep)
@@ -213,14 +213,14 @@ void Radio::playBeep(Settings::BEEPType beep) {
         bk4819.exitTxMute();
         delayMs(60);
         bk4819.enterTxMute();
-        delayMs(5);
+        delayMs(20);
         [[fallthrough]];
     case Settings::BEEPType::BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL:
     case Settings::BEEPType::BEEP_500HZ_60MS_DOUBLE_BEEP:
         bk4819.exitTxMute();
         delayMs(60);
         bk4819.enterTxMute();
-        delayMs(5);
+        delayMs(20);
         [[fallthrough]];
     case Settings::BEEPType::BEEP_1KHZ_60MS_OPTIONAL:
         bk4819.exitTxMute();
@@ -245,11 +245,11 @@ void Radio::playBeep(Settings::BEEPType beep) {
 
     delayMs(duration);
     bk4819.enterTxMute();
-    toggleSpeaker(false);
+    delayMs(20);
+    toggleSpeaker(false);    
     delayMs(5);
-
     bk4819.turnsOffTonesTurnsOnRX();
-
+    delayMs(5);
     bk4819.setToneRegister(toneConfig);
 
     toggleSpeaker(isSpeakerWasOn);

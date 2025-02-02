@@ -45,7 +45,7 @@ public:
     }
 
     void getReadings() {
-        uint8_t previousBatteryLevel = batteryDisplayLevel;
+        //uint8_t previousBatteryLevel = batteryDisplayLevel;
 
         for (unsigned int i = 0; i < sizeof(batteryVoltages); i++)
             boardADCGetBatteryInfo(&batteryVoltages[i], &batteryCurrent);
@@ -77,23 +77,42 @@ public:
             }
         }
 
-        if (batteryCurrent < 501) {
-            chargingWithTypeC = false;
+        chargingWithTypeC = (batteryCurrent >= 501);
+
+        if (batteryDisplayLevel > 2) {
+            lowBatteryConfirmed = false;
+            lowBattery = false;
+        }
+        else if (batteryDisplayLevel < 2) {
+            lowBattery = true;
         }
         else {
-            chargingWithTypeC = true;
+            lowBattery = false;
         }
 
-        if (previousBatteryLevel != batteryDisplayLevel) {
-            if (batteryDisplayLevel > 2) {
-                lowBatteryConfirmed = false;
-            }
-            else if (batteryDisplayLevel < 2) {
-                lowBattery = true;
+    }
+
+    bool isLowBattery(void) {
+
+        if (lowBattery) {
+            if (lowBatteryConfirmed) {
+                return true;
             }
             else {
-                lowBattery = false;
+                if (lowBatteryPeriod == 0) {
+                    lowBatteryConfirmed = true;
+                    return true;
+                }
+                else {
+                    lowBatteryPeriod--;
+                    return false;
+                }
             }
+        }
+        else {
+            lowBatteryPeriod = 30;
+            lowBatteryConfirmed = false;
+            return false;
         }
     }
 
@@ -110,11 +129,11 @@ private:
 
     Type batteryType;
 
-    static constexpr uint16_t lowBatteryPeriod = 30;
+    uint8_t lowBatteryPeriod = 30;
 
-    static constexpr std::array<std::array<uint16_t, 2>, 7> Voltage2Percentage_1600 = {{{828, 100}, {814, 97}, {760, 25}, {729, 6}, {630, 0}, {0, 0}, {0, 0}}};
-    static constexpr std::array<std::array<uint16_t, 2>, 7> Voltage2Percentage_2200 = {{{832, 100}, {813, 95}, {740, 60}, {707, 21}, {682, 5}, {630, 0}, {0, 0}}};
-    static constexpr std::array<std::array<std::array<uint16_t, 2>, 7>, 2> Voltage2PercentageTable = {{Voltage2Percentage_1600, Voltage2Percentage_2200}};
+    static constexpr std::array<std::array<uint16_t, 2>, 7> Voltage2Percentage_1600 = { {{828, 100}, {814, 97}, {760, 25}, {729, 6}, {630, 0}, {0, 0}, {0, 0}} };
+    static constexpr std::array<std::array<uint16_t, 2>, 7> Voltage2Percentage_2200 = { {{832, 100}, {813, 95}, {740, 60}, {707, 21}, {682, 5}, {630, 0}, {0, 0}} };
+    static constexpr std::array<std::array<std::array<uint16_t, 2>, 7>, 2> Voltage2PercentageTable = { {Voltage2Percentage_1600, Voltage2Percentage_2200} };
 
     uint8_t voltsToPercent(unsigned int voltage_10mV) const {
         const auto& crv = Voltage2PercentageTable[static_cast<int>(batteryType)];

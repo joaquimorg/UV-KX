@@ -13,6 +13,7 @@ void boardPORTCONInit(void);
 void boardADCInit(void);
 void boardADCGetBatteryInfo(uint16_t *pVoltage, uint16_t *pCurrent);
 
+void delay250ns(const uint32_t delay);
 void delayUs(uint32_t delay);
 void delayMs(uint32_t delay);
 

@@ -11,26 +11,36 @@ public:
 
     SPISoftwareInterface() {
         GPIO_SetBit(&GPIOC->DATA, GPIOC_PIN_BK4819_SCN);
-	    GPIO_SetBit(&GPIOC->DATA, GPIOC_PIN_BK4819_SCL);
-	    GPIO_SetBit(&GPIOC->DATA, GPIOC_PIN_BK4819_SDA);
+        GPIO_SetBit(&GPIOC->DATA, GPIOC_PIN_BK4819_SCL);
+        GPIO_SetBit(&GPIOC->DATA, GPIOC_PIN_BK4819_SDA);
     }
 
     // Method to write to a register
     void writeRegister(uint8_t reg, uint16_t value) {
+        GPIO_SetBit(&GPIOC->DATA, GPIOC_PIN_BK4819_SCN);
+        GPIO_ClearBit(&GPIOC->DATA, GPIOC_PIN_BK4819_SCL);
+        delay250ns(1);
         GPIO_ClearBit(&GPIOC->DATA, GPIOC_PIN_BK4819_SCN);
         spiWriteU8(reg);
         spiWriteU16(value);
         GPIO_SetBit(&GPIOC->DATA, GPIOC_PIN_BK4819_SCN);
-
+        delay250ns(1);
+        GPIO_SetBit(&GPIOC->DATA, GPIOC_PIN_BK4819_SCL);
+        GPIO_SetBit(&GPIOC->DATA, GPIOC_PIN_BK4819_SDA);
     }
 
     // Method to read from a register
     uint16_t readRegister(uint8_t reg) {
-        uint16_t value;
+        GPIO_SetBit(&GPIOC->DATA, GPIOC_PIN_BK4819_SCN);
+        GPIO_ClearBit(&GPIOC->DATA, GPIOC_PIN_BK4819_SCL);
+        delay250ns(1);
         GPIO_ClearBit(&GPIOC->DATA, GPIOC_PIN_BK4819_SCN);
         spiWriteU8(reg | 0x80);
-        value = spiReadU16();
+        uint16_t value = spiReadU16();
         GPIO_SetBit(&GPIOC->DATA, GPIOC_PIN_BK4819_SCN);
+        delay250ns(1);
+        GPIO_SetBit(&GPIOC->DATA, GPIOC_PIN_BK4819_SCL);
+        GPIO_SetBit(&GPIOC->DATA, GPIOC_PIN_BK4819_SDA);
         return value;
     }
 
@@ -42,7 +52,7 @@ private:
         PORTCON_PORTC_IE = (PORTCON_PORTC_IE & ~PORTCON_PORTC_IE_C2_MASK) | PORTCON_PORTC_IE_C2_BITS_ENABLE;
         GPIOC->DIR = (GPIOC->DIR & ~GPIO_DIR_2_MASK) | GPIO_DIR_2_BITS_INPUT;
 
-        delayUs(1);
+        delay250ns(1);
 
         // Read 16 bits from the SPI
         for (int i = 0; i < 16; i++) {
@@ -50,9 +60,9 @@ private:
 
             // Generate clock pulse
             GPIO_SetBit(&GPIOC->DATA, GPIOC_PIN_BK4819_SCL);
-            delayUs(1);
+            delay250ns(1);
             GPIO_ClearBit(&GPIOC->DATA, GPIOC_PIN_BK4819_SCL);
-            delayUs(1);
+            delay250ns(1);
         }
 
         // Restore default configuration
@@ -76,16 +86,16 @@ private:
             }
 
             // Create the clock pulse
-            delayUs(1);
+            delay250ns(1);
             GPIO_SetBit(&GPIOC->DATA, GPIOC_PIN_BK4819_SCL);
-            delayUs(1);
+            delay250ns(1);
 
             // Shift data to the left to prepare for the next bit
             data <<= 1;
 
             // Lower the clock signal
             GPIO_ClearBit(&GPIOC->DATA, GPIOC_PIN_BK4819_SCL);
-            delayUs(1);
+            delay250ns(1);
         }
     }
 
@@ -104,16 +114,16 @@ private:
             }
 
             // Generate clock pulse
-            delayUs(1);
+            delay250ns(1);
             GPIO_SetBit(&GPIOC->DATA, GPIOC_PIN_BK4819_SCL);
-            delayUs(1);
+            delay250ns(1);
 
             // Shift data to prepare for the next bit
             data <<= 1;
 
             // Lower the clock signal
             GPIO_ClearBit(&GPIOC->DATA, GPIOC_PIN_BK4819_SCL);
-            delayUs(1);
+            delay250ns(1);
         }
     }
 };
