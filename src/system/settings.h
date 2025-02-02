@@ -171,8 +171,8 @@ public:
 
     enum class TXRX : uint8_t {
         OFF = 0,
-        RX = 1,
-        TX = 2,
+        TX = 1,
+        RX = 2,
         RX_TX = 3
     };
 
@@ -195,22 +195,22 @@ public:
     } __attribute__((packed)); // 5 Bytes
 
     struct VFO {
-        FREQ rx;
-        FREQ tx;
-        char name[11];
-        int16_t channel;
-        uint8_t squelch : 4;
-        Step step : 4;
-        ModType modulation : 4;
-        BK4819_Filter_Bandwidth bw : 4;
-        TXOutputPower power : 2;
-        OffsetDirection shift : 2;
-        ONOFF repeaterSte : 1;
-        ONOFF ste : 1;
-        TXRX compander : 2;
-        uint8_t pttid : 4;
+        FREQ rx; // RX Frequency
+        FREQ tx; // TX Frequency
+        char name[11]; // Memory Name
+        int16_t channel; // Channel Number
+        uint8_t squelch : 4; // Squelch Level
+        Step step : 4; // Step Frequency
+        ModType modulation : 4; // Modulation Type
+        BK4819_Filter_Bandwidth bw : 4; // Filter Bandwidth
+        TXOutputPower power : 2; // TX Power Level
+        OffsetDirection shift : 2; // Offset Direction
+        ONOFF repeaterSte : 1; // Repeater STE
+        ONOFF ste : 1; // STE
+        TXRX compander : 2; // Compander
+        uint8_t pttid : 4; // PTT ID
         uint8_t : 0;  // Force alignment to next byte boundary
-        uint8_t rxagc : 5;
+        uint8_t rxagc : 5; // RX AGC Level
     } __attribute__((packed));
 
     Settings(System::SystemTask& systask) : systask{ systask }, eeprom() {}

@@ -215,7 +215,7 @@ public:
 
         lcd()->drawBox(x + 1, y + 1, w - 1, 6);
 
-        setFont(Font::FONT_5_TR);
+        setFont(Font::FONT_8B_TR);
         drawString(TextAlign::CENTER, x, x + w, y + 6, false, false, false, title);
     }
 

@@ -22,7 +22,7 @@ namespace RadioNS
 
         static constexpr const char* codetypeStr = "NONE\nCT\nDCS\n-DCS";
 
-        static constexpr const char* txrxStr = "OFF\nRX\nTX\nRX/TX";
+        static constexpr const char* txrxStr = "OFF\nTX\nRX\nRX/TX";
 
         static constexpr const char* onoffStr = "OFF\nON";
 

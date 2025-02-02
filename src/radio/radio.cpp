@@ -103,6 +103,9 @@ void Radio::setupToVFO(Settings::VFOAB vfo) {
 
     bk4819.setModulation(radioVFO[vfoIndex].modulation);
 
+    // RX expander
+    bk4819.setCompander((radioVFO[vfoIndex].modulation == ModType::MOD_FM && (uint8_t)(radioVFO[vfoIndex].compander) >= 2) ? (uint8_t)(radioVFO[vfoIndex].compander) : 0);
+
     bk4819.setAGC(radioVFO[vfoIndex].modulation != ModType::MOD_AM, radioVFO[vfoIndex].rxagc);
     bk4819.setFilterBandwidth(radioVFO[vfoIndex].bw);
 
@@ -282,7 +285,7 @@ void Radio::setupToneDetection(Settings::VFOAB vfo) {
       bk4819.disableDTMF();
     }*/
 
-    interruptMask |= BK4819_REG_3F_SQUELCH_FOUND | BK4819_REG_3F_SQUELCH_LOST;
+    interruptMask |= BK4819_REG_3F_SQUELCH_FOUND | BK4819_REG_3F_SQUELCH_LOST | BK4819_REG_3F_DTMF_5TONE_FOUND;
 
     if (radioVFO[vfoIndex].modulation == ModType::MOD_FM) {
 
@@ -299,12 +302,14 @@ void Radio::setupToneDetection(Settings::VFOAB vfo) {
             interruptMask |= BK4819_REG_3F_CTCSS_FOUND | BK4819_REG_3F_CTCSS_LOST;
             break;
         default:
-            // TODO: Validate ????
-            // Log("STE on"); ????
-            bk4819.setCTCSSFrequency(550);
-            bk4819.setTailDetection(550);
 
-            interruptMask |= BK4819_REG_3F_DTMF_5TONE_FOUND | BK4819_REG_3F_CxCSS_TAIL;
+            // Log("STE on"); ????
+            if (radioVFO[vfoIndex].ste == Settings::ONOFF::ON) {
+                bk4819.setCTCSSFrequency(550);
+                bk4819.setTailDetection(550);
+                interruptMask |= BK4819_REG_3F_CxCSS_TAIL;
+            }
+            
             break;
         }
     }
