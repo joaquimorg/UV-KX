@@ -77,9 +77,14 @@ void SystemTask::statusTaskImpl() {
 
     playBeep(Settings::BEEPType::BEEP_880HZ_200MS);
 
-    // Load the Welcome application        
-    loadApplication(Applications::Applications::INFO);
-    //loadApplication(Applications::Applications::Welcome);
+    // Validate the EEPROM content and initialize if necessary
+    if (!settings.validateSettingsVersion()) {
+        pushMessage(SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::Applications::INFO);
+    }
+    else {
+        // Load the Welcome application
+        pushMessage(SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::Applications::Welcome);
+    }    
 
     xTimerStart(appTimer, 0);
     xTimerStart(runTimer, 0);
@@ -107,8 +112,9 @@ void SystemTask::processSystemNotification(SystemMessages notification) {
 
     switch (notification.message) {
     case SystemMSG::MSG_TIMEOUT:
+        timeoutCount = 0;
         ui.timeOut();
-        uart.sendLog("MSG_TIMEOUT\n");
+        //uart.sendLog("MSG_TIMEOUT\n");
         battery.getReadings(); // Update battery readings
         if (battery.isLowBattery()) {
             ui.setInfoMessage(UI::InfoMessageType::LOW_BATTERY);
@@ -122,7 +128,7 @@ void SystemTask::processSystemNotification(SystemMessages notification) {
         }        
         break;
     case SystemMSG::MSG_BKCLIGHT:
-        uart.sendLog("MSG_BKCLIGHT\n");
+        //uart.sendLog("MSG_BKCLIGHT\n");
         timeoutLightCount = 0;
         backlight.setBacklight((Backlight::backLightState)notification.payload);
         break;
@@ -130,16 +136,16 @@ void SystemTask::processSystemNotification(SystemMessages notification) {
         playBeep((Settings::BEEPType)notification.payload);
         break;
     case SystemMSG::MSG_RADIO_RX:
-        uart.sendLog("MSG_RADIO_RX\n");        
+        //uart.sendLog("MSG_RADIO_RX\n");        
         pushMessage(SystemMSG::MSG_BKCLIGHT, (uint32_t)Backlight::backLightState::ON);
         break;
     case SystemMSG::MSG_RADIO_TX:
-        uart.sendLog("MSG_RADIO_TX\n");
+        //uart.sendLog("MSG_RADIO_TX\n");
         //pushMessage(SystemMSG::MSG_BKCLIGHT, (uint32_t)Backlight::backLightState::ON);
         ui.setInfoMessage(UI::InfoMessageType::TX_DISABLED);
         break;
     case SystemMSG::MSG_KEYPRESSED: {
-        uart.sendLog("MSG_KEYPRESSED");
+        //uart.sendLog("MSG_KEYPRESSED");
         //uart.print("Key: %d\n", notification.key);
         //uart.print("State: %d\n", notification.state);
         Keyboard::KeyCode key = notification.key;
@@ -180,7 +186,7 @@ void SystemTask::runTimerImpl(void) {
     }*/
 
     if (timeoutCount > (actionTimeout * 2)) {
-        timeoutCount = 0;
+        //timeoutCount = 0;
         pushMessage(SystemMSG::MSG_TIMEOUT, 0);
     }
     else {
@@ -211,6 +217,7 @@ void SystemTask::loadApplication(Applications::Applications app) {
     taskENTER_CRITICAL();
 
     currentApp = Applications::Applications::None;
+    timeoutCount = 0;
     xTimerStop(appTimer, 0);
     setActionTimeout(2);
     switch (app) {
@@ -219,6 +226,7 @@ void SystemTask::loadApplication(Applications::Applications app) {
         break;
     case Applications::Applications::INFO:
         currentApplication = &infoApp;
+        setActionTimeout(1);
         break;
     case Applications::Applications::MainVFO:
         currentApplication = &mainVFOApp;

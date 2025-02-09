@@ -53,7 +53,7 @@ namespace System
             bk4819(),
             radio(*this, uart, bk4819, settings),
             welcomeApp(*this, ui),
-            infoApp(*this, ui),
+            infoApp(*this, ui, settings),
             mainVFOApp(*this, ui, radio),
             menuApp(*this, ui),
             setVFOAApp(*this, ui, Settings::VFOAB::VFOA, settings, radio),

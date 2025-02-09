@@ -1,6 +1,7 @@
 #pragma once
 
 #include "apps.h"
+#include "settings.h"
 #include "ui.h"
 
 namespace Applications
@@ -8,9 +9,8 @@ namespace Applications
 
     class Info : public Application {
     public:
-        Info(System::SystemTask& systask, UI& ui)
-            : Application(systask, ui) {
-        }
+        Info(System::SystemTask& systask, UI& ui, Settings& settings)
+            : Application(systask, ui), settings{ settings } {};
 
         void drawScreen(void);
         void init(void);
@@ -19,7 +19,11 @@ namespace Applications
         void timeout(void);
 
     private:
-        
+        Settings& settings;
+        bool showQuestion = false;
+        bool isToInitialize = false;
+        bool isReady = false;
+        uint8_t initProgress = 0;
     };
 
 } // namespace Applications

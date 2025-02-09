@@ -1,9 +1,9 @@
 #pragma once
 
 #include <cstdint>
+#include "bk4819.h"
 #include "sys.h"
 #include "eeprom.h"
-#include "radio.h"
 
 /*
 
@@ -234,6 +234,16 @@ public:
         return false;
     }
 
+
+    uint8_t initEEPROM(void) {
+        // TODO: Implement EEPROM initialization
+        if (initBlock < maxBlock) {
+            initBlock++;     
+        }
+        return (uint8_t)((initBlock * 100) / maxBlock);
+    }
+
+
     // Memory Name compression
     //
 
@@ -324,5 +334,8 @@ private:
     System::SystemTask& systask;
 
     EEPROM eeprom;
+
+    uint16_t initBlock = 0x0000;
+    static constexpr uint16_t maxBlock = 0x000F;
 
 };

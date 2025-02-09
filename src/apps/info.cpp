@@ -18,19 +18,35 @@ void Info::drawScreen(void) {
 
     ui.setFont(Font::FONT_8B_TR);
 
-    ui.drawString(TextAlign::CENTER, 0, 128, 8, true, false, false, "WARNING !");
+    if (isToInitialize) {
+        ui.drawString(TextAlign::CENTER, 0, 128, 8, true, false, false, "EEPROM INITIALIZATION");
+        // show progress bar and percentage
+        u8g2_uint_t barWidth = (u8g2_uint_t)((initProgress * 120) / 100); // Calculate the width of the progress bar
+        ui.lcd()->drawFrame(4, 20, 120, 10);
+        ui.lcd()->drawBox(4, 20, barWidth, 10); // Draw the progress bar
+        ui.drawStringf(TextAlign::CENTER, 0, 128, 46, true, false, false, "%d%%", initProgress);
+    }
+    else {
+
+        ui.drawString(TextAlign::CENTER, 0, 128, 8, true, false, false, "WARNING !");
+
+        ui.setFont(Font::FONT_5_TR);
+
+        ui.drawWords(0, 16, "THE EEPROM CONTENT IS INCOMPATIBLE. TO USE ALL FEATURES, IT MUST BE INITIALIZED. THIS ACTION WILL ERASE ALL CURRENT DATA.");
+
+        ui.setFont(Font::FONT_8B_TR);
+        ui.drawWords(0, 46, "MAKE A BACKUP BEFORE CONTINUING...");
+        //ui.drawWords(0, 16, ui.decompressText(text1, sizeof(text1)));        
+
+        if (showQuestion) {
+            ui.drawPopupWindow(15, 20, 96, 32, "Init. EEPROM ?");
+            ui.setFont(Font::FONT_8_TR);
+            ui.drawString(TextAlign::CENTER, 17, 111, 36, true, false, false, "Press 1 to accept.");
+            ui.drawString(TextAlign::CENTER, 17, 111, 46, true, false, false, "Other key to cancel.");
+        }
+    }
 
     ui.setFont(Font::FONT_5_TR);
-
-    ui.drawWords(0, 16, "THE EEPROM CONTENT IS INCOMPATIBLE. TO USE ALL FEATURES, IT MUST BE INITIALIZED. THIS ACTION WILL ERASE ALL CURRENT DATA.");
-
-    ui.setFont(Font::FONT_8B_TR);
-    ui.drawWords(0, 46, "MAKE A BACKUP BEFORE CONTINUING...");
-    //ui.drawWords(0, 16, ui.decompressText(text1, sizeof(text1)));
-    
-    ui.setFont(Font::FONT_5_TR);
-
-    //ui.drawString(TextAlign::CENTER, 0, 128, 55, true, false, false, "Any key to continue...");
 
     ui.lcd()->drawBox(0, 57, 128, 7);
     ui.drawString(TextAlign::CENTER, 0, 128, 63, false, false, false, AUTHOR_STRING " - " VERSION_STRING);
@@ -39,19 +55,45 @@ void Info::drawScreen(void) {
 }
 
 
-void Info::init(void) {    
+void Info::init(void) {
 }
 
 void Info::update(void) {
+    if (isToInitialize) {
+        if (initProgress < 100) {            
+            initProgress = settings.initEEPROM();
+        }
+        else {
+            isReady = true;
+        }
+    }
     drawScreen();
 }
 
 void Info::timeout(void) {
-    //systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::Welcome);
+    if (isToInitialize) {
+        if (isReady) {
+            systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::Welcome);
+        }
+    }
 };
 
 void Info::action(__attribute__((unused)) Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
     if (keyState == Keyboard::KeyState::KEY_PRESSED) {
-        systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::Welcome);
+
+        if (!isToInitialize) {
+            if (showQuestion) {
+                if (keyCode == Keyboard::KeyCode::KEY_1) {
+                    //systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::Welcome);
+                    initProgress = 0;
+                    isToInitialize = true;
+                }
+                showQuestion = false;
+            }
+            else {
+                showQuestion = true;
+            }
+
+        }
     }
 }
