@@ -308,7 +308,7 @@ void SetVFO::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
                 break;
             default:
                 if ((keyCode >= Keyboard::KeyCode::KEY_0 && keyCode <= Keyboard::KeyCode::KEY_9) && keyState == Keyboard::KeyState::KEY_PRESSED) {
-                    inputSelect = (inputSelect == 0) ? ui.keycodeToNumber(keyCode) : (uint8_t)((inputSelect * 10) + ui.keycodeToNumber(keyCode));
+                    inputSelect = (inputSelect == 0) ? ui.keycodeToNumber(keyCode) : static_cast<uint8_t>((inputSelect * 10) + ui.keycodeToNumber(keyCode));
                     if (inputSelect > menulist.getTotal()) {
                         inputSelect = 0;
                     } else {

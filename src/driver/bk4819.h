@@ -4,6 +4,7 @@
 
 #include "sys.h"
 #include "spi_sw_hal.h"
+#include "uart_hal.h"
 #include "bk4819-regs.h"
 
 enum class ModType : uint8_t {
@@ -148,6 +149,7 @@ public:
     // ------------------------------------------------------------------------
 
     void setupRegisters(void) {
+
         //GPIO_ClearBit(&GPIOC->DATA, GPIOC_PIN_AUDIO_PATH);
         toggleGreen(false);
         toggleRed(false);
@@ -215,7 +217,7 @@ public:
         const bool enableAgc = gainIndex == GAIN_AUTO;
         uint16_t regVal = spi.readRegister(BK4819_REG_7E);
 
-        spi.writeRegister(BK4819_REG_7E, (uint16_t)((regVal & ~(1 << 15) & ~(0b111 << 12)) |
+        spi.writeRegister(BK4819_REG_7E, static_cast<uint16_t>((regVal & ~(1 << 15) & ~(0b111 << 12)) |
             (!enableAgc << 15) // 0  AGC fix mode
             | (3u << 12))      // 3  AGC fix index
         );
@@ -553,7 +555,7 @@ public:
     }
 
     uint8_t getRSSIRelative(void) {
-        return (uint8_t)(spi.readRegister(BK4819_REG_65) >> 8) & 0xFF;
+        return static_cast<uint8_t>(spi.readRegister(BK4819_REG_65) >> 8) & 0xFF;
     }
 
     uint8_t getGlitch(void) {
@@ -668,7 +670,7 @@ public:
         const uint16_t r31 = spi.readRegister(BK4819_REG_31);
 
         if (mode == 0) {    // disable
-            spi.writeRegister(BK4819_REG_31, (uint16_t)(r31 & ~(1u << 3)));
+            spi.writeRegister(BK4819_REG_31, static_cast<uint16_t>(r31 & ~(1u << 3)));
             return;
         }
 
@@ -781,7 +783,7 @@ private:
     void toggleGpioOut(BK4819_GPIO_PIN_t pin, bool bSet) {
 
         if (bSet)
-            gpioOutState |= (uint16_t)(0x40u >> pin);
+            gpioOutState |= static_cast<uint16_t>(0x40u >> pin);
         else
             gpioOutState &= (uint16_t)~(0x40u >> pin);
 
@@ -790,7 +792,7 @@ private:
 
     void setFrequency(uint32_t frequency) {
         spi.writeRegister(BK4819_REG_38, frequency & 0xFFFF);
-        spi.writeRegister(BK4819_REG_39, (uint16_t)((frequency >> 16) & 0xFFFF));
+        spi.writeRegister(BK4819_REG_39, static_cast<uint16_t>((frequency >> 16) & 0xFFFF));
     }
 
     void selectFilter(uint32_t frequency) {
@@ -819,8 +821,8 @@ private:
         spi.writeRegister(
             BK4819_REG_4E,
             (1u << 14) |                   //  1 ???
-            (uint16_t)(delayO << 11) | // *5  squelch = open  delay .. 0 ~ 7
-            (uint16_t)(delayC << 9) |  // *3  squelch = close delay .. 0 ~ 3
+            static_cast<uint16_t>(delayO << 11) | // *5  squelch = open  delay .. 0 ~ 7
+            static_cast<uint16_t>(delayC << 9) |  // *3  squelch = close delay .. 0 ~ 3
             go);
         spi.writeRegister(BK4819_REG_4F, (nc << 8) | no);
         spi.writeRegister(BK4819_REG_78, (ro << 8) | rc);
@@ -837,7 +839,7 @@ private:
     }
 
     uint16_t scaleFreq(const uint16_t freq) {
-        return (uint16_t)((((uint32_t)freq * 1353245u) + (1u << 16)) >> 17); // with rounding
+        return static_cast<uint16_t>((((uint32_t)freq * 1353245u) + (1u << 16)) >> 17); // with rounding
     }
 
 };

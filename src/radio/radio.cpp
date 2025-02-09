@@ -104,7 +104,7 @@ void Radio::setupToVFO(Settings::VFOAB vfo) {
     bk4819.setModulation(radioVFO[vfoIndex].modulation);
 
     // RX expander
-    bk4819.setCompander((radioVFO[vfoIndex].modulation == ModType::MOD_FM && (uint8_t)(radioVFO[vfoIndex].compander) >= 2) ? (uint8_t)(radioVFO[vfoIndex].compander) : 0);
+    bk4819.setCompander((radioVFO[vfoIndex].modulation == ModType::MOD_FM && static_cast<uint8_t>(radioVFO[vfoIndex].compander) >= 2) ? static_cast<uint8_t>(radioVFO[vfoIndex].compander) : 0);
 
     bk4819.setAGC(radioVFO[vfoIndex].modulation != ModType::MOD_AM, radioVFO[vfoIndex].rxagc);
     bk4819.setFilterBandwidth(radioVFO[vfoIndex].bw);

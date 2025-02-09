@@ -14,13 +14,24 @@
 extern "C" {
 #endif
 
+
+    // Function to flash the LED
+    void flashLED(uint32_t times, uint32_t delayTime) {
+        for (uint32_t i = 0; i < times; i++) {
+            GPIO_SetBit(&GPIOC->DATA, GPIOC_PIN_FLASHLIGHT); // Turn on the LED
+            delayMs(delayTime);
+            GPIO_ClearBit(&GPIOC->DATA, GPIOC_PIN_FLASHLIGHT); // Turn off the LED
+            delayMs(delayTime);
+        }
+    }
+
     void _putchar(__attribute__((unused)) char c) {
         //UART uart;
         //uart.send((uint8_t*)&c, 1);
     }
 
     void vAssertCalled(__attribute__((unused)) unsigned long ulLine, __attribute__((unused)) const char* const pcFileName) {
-        UART uart;
+        /*UART uart;
         //taskENTER_CRITICAL();
         {
 
@@ -28,10 +39,16 @@ extern "C" {
 
         }
         //taskEXIT_CRITICAL();
+        */
+        while (1) {
+            flashLED(2, 100);
+            delayMs(1000);
+        }
+        
     }
 
     void vApplicationStackOverflowHook(__attribute__((unused)) TaskHandle_t pxTask, __attribute__((unused)) char* pcTaskName) {
-        UART uart;
+        /*UART uart;
         //taskENTER_CRITICAL();
         {
             //#ifdef ENABLE_UART_DEBUG
@@ -40,10 +57,11 @@ extern "C" {
             //#endif
         }
         //taskEXIT_CRITICAL();
-
-        // flash GPIOC_PIN_FLASHLIGHT to indicate error
-        GPIO_SetBit(&GPIOC->DATA, GPIOC_PIN_FLASHLIGHT);        
-        for (;;);
+        */        
+        while (1) {
+            flashLED(5, 100);
+            delayMs(1000);
+        }
     }
 
     /*-----------------------------------------------------------*/

@@ -14,6 +14,7 @@ namespace Applications
     {
         None = 0,
         Welcome,
+        INFO,
         MainVFO,
         Menu,
         SETVFOA,

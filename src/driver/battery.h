@@ -50,7 +50,7 @@ public:
         for (unsigned int i = 0; i < sizeof(batteryVoltages); i++)
             boardADCGetBatteryInfo(&batteryVoltages[i], &batteryCurrent);
 
-        uint16_t voltage = (uint16_t)((batteryVoltages[0] + batteryVoltages[1] + batteryVoltages[2] + batteryVoltages[3]) / 4);
+        uint16_t voltage = static_cast<uint16_t>((batteryVoltages[0] + batteryVoltages[1] + batteryVoltages[2] + batteryVoltages[3]) / 4);
 
         // missing EEPROM reading
         //batteryVoltageAverage = static_cast<uint16_t>((voltage * 760) / batteryCalibration[3]);
@@ -80,7 +80,6 @@ public:
         chargingWithTypeC = (batteryCurrent >= 501);
 
         if (batteryDisplayLevel > 2) {
-            lowBatteryConfirmed = false;
             lowBattery = false;
         }
         else if (batteryDisplayLevel < 2) {
@@ -94,24 +93,20 @@ public:
 
     bool isLowBattery(void) {
 
+        if (chargingWithTypeC) {         
+            return false;
+        }
         if (lowBattery) {
-            if (lowBatteryConfirmed) {
+            if (lowBatteryPeriod == 0) {
                 return true;
             }
             else {
-                if (lowBatteryPeriod == 0) {
-                    lowBatteryConfirmed = true;
-                    return true;
-                }
-                else {
-                    lowBatteryPeriod--;
-                    return false;
-                }
+                lowBatteryPeriod--;
+                return false;
             }
         }
         else {
-            lowBatteryPeriod = 30;
-            lowBatteryConfirmed = false;
+            lowBatteryPeriod = 15;
             return false;
         }
     }

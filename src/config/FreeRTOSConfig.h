@@ -54,7 +54,7 @@
 #define configUSE_TICK_HOOK                      0
 #define configCPU_CLOCK_HZ                       ( 48000000U )
 #define configTICK_RATE_HZ                       ((TickType_t)1000U)
-#define configMAX_PRIORITIES                     ( 5 )
+#define configMAX_PRIORITIES                     ( 3 )
 #define configMINIMAL_STACK_SIZE                 ((uint16_t)200)
 //#define configTOTAL_HEAP_SIZE                    ((size_t)3072)
 #define configMAX_TASK_NAME_LEN                  ( 6 )
@@ -75,7 +75,7 @@
 /* Software timer definitions. */
 #define configUSE_TIMERS                         1
 #define configTIMER_TASK_PRIORITY                ( 1 )
-#define configTIMER_QUEUE_LENGTH                 20
+#define configTIMER_QUEUE_LENGTH                 25
 #define configTIMER_TASK_STACK_DEPTH             400
 
 /* Set the following definitions to 1 to include the API function, or zero

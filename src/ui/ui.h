@@ -206,6 +206,38 @@ public:
 
     }
 
+    // display a string on multiple text lines, keeping words intact where possible,
+    // and accepting \n to force a new line
+    void drawWords(u8g2_uint_t xloc, u8g2_uint_t yloc, const char* msg) {
+        u8g2_uint_t dspwidth = lcd()->getDisplayWidth(); // display width in pixels
+        int strwidth = 0;  // string width in pixels
+        char glyph[2]; glyph[1] = 0;
+        for (const char* ptr = msg, *lastblank = NULL; *ptr; ++ptr) {
+            while (xloc == 0 && (*msg == ' ' || *msg == '\n'))
+                if (ptr == msg++) ++ptr; // skip blanks and newlines at the left edge
+            glyph[0] = *ptr;
+            strwidth += lcd()->getStrWidth(glyph); // accumulate the pixel width
+            if (*ptr == ' ')  lastblank = ptr; // remember where the last blank was
+            else ++strwidth; // non-blanks will be separated by one additional pixel
+            if (*ptr == '\n' ||   // if we found a newline character,
+                xloc + strwidth > dspwidth) { // or if we ran past the right edge of the display
+                u8g2_int_t starting_xloc = xloc;
+                // print to just before the last blank, or to just before where we got to
+                while (msg < (lastblank ? lastblank : ptr)) {
+                    glyph[0] = *msg++;
+                    xloc += lcd()->drawStr(xloc, yloc, glyph);
+                }
+                strwidth -= xloc - starting_xloc; // account for what we printed
+                yloc += (u8g2_uint_t)lcd()->getMaxCharHeight(); // advance to the next line
+                xloc = 0; lastblank = NULL;
+            }
+        }
+        while (*msg) { // print any characters left over
+            glyph[0] = *msg++;
+            xloc += lcd()->drawStr(xloc, yloc, glyph);
+        }
+    }
+
     void drawStringf(TextAlign tAlign, u8g2_uint_t xstart, u8g2_uint_t xend, u8g2_uint_t y, bool isBlack, bool isFill, bool isBox, const char* str, ...) {
         char text[60] = { 0 };
 
@@ -350,7 +382,7 @@ public:
         draw_ic8_battery50(x, y, BLACK);
         setBlackColor();
         // fill size 10
-        uint8_t fill = (uint8_t)((level * 10) / 100);
+        uint8_t fill = static_cast<uint8_t>((level * 10) / 100);
         lcd()->drawBox(x + 1, y + 1, fill, 3);
     }
 
@@ -619,19 +651,19 @@ public:
             popupWidth = 90; // Width of the popup
             popupHeight = 52; // Height of the popup
             x = 36;
-            y = (uint8_t)((H - popupHeight) / 2); // Center the popup vertically
+            y = static_cast<uint8_t>((H - popupHeight) / 2); // Center the popup vertically
         }
         else {
             popupWidth = 72; // Width of the popup
             popupHeight = 34; // Height of the popup
-            x = (uint8_t)((W - popupWidth) / 2); // Center the popup horizontally
-            y = (uint8_t)((H - popupHeight) / 2); // Center the popup vertically
+            x = static_cast<uint8_t>((W - popupWidth) / 2); // Center the popup horizontally
+            y = static_cast<uint8_t>((H - popupHeight) / 2); // Center the popup vertically
         }
 
         ui.drawPopupWindow(x, y, popupWidth, popupHeight, title);
 
         // Draw the selection list inside the popup        
-        setMaxWidth((uint8_t)(x + popupWidth - 4));
+        setMaxWidth(static_cast<uint8_t>(x + popupWidth - 4));
         setStartXPos(x + 4);
         draw(y + 14);
     }

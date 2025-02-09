@@ -31,17 +31,21 @@ void SystemTask::initSystem(void) {
     // Create message queue
     systemMessageQueue = xQueueCreateStatic(queueLenght, itemSize, systemQueueStorageArea, &systemTasksQueue);
 
-    if (systemMessageQueue == NULL) {
+    /*if (systemMessageQueue == NULL) {
         // need to haldle error
-    }
-
-    st7565.begin();
+        // uart.sendLog("systemMessageQueue is NULL");
+        return;
+    }*/
+    
     bk4819.setupRegisters();
-
+    delayMs(10);
+    
     radio.setVFO(Settings::VFOAB::VFOA, 44616875, 44616875, 0, ModType::MOD_FM);
     radio.setVFO(Settings::VFOAB::VFOB, 43932500, 43932500, 0, ModType::MOD_FM);
-    radio.setupToVFO(Settings::VFOAB::VFOA);
+    radio.setupToVFO(Settings::VFOAB::VFOA);     
 
+    delayMs(10);
+    st7565.begin();
     uart.print("UV-Kx Open Firmware - " AUTHOR_STRING " - " VERSION_STRING "\n");
 }
 
@@ -60,21 +64,22 @@ void SystemTask::pushMessageKey(Keyboard::KeyCode key, Keyboard::KeyState state)
 void SystemTask::statusTaskImpl() {
     SystemMessages notification;
 
-    //uart.sendLog("System task started\n");
+    //uart.sendLog("System task started");
 
     battery.getReadings(); // Update battery readings
 
     appTimer = xTimerCreateStatic("app", pdMS_TO_TICKS(100), pdTRUE, this, SystemTask::appTimerCallback, &appTimerBuffer);
-    runTimer = xTimerCreateStatic("run", pdMS_TO_TICKS(500), pdFALSE, this, SystemTask::runTimerCallback, &runTimerBuffer);
-
-    // Load the Welcome application        
-    loadApplication(Applications::Applications::Welcome);
+    runTimer = xTimerCreateStatic("run", pdMS_TO_TICKS(500), pdFALSE, this, SystemTask::runTimerCallback, &runTimerBuffer);    
 
     backlight.setBacklight(Backlight::backLightState::ON); // Turn on backlight    
 
     keyboard.init(); // Initialize the keyboard
 
     playBeep(Settings::BEEPType::BEEP_880HZ_200MS);
+
+    // Load the Welcome application        
+    loadApplication(Applications::Applications::INFO);
+    //loadApplication(Applications::Applications::Welcome);
 
     xTimerStart(appTimer, 0);
     xTimerStart(runTimer, 0);
@@ -103,7 +108,7 @@ void SystemTask::processSystemNotification(SystemMessages notification) {
     switch (notification.message) {
     case SystemMSG::MSG_TIMEOUT:
         ui.timeOut();
-        //uart.sendLog("MSG_TIMEOUT\n");
+        uart.sendLog("MSG_TIMEOUT\n");
         battery.getReadings(); // Update battery readings
         if (battery.isLowBattery()) {
             ui.setInfoMessage(UI::InfoMessageType::LOW_BATTERY);
@@ -117,7 +122,7 @@ void SystemTask::processSystemNotification(SystemMessages notification) {
         }        
         break;
     case SystemMSG::MSG_BKCLIGHT:
-        //uart.sendLog("MSG_BKCLIGHT\n");
+        uart.sendLog("MSG_BKCLIGHT\n");
         timeoutLightCount = 0;
         backlight.setBacklight((Backlight::backLightState)notification.payload);
         break;
@@ -125,16 +130,16 @@ void SystemTask::processSystemNotification(SystemMessages notification) {
         playBeep((Settings::BEEPType)notification.payload);
         break;
     case SystemMSG::MSG_RADIO_RX:
-        //uart.sendLog("MSG_RADIO_RX\n");        
+        uart.sendLog("MSG_RADIO_RX\n");        
         pushMessage(SystemMSG::MSG_BKCLIGHT, (uint32_t)Backlight::backLightState::ON);
         break;
     case SystemMSG::MSG_RADIO_TX:
-        //uart.sendLog("MSG_RADIO_TX\n");
+        uart.sendLog("MSG_RADIO_TX\n");
         //pushMessage(SystemMSG::MSG_BKCLIGHT, (uint32_t)Backlight::backLightState::ON);
         ui.setInfoMessage(UI::InfoMessageType::TX_DISABLED);
         break;
     case SystemMSG::MSG_KEYPRESSED: {
-        //uart.sendLog("MSG_KEYPRESSED");
+        uart.sendLog("MSG_KEYPRESSED");
         //uart.print("Key: %d\n", notification.key);
         //uart.print("State: %d\n", notification.state);
         Keyboard::KeyCode key = notification.key;
@@ -171,8 +176,8 @@ void SystemTask::runTimerImpl(void) {
 
     // 0.5 second timer
     
-    if (currentApp != Applications::Applications::None) {
-    }
+    /*if (currentApp != Applications::Applications::None) {
+    }*/
 
     if (timeoutCount > (actionTimeout * 2)) {
         timeoutCount = 0;
@@ -203,7 +208,7 @@ void SystemTask::appTimerImpl(void) {
 
 void SystemTask::loadApplication(Applications::Applications app) {
     if (app == Applications::Applications::None) return;
-    //taskENTER_CRITICAL();
+    taskENTER_CRITICAL();
 
     currentApp = Applications::Applications::None;
     xTimerStop(appTimer, 0);
@@ -211,6 +216,9 @@ void SystemTask::loadApplication(Applications::Applications app) {
     switch (app) {
     case Applications::Applications::Welcome:
         currentApplication = &welcomeApp;
+        break;
+    case Applications::Applications::INFO:
+        currentApplication = &infoApp;
         break;
     case Applications::Applications::MainVFO:
         currentApplication = &mainVFOApp;
@@ -252,7 +260,7 @@ void SystemTask::loadApplication(Applications::Applications app) {
     xTimerStart(appTimer, 0);
     currentApplication->init();    
 
-    //taskEXIT_CRITICAL();
+    taskEXIT_CRITICAL();
 }
 
 

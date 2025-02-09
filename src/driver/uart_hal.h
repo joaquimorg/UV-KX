@@ -303,7 +303,7 @@ public:
             }
 
             // Check if there is enough data in the buffer for a complete command
-            uint16_t availableData = (uint16_t)((writeIndex < dmaLength) ? (dmaLength - writeIndex) :
+            uint16_t availableData = static_cast<uint16_t>((writeIndex < dmaLength) ? (dmaLength - writeIndex) :
                 (BufferSize - writeIndex + dmaLength));
             if (availableData < size + 8) {
                 return false;
