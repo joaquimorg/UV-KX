@@ -43,7 +43,7 @@ void SetRadio::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
 
     if (keyState == Keyboard::KeyState::KEY_PRESSED || keyState == Keyboard::KeyState::KEY_LONG_PRESSED_CONT) {
         if (keyCode == Keyboard::KeyCode::KEY_UP) {
-             menulist.prev();
+            menulist.prev();
         } else if (keyCode == Keyboard::KeyCode::KEY_DOWN) {
             menulist.next();
         } else if (keyCode == Keyboard::KeyCode::KEY_EXIT) {
@@ -53,6 +53,28 @@ void SetRadio::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
         if (keyCode == Keyboard::KeyCode::KEY_MENU) {
             switch (menulist.getListPos()) {
                 
+                case 0: // MIC DB
+                    break;
+                case 1: // BATT SAVE
+                    break;
+                case 2: // BUSY LOCKOUT
+                    break;
+                case 3: // BCKLIGHT LEVEL
+                    break;
+                case 4: // BCKLIGHT TIME
+                    break;
+                case 5: // BCKLIGHT MODE
+                    break;
+                case 6: // LCD CONTRAST
+                    break;
+                case 7: // TX TOT
+                    break;
+                case 8: // BEEP
+                    break;
+                case 9: // RESET
+                    systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::RESETEEPROM);
+                    break;
+
                 default:
                     break;
             }

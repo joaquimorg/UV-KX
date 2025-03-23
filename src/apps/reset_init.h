@@ -7,10 +7,10 @@
 namespace Applications
 {
 
-    class Info : public Application {
+    class ResetInit : public Application {
     public:
-        Info(System::SystemTask& systask, UI& ui, Settings& settings)
-            : Application(systask, ui), settings{ settings } {};
+        ResetInit(System::SystemTask& systask, UI& ui, Settings& settings, bool isInit = true) 
+            : Application(systask, ui), settings{ settings }, isInit{ isInit } {};
 
         void drawScreen(void);
         void init(void);
@@ -20,6 +20,7 @@ namespace Applications
 
     private:
         Settings& settings;
+        bool isInit;
         bool showQuestion = false;
         bool isToInitialize = false;
         bool isReady = false;

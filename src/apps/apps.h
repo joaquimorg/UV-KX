@@ -14,7 +14,8 @@ namespace Applications
     {
         None = 0,
         Welcome,
-        INFO,
+        RESETINIT,
+        RESETEEPROM,
         MainVFO,
         Menu,
         SETVFOA,

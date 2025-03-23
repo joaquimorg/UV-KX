@@ -19,7 +19,7 @@
 #include "apps.h"
 
 #include "welcome.h"
-#include "info.h"
+#include "reset_init.h"
 #include "main_vfo.h"
 #include "menu.h"
 #include "set_vfo.h"
@@ -53,7 +53,8 @@ namespace System
             bk4819(),
             radio(*this, uart, bk4819, settings),
             welcomeApp(*this, ui),
-            infoApp(*this, ui, settings),
+            resetInitApp(*this, ui, settings, true),
+            resetEEPROMApp(*this, ui, settings, false),
             mainVFOApp(*this, ui, radio),
             menuApp(*this, ui),
             setVFOAApp(*this, ui, Settings::VFOAB::VFOA, settings, radio),
@@ -81,6 +82,8 @@ namespace System
         static void runTimerCallback(TimerHandle_t xTimer);
 
         void debug(const char* msg) { uart.sendLog(msg); };
+
+        void setupRadio(void);
 
     private:
 
@@ -115,7 +118,8 @@ namespace System
         StaticTimer_t runTimerBuffer;
 
         Applications::Welcome welcomeApp;
-        Applications::Info infoApp;
+        Applications::ResetInit resetInitApp;
+        Applications::ResetInit resetEEPROMApp;
         Applications::MainVFO mainVFOApp;
         Applications::Menu menuApp;
         Applications::SetVFO setVFOAApp;

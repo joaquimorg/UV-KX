@@ -36,17 +36,25 @@ void SystemTask::initSystem(void) {
         // uart.sendLog("systemMessageQueue is NULL");
         return;
     }*/
-    
-    bk4819.setupRegisters();
+        
     delayMs(10);
-    
-    radio.setVFO(Settings::VFOAB::VFOA, 44616875, 44616875, 0, ModType::MOD_FM);
-    radio.setVFO(Settings::VFOAB::VFOB, 43932500, 43932500, 0, ModType::MOD_FM);
-    radio.setupToVFO(Settings::VFOAB::VFOA);     
 
-    delayMs(10);
     st7565.begin();
     uart.print("UV-Kx Open Firmware - " AUTHOR_STRING " - " VERSION_STRING "\n");
+}
+
+void SystemTask::setupRadio(void) {
+    if (radio.isRadioReady()) return;
+
+    bk4819.setupRegisters();
+
+    delayMs(10);
+
+    radio.setVFO(Settings::VFOAB::VFOA, 44616875, 44616875, 0, ModType::MOD_FM);
+    radio.setVFO(Settings::VFOAB::VFOB, 43932500, 43932500, 0, ModType::MOD_FM);
+    radio.setupToVFO(Settings::VFOAB::VFOA);
+    
+    radio.setRadioReady(true);
 }
 
 void SystemTask::pushMessage(SystemMSG msg, uint32_t value) {
@@ -79,7 +87,7 @@ void SystemTask::statusTaskImpl() {
 
     // Validate the EEPROM content and initialize if necessary
     if (!settings.validateSettingsVersion()) {
-        pushMessage(SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::Applications::INFO);
+        pushMessage(SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::Applications::RESETINIT);
     }
     else {
         // Load the Welcome application
@@ -159,7 +167,7 @@ void SystemTask::processSystemNotification(SystemMessages notification) {
                 playBeep(Settings::BEEPType::BEEP_1KHZ_60MS_OPTIONAL);
                 //pushMessage(SystemMSG::MSG_PLAY_BEEP, (uint32_t)Settings::BEEPType::BEEP_1KHZ_60MS_OPTIONAL);
             }
-            else {
+            else if ( radio.isRadioReady() ){
                 pushMessage(SystemMSG::MSG_RADIO_TX, 0);
             }
         }
@@ -214,7 +222,7 @@ void SystemTask::appTimerImpl(void) {
 
 void SystemTask::loadApplication(Applications::Applications app) {
     if (app == Applications::Applications::None) return;
-    taskENTER_CRITICAL();
+    //taskENTER_CRITICAL();
 
     currentApp = Applications::Applications::None;
     timeoutCount = 0;
@@ -224,11 +232,16 @@ void SystemTask::loadApplication(Applications::Applications app) {
     case Applications::Applications::Welcome:
         currentApplication = &welcomeApp;
         break;
-    case Applications::Applications::INFO:
-        currentApplication = &infoApp;
+    case Applications::Applications::RESETINIT:
+        currentApplication = &resetInitApp;
+        setActionTimeout(1);
+        break;
+    case Applications::Applications::RESETEEPROM:
+        currentApplication = &resetEEPROMApp;
         setActionTimeout(1);
         break;
     case Applications::Applications::MainVFO:
+        setupRadio();
         currentApplication = &mainVFOApp;
         break;
     case Applications::Applications::Menu:
@@ -268,7 +281,7 @@ void SystemTask::loadApplication(Applications::Applications app) {
     xTimerStart(appTimer, 0);
     currentApplication->init();    
 
-    taskEXIT_CRITICAL();
+    //taskEXIT_CRITICAL();
 }
 
 

@@ -127,6 +127,11 @@ namespace RadioNS
 
         bool isRXToneDetected(void) { return rxToneDetected; }
 
+        bool isRadioReady(void) { return radioReady; }
+        void setRadioReady(bool ready) { radioReady = ready; }
+        
+
+
     private:
         System::SystemTask& systask;
         UART& uart;
@@ -139,6 +144,8 @@ namespace RadioNS
         static constexpr uint8_t dualWatchTime = 20;
 
         bool rxToneDetected = false;
+
+        bool radioReady = false;
 
         bool speakerOn = false; // speaker on/off
         Settings::RadioState state = Settings::RadioState::IDLE;
