@@ -130,13 +130,28 @@ namespace RadioNS
         bool isRadioReady(void) { return radioReady; }
         void setRadioReady(bool ready) { radioReady = ready; }
         
+        void setPowerSaveMode() {
+            inPowerSaveMode = true;            
+            bk4819.setSleepMode();            
+        }
 
+        bool isPowerSaveMode(void) { return inPowerSaveMode; }
+
+        void setNormalPowerMode() {
+            if (!inPowerSaveMode) {
+                return;
+            }
+            inPowerSaveMode = false;
+            bk4819.setNormalMode();
+        }
 
     private:
         System::SystemTask& systask;
         UART& uart;
         BK4819& bk4819;
         Settings& settings;
+
+        bool inPowerSaveMode = false;
 
         bool dualWatch = true;
         uint8_t dualWatchTimer = 0;

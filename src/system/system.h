@@ -35,7 +35,9 @@ namespace System
             MSG_TIMEOUT,
             MSG_BKCLIGHT,
             MSG_KEYPRESSED,
+            MSG_LOW_BATTERY,
             MSG_PLAY_BEEP,
+            MSG_POWER_SAVE,
             MSG_RADIO_RX,
             MSG_RADIO_TX,
             MSG_APP_LOAD,
@@ -130,9 +132,11 @@ namespace System
         Applications::Applications currentApp = Applications::Applications::None;
 
         uint16_t actionTimeout = 2; // Timeout for action 2 seconds
+        uint16_t powerSaveTimeout = 10; // Timeout for power save 10 seconds
         uint16_t backlightTimeout = 30; // Timeout for backlight 30 seconds default
         uint16_t timeoutCount = 0;
         uint16_t timeoutLightCount = 0;
+        uint16_t powerSaveCount = 0;
 
         void initSystem(void);
         void showScreen(void);

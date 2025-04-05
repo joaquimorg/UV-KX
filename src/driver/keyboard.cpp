@@ -93,7 +93,7 @@ void Keyboard::keyTask() {
     for (;;) {
         readKeyboard();
         processKeys();
-        vTaskDelay(pdMS_TO_TICKS(10));
+        vTaskDelay(pdMS_TO_TICKS(20));
     }
 }
 
@@ -132,7 +132,7 @@ void Keyboard::readKeyboard() {
         GPIOA->DATA &= KEYBOARD_LAYOUT[i].setToZeroMask;
 
         for (ii = 0, k = 0, reg = 0; ii < 3 && k < 8; ii++, k++) {
-            delayUs(1);
+            delayUs(10);
             reg2 = (uint16_t)GPIOA->DATA;
             if (reg != reg2) { // noise
                 reg = reg2;

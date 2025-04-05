@@ -85,6 +85,7 @@ void SystemTask::statusTaskImpl() {
 
     playBeep(Settings::BEEPType::BEEP_880HZ_200MS);
 
+    /*
     // Validate the EEPROM content and initialize if necessary
     if (!settings.validateSettingsVersion()) {
         pushMessage(SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::Applications::RESETINIT);
@@ -92,7 +93,9 @@ void SystemTask::statusTaskImpl() {
     else {
         // Load the Welcome application
         pushMessage(SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::Applications::Welcome);
-    }    
+    } 
+    */
+    pushMessage(SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::Applications::Welcome);
 
     xTimerStart(appTimer, 0);
     xTimerStart(runTimer, 0);
@@ -125,8 +128,7 @@ void SystemTask::processSystemNotification(SystemMessages notification) {
         //uart.sendLog("MSG_TIMEOUT\n");
         battery.getReadings(); // Update battery readings
         if (battery.isLowBattery()) {
-            ui.setInfoMessage(UI::InfoMessageType::LOW_BATTERY);
-            pushMessage(SystemMSG::MSG_PLAY_BEEP, (uint32_t)Settings::BEEPType::BEEP_880HZ_60MS_TRIPLE_BEEP);
+            pushMessage(SystemMSG::MSG_LOW_BATTERY, 0);
         }
         if (currentApp != Applications::Applications::None) {
             currentApplication->timeout();
@@ -134,6 +136,10 @@ void SystemTask::processSystemNotification(SystemMessages notification) {
         if (keyboard.wasFKeyPressed()) {
             keyboard.clearFKeyPressed();
         }        
+        break;
+    case SystemMSG::MSG_POWER_SAVE:
+        powerSaveCount = 0;
+        radio.setPowerSaveMode();
         break;
     case SystemMSG::MSG_BKCLIGHT:
         //uart.sendLog("MSG_BKCLIGHT\n");
@@ -144,8 +150,14 @@ void SystemTask::processSystemNotification(SystemMessages notification) {
         playBeep((Settings::BEEPType)notification.payload);
         break;
     case SystemMSG::MSG_RADIO_RX:
-        //uart.sendLog("MSG_RADIO_RX\n");        
+        //uart.sendLog("MSG_RADIO_RX\n");
+        radio.setNormalPowerMode();
+        powerSaveCount = 0;
         pushMessage(SystemMSG::MSG_BKCLIGHT, (uint32_t)Backlight::backLightState::ON);
+        break;
+    case SystemMSG::MSG_LOW_BATTERY:        
+        ui.setInfoMessage(UI::InfoMessageType::LOW_BATTERY);
+        pushMessage(SystemMSG::MSG_PLAY_BEEP, (uint32_t)Settings::BEEPType::BEEP_880HZ_60MS_TRIPLE_BEEP);
         break;
     case SystemMSG::MSG_RADIO_TX:
         //uart.sendLog("MSG_RADIO_TX\n");
@@ -159,6 +171,12 @@ void SystemTask::processSystemNotification(SystemMessages notification) {
         Keyboard::KeyCode key = notification.key;
         Keyboard::KeyState state = notification.state;        
 
+        radio.setNormalPowerMode();
+        powerSaveCount = 0;
+        if (currentApp != Applications::Applications::None) {
+            currentApplication->action(key, state);
+        }
+
         if (state == Keyboard::KeyState::KEY_PRESSED || state == Keyboard::KeyState::KEY_LONG_PRESSED) {
             timeoutCount = 0;
             timeoutLightCount = 0;
@@ -171,10 +189,7 @@ void SystemTask::processSystemNotification(SystemMessages notification) {
                 pushMessage(SystemMSG::MSG_RADIO_TX, 0);
             }
         }
-        if (currentApp != Applications::Applications::None) {
-            currentApplication->action(key, state);
-        }
-
+        
         break;
     }
     case SystemMSG::MSG_APP_LOAD:
@@ -199,6 +214,16 @@ void SystemTask::runTimerImpl(void) {
     }
     else {
         timeoutCount++;
+    }
+
+    if (!radio.isPowerSaveMode()) {
+        
+        if (powerSaveCount > (powerSaveTimeout * 2)) {        
+            pushMessage(SystemMSG::MSG_POWER_SAVE, 0);
+        }
+        else {
+            powerSaveCount++;
+        }
     }
 
     if (backlight.getBacklightState() == Backlight::backLightState::ON) {

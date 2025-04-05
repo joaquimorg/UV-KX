@@ -294,6 +294,8 @@ public:
 
     void draw_dotline(u8g2_uint_t x, u8g2_uint_t y, bool color) { lcd()->setColorIndex(color);  lcd()->drawXBM(x, y, dotline_width, dotline_height, dotline_bits); }
 
+    void draw_ps(u8g2_uint_t x, u8g2_uint_t y, bool color) { lcd()->setColorIndex(color);  lcd()->drawXBM(x, y, batt_ps_width, batt_ps_height, batt_ps_bits); }
+
     /* - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
     void drawFrequencyBig(bool invert, uint32_t freq, u8g2_uint_t xend, u8g2_uint_t y) {

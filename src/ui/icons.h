@@ -10,6 +10,12 @@ static unsigned char batt_50_bits[] = {
 static unsigned char charging_bits[] = {
    0x0a, 0x1f, 0x1f, 0x0e, 0x04 };
 
+#define batt_ps_width 13
+#define batt_ps_height 5
+static unsigned char batt_ps_bits[] = {
+   0xbb, 0x1b, 0xa9, 0x10, 0xb9, 0x13, 0x09, 0x12, 0x8b, 0x1b };
+   
+
 #define mmeter_width 54
 #define mmeter_height 8
 static unsigned char mmeter_bits[] = {

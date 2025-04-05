@@ -720,6 +720,20 @@ public:
         spi.writeRegister(BK4819_REG_31, r31 | (1u << 3));
     }
 
+    void setSleepMode(void) {
+        spi.writeRegister(BK4819_REG_30, 0x0000);
+        spi.writeRegister(BK4819_REG_37, 0x1D00);
+        toggleGpioOut(BK4819_GPIO0_PIN28_RX_ENABLE, false);
+    }
+
+    // This function sets the normal mode
+    void setNormalMode(void) {        
+        // Toggle the GPIO output pin to enable the RX
+        toggleGpioOut(BK4819_GPIO0_PIN28_RX_ENABLE, true);
+        // Turn on the RX
+        rxTurnOn();
+    }
+
 private:
 
     static constexpr uint32_t frequencyMIN = 1600000;

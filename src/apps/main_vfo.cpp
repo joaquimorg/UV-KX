@@ -128,12 +128,16 @@ void MainVFO::drawScreen(void) {
     }
 
     if (radio.getState() == Settings::RadioState::RX_ON) {
-        ui.drawString(TextAlign::RIGHT, 0, 100, 64, true, false, false, radio.getRXVFO() == Settings::VFOAB::VFOA ? "A" : "B");
+        ui.drawString(TextAlign::RIGHT, 0, 108, 64, true, false, false, radio.getRXVFO() == Settings::VFOAB::VFOA ? "A" : "B");
     }
     else {
-        ui.drawString(TextAlign::RIGHT, 0, 100, 64, true, false, false, "A/B");
+        ui.drawString(TextAlign::RIGHT, 0, 108, 64, true, false, false, "A/B");
     }
 
+    if (radio.isPowerSaveMode()) {
+        //ui.drawString(TextAlign::RIGHT, 0, 80, 64, true, false, false, "PS");
+        ui.draw_ps(78, 59, BLACK);
+    }
 
     if (popupSelected != NONE) {
         popupList.drawPopup(ui);
