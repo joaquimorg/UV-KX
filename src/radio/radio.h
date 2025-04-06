@@ -155,8 +155,9 @@ namespace RadioNS
 
         bool dualWatch = true;
         uint8_t dualWatchTimer = 0;
+        uint8_t timeoutPSDualWatch = 10;
 
-        static constexpr uint8_t dualWatchTime = 20;
+        static constexpr uint8_t dualWatchTime = 50;
 
         bool rxToneDetected = false;
 

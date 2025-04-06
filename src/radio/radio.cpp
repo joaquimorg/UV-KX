@@ -98,6 +98,7 @@ void Radio::setVFO(Settings::VFOAB vfo, uint32_t rx, uint32_t tx, int16_t channe
 
 void Radio::setupToVFO(Settings::VFOAB vfo) {
     uint8_t vfoIndex = (uint8_t)vfo;
+
     bk4819.squelchType(SquelchType::SQUELCH_RSSI_NOISE_GLITCH);
     setSquelch(radioVFO[vfoIndex].rx.frequency, 4);
 
@@ -159,6 +160,7 @@ void Radio::toggleRX(bool on, Settings::CodeType codeType = Settings::CodeType::
             bk4819.toggleGreen(false);
             toggleBK4819(false);
             state = Settings::RadioState::IDLE;
+            systask.pushMessage(System::SystemTask::SystemMSG::MSG_RADIO_IDLE, 0);
         }
     }
 }
@@ -246,7 +248,7 @@ void Radio::playBeep(Settings::BEEPType beep) {
     delayMs(duration);
     bk4819.enterTxMute();
     delayMs(20);
-    toggleSpeaker(false);    
+    toggleSpeaker(false);
     delayMs(5);
     bk4819.turnsOffTonesTurnsOnRX();
     delayMs(5);
@@ -257,15 +259,30 @@ void Radio::playBeep(Settings::BEEPType beep) {
 
 
 void Radio::runDualWatch(void) {
-    if (dualWatch && state == Settings::RadioState::IDLE) {
-        if (dualWatchTimer == 0) {
-            dualWatchTimer = dualWatchTime;
+
+    if (inPowerSaveMode) {
+        if (timeoutPSDualWatch == 10) {
+            bk4819.setNormalMode();
+            timeoutPSDualWatch = 9;           
         }
-        else {
+        else if (timeoutPSDualWatch >= 1) {            
+            if (timeoutPSDualWatch > 1) {
+                timeoutPSDualWatch--;
+            } else {
+                bk4819.setSleepMode();
+                timeoutPSDualWatch = 0;
+            }
+        }
+    }
+
+    if (dualWatch && state == Settings::RadioState::IDLE) {
+        if (dualWatchTimer > 0) {
             dualWatchTimer--;
         }
-        if (dualWatchTimer == 0) {
+        else {
+            dualWatchTimer = dualWatchTime;
             setRXVFO((rxVFO == Settings::VFOAB::VFOA) ? Settings::VFOAB::VFOB : Settings::VFOAB::VFOA);
+            timeoutPSDualWatch = 10;
         }
     }
     else if (dualWatch && state == Settings::RadioState::RX_ON) {
@@ -309,7 +326,7 @@ void Radio::setupToneDetection(Settings::VFOAB vfo) {
                 bk4819.setTailDetection(550);
                 interruptMask |= BK4819_REG_3F_CxCSS_TAIL;
             }
-            
+
             break;
         }
     }

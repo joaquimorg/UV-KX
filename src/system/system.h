@@ -38,6 +38,7 @@ namespace System
             MSG_LOW_BATTERY,
             MSG_PLAY_BEEP,
             MSG_POWER_SAVE,
+            MSG_RADIO_IDLE,
             MSG_RADIO_RX,
             MSG_RADIO_TX,
             MSG_APP_LOAD,

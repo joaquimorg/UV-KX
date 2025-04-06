@@ -731,7 +731,7 @@ public:
         // Toggle the GPIO output pin to enable the RX
         toggleGpioOut(BK4819_GPIO0_PIN28_RX_ENABLE, true);
         // Turn on the RX
-        rxTurnOn();
+        //rxTurnOn();
     }
 
 private:

@@ -70,7 +70,7 @@ void SystemTask::pushMessageKey(Keyboard::KeyCode key, Keyboard::KeyState state)
 }
 
 void SystemTask::statusTaskImpl() {
-    SystemMessages notification;
+    SystemMessages notification;;
 
     //uart.sendLog("System task started");
 
@@ -139,7 +139,9 @@ void SystemTask::processSystemNotification(SystemMessages notification) {
         break;
     case SystemMSG::MSG_POWER_SAVE:
         powerSaveCount = 0;
-        radio.setPowerSaveMode();
+        if (radio.getState() == Settings::RadioState::IDLE) {
+            radio.setPowerSaveMode();
+        }        
         break;
     case SystemMSG::MSG_BKCLIGHT:
         //uart.sendLog("MSG_BKCLIGHT\n");
@@ -148,6 +150,10 @@ void SystemTask::processSystemNotification(SystemMessages notification) {
         break;
     case SystemMSG::MSG_PLAY_BEEP:
         playBeep((Settings::BEEPType)notification.payload);
+        break;
+    case SystemMSG::MSG_RADIO_IDLE:
+        powerSaveCount = 0;
+        //uart.sendLog("MSG_RADIO_IDLE\n");
         break;
     case SystemMSG::MSG_RADIO_RX:
         //uart.sendLog("MSG_RADIO_RX\n");
