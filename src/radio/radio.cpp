@@ -260,22 +260,22 @@ void Radio::playBeep(Settings::BEEPType beep) {
 
 void Radio::runDualWatch(void) {
 
-    if (inPowerSaveMode) {
-        if (timeoutPSDualWatch == 10) {
-            bk4819.setNormalMode();
-            timeoutPSDualWatch = 9;           
-        }
-        else if (timeoutPSDualWatch >= 1) {            
-            if (timeoutPSDualWatch > 1) {
-                timeoutPSDualWatch--;
-            } else {
-                bk4819.setSleepMode();
-                timeoutPSDualWatch = 0;
+    if (dualWatch && state == Settings::RadioState::IDLE) {
+        if (inPowerSaveMode) {
+            if (timeoutPSDualWatch == 10) {
+                bk4819.setNormalMode();
+                timeoutPSDualWatch = 9;           
+            }
+            else if (timeoutPSDualWatch >= 1) {            
+                if (timeoutPSDualWatch > 1) {
+                    timeoutPSDualWatch--;
+                } else {
+                    bk4819.setSleepMode();
+                    timeoutPSDualWatch = 0;
+                }
             }
         }
-    }
 
-    if (dualWatch && state == Settings::RadioState::IDLE) {
         if (dualWatchTimer > 0) {
             dualWatchTimer--;
         }
@@ -287,6 +287,11 @@ void Radio::runDualWatch(void) {
     }
     else if (dualWatch && state == Settings::RadioState::RX_ON) {
         dualWatchTimer = dualWatchTime;
+        timeoutPSDualWatch = 10;
+        if (inPowerSaveMode) {
+            bk4819.setNormalMode();
+            inPowerSaveMode = false;
+        }
     }
 }
 
