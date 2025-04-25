@@ -605,12 +605,12 @@ private:
         if (showLineNumbers) {
             ui.drawString(TextAlign::LEFT, startXPos + 14, maxWidth, y, is_invert, true, false, s);
             if (info != NULL && is_invert) {
-                ui.setFont(Font::FONT_8_TR);
+                ui.setFont(Font::FONT_8B_TR);
                 if (suffix == NULL) {
-                    ui.drawString(TextAlign::RIGHT, 0, maxWidth, y, is_invert, true, false, info);
+                    ui.drawString(TextAlign::RIGHT, 0, maxWidth - 2, y, !is_invert, true, false, info);
                 }
                 else {
-                    ui.drawStringf(TextAlign::RIGHT, 0, maxWidth, y, is_invert, true, false, "%.*s %s", ui.stringLengthNL(info), info, suffix);
+                    ui.drawStringf(TextAlign::RIGHT, 0, maxWidth - 2, y, !is_invert, true, false, "%.*s %s", ui.stringLengthNL(info), info, suffix);
                 }
             }
         }

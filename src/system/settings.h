@@ -5,74 +5,17 @@
 #include "sys.h"
 #include "eeprom.h"
 
-/*
-
-    SQUELCH
-    STEP
-    MODE
-    BANDWIDTH
-    TX POWER
-    SHIFT
-    OFFSET
-    RX CTCS
-    TX CTCS
-    RX DTCS
-    TX DTCS
-    TX STE
-    RX STE
-    COMPANDER
-    PTT ID
-    AFC
-    RX ACG
-
-    MIC DB
-    BATTERY SAVE
-    BUSY LOCKOUT
-    BACKLIGHT LEVEL
-    BACKLIGHT TIME
-    BACKLIGHT MODE
-    LCD CONTRAST
-    TX TOT
-    BEEP
-
-*/
-
-/*
-
-    Memory name encoding:
-    " " -> 0x0
-    "A" -> 0x1
-    "B" -> 0x2
-    "C" -> 0x3
-    ...
-    "Z" -> 0x1A
-    "0" -> 0x1B
-    "1" -> 0x1C
-    "2" -> 0x1D
-    "3" -> 0x1E
-    "4" -> 0x1F
-    "5" -> 0x20
-    "6" -> 0x21
-    "7" -> 0x22
-    "8" -> 0x23
-    "9" -> 0x24
-    "-" -> 0x25
-    "." -> 0x26
-    "#" -> 0x27
-    "/" -> 0x28
-    ":" -> 0x29
-
-
-*/
 
 /*
 
     EEPROM Layout:
 
-    [0x0000] - Settings Version
-    [0x0002] - Settings VFO A
-    [0x0004] - Settings VFO B
+    [0x0000] - Settings
+    [0x0050] - MEMORY - (230 memory's 32 bytes each)
+    [0x1D10] - EMPTY
+    [0x1E00] - CALIBRATION DATA
 
+    [0x1FFF] - END OF EEPROM
 
 */
 
@@ -143,7 +86,7 @@ public:
 
     static constexpr uint16_t  StepFrequencyTable[13] = {
         50,  100,
-        250, 500, 625, 1000, 1250, 1500, 
+        250, 500, 625, 1000, 1250, 1500,
         2000, 2500, 5000, 10000, 50000
     };
 
@@ -191,39 +134,69 @@ public:
     struct FREQ {
         uint32_t frequency : 27;
         CodeType codeType : 4;
-        uint8_t code;
+        uint8_t  code;
     } __attribute__((packed)); // 5 Bytes
 
     struct VFO {
-        FREQ rx; // RX Frequency
-        FREQ tx; // TX Frequency
-        char name[11]; // Memory Name
-        int16_t channel; // Channel Number
-        uint8_t squelch : 4; // Squelch Level
-        Step step : 4; // Step Frequency
-        ModType modulation : 4; // Modulation Type
-        BK4819_Filter_Bandwidth bw : 4; // Filter Bandwidth
-        TXOutputPower power : 2; // TX Power Level
-        OffsetDirection shift : 2; // Offset Direction
-        ONOFF repeaterSte : 1; // Repeater STE
-        ONOFF ste : 1; // STE
-        TXRX compander : 2; // Compander
-        uint8_t pttid : 4; // PTT ID
-        uint8_t : 0;  // Force alignment to next byte boundary
-        uint8_t rxagc : 5; // RX AGC Level
+        FREQ     rx;                       // RX Frequency
+        FREQ     tx;                       // TX Frequency
+        char     name[10];                 // Memory Name
+        uint16_t channel;                  // Channel Number
+        uint8_t  squelch : 4;       // Squelch Level
+        Step     step : 4;       // Step Frequency
+        ModType  modulation : 4;       // Modulation Type
+        BK4819_Filter_Bandwidth bw : 4;       // Filter Bandwidth
+        TXOutputPower           power : 2;       // TX Power Level
+        OffsetDirection         shift : 2;       // Offset Direction
+        ONOFF    repeaterSte : 1;       // Repeater STE
+        ONOFF    ste : 1;       // STE
+        TXRX     compander : 2;       // Compander
+        uint8_t  roger : 4;       // Roger Beep
+        uint8_t  pttid : 4;       // PTT ID
+        uint8_t  rxagc : 6;       // RX AGC Level
+        uint8_t  reserved1[5];             // Reserved
+    } __attribute__((packed)); // 32 Bytes    
+
+    static_assert(sizeof(VFO) == 32, "VFO struct size mismatch");
+
+
+    // MIC DB\nBATT SAVE\nBUSY LOCKOUT\nBCKLIGHT LEVEL\nBCKLIGHT TIME\nBCKLIGHT MODE\nLCD CONTRAST\nTX TOT\nBEEP
+    struct SETTINGS {
+        uint16_t version;                 // Settings Version
+        uint8_t  batteryType : 2;         // Battery Type
+        uint8_t  busyLockout : 1;         // Busy Lockout
+        uint8_t  beep : 1;                // Beep
+        uint8_t  backlightLevel : 4;      // Backlight Level
+        uint8_t  backlightTime : 4;       // Backlight Time                
+        uint8_t  micDB : 4;               // Mic DB
+        uint8_t  lcdContrast : 4;         // LCD Contrast
+        uint8_t  txTOT : 4;               // TX TOT        
+        uint8_t  batterySave : 4;         // Battery Save
+        uint8_t  backlightMode : 2;       // Backlight Mode
+        uint8_t  vfoSelected : 2;         // VFO Selected - 0 = VFOA, 1 = VFOB, 2 = CH1, 3 = CH2        
+        uint16_t channel[2];              // Channel Number        
+        VFO      vfo[2];                  // VFO Settings        
+        uint8_t  reserved1[6];            // Reserved
     } __attribute__((packed));
+
+    static_assert(sizeof(SETTINGS) == 80, "SETTINGS struct size mismatch");
+
+    SETTINGS radioSettings;
 
     Settings(System::SystemTask& systask) : systask{ systask }, eeprom() {}
     void factoryReset() {};
 
-    uint16_t getSettingsVersion() {
-        uint16_t version = 0;
-        eeprom.readBuffer(0x0000, &version, sizeof(version));
-        return version;
+    void getRadioSettings() {
+        eeprom.readBuffer(0x0000, &radioSettings, sizeof(SETTINGS));
+       
     }
 
-    void setSettingsVersion(uint16_t version) {
-        eeprom.writeBuffer(0x0000, &version, sizeof(version));
+    void setRadioSettings() {
+        eeprom.writeBuffer(0x0000, &radioSettings, sizeof(SETTINGS));
+    }
+
+    uint16_t getSettingsVersion() {
+        return radioSettings.version;
     }
 
     bool validateSettingsVersion() {
@@ -234,102 +207,20 @@ public:
         return false;
     }
 
-
     uint8_t initEEPROM(void) {
         // TODO: Implement EEPROM initialization
         if (initBlock < maxBlock) {
-            initBlock++;     
+            initBlock++;
         }
         return (uint8_t)((initBlock * 100) / maxBlock);
     }
 
-
-    // Memory Name compression
-    //
-
-    // Custom function to calculate string length
-    int stringLength(const char* str) {
-        int length = 0;
-        while (str[length] != '\0') {
-            ++length;
-        }
-        return length;
-    }
-
-    // Conversion function to encode a character
-    uint8_t encodeChar(char c) {
-        if (c == ' ') return 0x0;
-        if (c >= 'A' && c <= 'Z') return c - 'A' + 1;
-        if (c >= '0' && c <= '9') return c - '0' + 0x1B;
-        if (c == '-') return 0x25;
-        if (c == '.') return 0x26;
-        if (c == '#') return 0x27;
-        if (c == '/') return 0x28;
-        if (c == ':') return 0x29;
-        return 0x0; // Default to space for unsupported characters
-    }
-
-    // Custom function to convert a character to uppercase
-    char toUpperCase(char c) {
-        if (c >= 'a' && c <= 'z') {
-            return c - ('a' - 'A');
-        }
-        return c;
-    }
-
-    // Compress a string into a 7-byte array
-    void compress(const char* input, uint8_t* output) {
-        for (int i = 0; i < 7; ++i) {
-            output[i] = 0; // Initialize output to zero
-        }
-        uint64_t buffer = 0;
-
-        // Convert input to uppercase and pad with spaces if needed
-        char temp[10];
-        int len = stringLength(input);
-        for (int i = 0; i < 10; ++i) {
-            if (i < len) {
-                temp[i] = toUpperCase(input[i]); // Convert to uppercase
-            }
-            else {
-                temp[i] = ' '; // Pad with spaces
-            }
-        }
-
-        // Encode each character into 5 bits and store in a 64-bit buffer
-        for (int i = 0; i < 10; ++i) {
-            buffer <<= 5;
-            buffer |= encodeChar(temp[i]);
-        }
-
-        // Copy the 50 bits into the output array (7 bytes)
-        for (int i = 6; i >= 0; --i) {
-            output[i] = buffer & 0xFF;
-            buffer >>= 8;
-        }
-    }
-
-    // Decompress a 7-byte array into a string
-    void decompress(const uint8_t* input, char* output) {
-        uint64_t buffer = 0;
-
-        // Reconstruct the 50 bits from the input array
-        for (int i = 0; i < 7; ++i) {
-            buffer <<= 8;
-            buffer |= input[i];
-        }
-
-        // Decode each 5-bit chunk back to a character
-        for (int i = 9; i >= 0; --i) {
-            output[i] = decodeTable[buffer & 0x1F];
-            buffer >>= 5;
-        }
-        output[10] = '\0'; // Null-terminate the string
+    EEPROM& getEEPROM() {
+        return eeprom;
     }
 
 private:
 
-    static constexpr char decodeTable[] = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-.#/:";
     static constexpr uint16_t settingsVersion = 0x015A;
     System::SystemTask& systask;
 

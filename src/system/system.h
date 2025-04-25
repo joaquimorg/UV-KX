@@ -48,7 +48,7 @@ namespace System
             spi0(SPI0),
             settings(*this),
             st7565(),
-            uart(),
+            uart(settings),
             ui(st7565, uart),
             backlight(),            
             keyboard(*this),

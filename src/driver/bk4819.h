@@ -4,7 +4,7 @@
 
 #include "sys.h"
 #include "spi_sw_hal.h"
-#include "uart_hal.h"
+//#include "uart_hal.h"
 #include "bk4819-regs.h"
 
 enum class ModType : uint8_t {

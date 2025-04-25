@@ -49,6 +49,9 @@ void SystemTask::setupRadio(void) {
     bk4819.setupRegisters();
 
     delayMs(10);
+    settings.getRadioSettings();
+    uart.print("[DEBUG] EEPROM Version : %x\r\n", settings.getSettingsVersion());
+    delayMs(10);
 
     radio.setVFO(Settings::VFOAB::VFOA, 44616875, 44616875, 0, ModType::MOD_FM);
     radio.setVFO(Settings::VFOAB::VFOB, 43932500, 43932500, 0, ModType::MOD_FM);
@@ -108,9 +111,11 @@ void SystemTask::statusTaskImpl() {
             processSystemNotification(notification);
         }
 
+        taskENTER_CRITICAL();
         if (uart.isCommandAvailable()) {
             uart.handleCommand();
         }
+        taskEXIT_CRITICAL();
 
         radio.checkRadioInterrupts(); // Check for radio interrupts
         radio.runDualWatch(); // Run dual watch

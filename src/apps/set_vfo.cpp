@@ -35,7 +35,7 @@ void SetVFO::drawScreen(void) {
 }
 
 void SetVFO::init(void) {
-    menulist.set(0, 6, 127, "SQUELCH\nSTEP\nMODE\nBANDWIDTH\nTX POWER\nSHIFT\nOFFSET\nRX CODE TYPE\nRX CODE\nTX CODE TYPE\nTX CODE\nTX STE\nRX STE\nCOMPANDER\nPTT ID\nRX ACG");
+    menulist.set(0, 6, 127, "SQUELCH\nSTEP\nMODE\nBANDWIDTH\nTX POWER\nSHIFT\nOFFSET\nRX CODE TYPE\nRX CODE\nTX CODE TYPE\nTX CODE\nTX STE\nRX STE\nCOMPANDER\nRX ACG\nPTT ID\nROGER");
     vfo = radio.getVFO(vfoab);
 }
 
@@ -115,14 +115,16 @@ const char* SetVFO::getCurrentOption() {
     case 13: // RX STE
         return ui.getStrValue(RadioNS::Radio::onoffStr, (uint8_t)vfo.ste);
     case 14: // COMPANDER
-        return ui.getStrValue(RadioNS::Radio::txrxStr, (uint8_t)vfo.compander);
-    case 15: // PTT ID
-        return ui.getStrValue("0\n1", (uint8_t)vfo.pttid);
-    case 16: // RX ACG
+        return ui.getStrValue(RadioNS::Radio::txrxStr, (uint8_t)vfo.compander);    
+    case 15: // RX ACG
         if (vfo.rxagc < ui.stringLengthNL(RadioNS::Radio::AGCStr) - 1) {
             menulist.setSuffix(ui.DBStr);
         }
         return ui.getStrValue(RadioNS::Radio::AGCStr, (uint8_t)vfo.rxagc);
+    case 16: // PTT ID
+        return ui.getStrValue(RadioNS::Radio::pttIDStr, (uint8_t)vfo.pttid);
+    case 17: // ROGER
+        return ui.getStrValue(RadioNS::Radio::rogerStr, (uint8_t)vfo.roger);
     default:
         return NULL;
     }
@@ -193,12 +195,15 @@ void SetVFO::loadOptions() {
         break;
     case 14: // COMPANDER
         optionlist.set((uint8_t)vfo.compander, 5, 0, RadioNS::Radio::txrxStr);
-        break;
-    case 15: // PTT ID
-        optionlist.set((uint8_t)vfo.pttid, 5, 0, "0\n1");
-        break;
-    case 16: // RX ACG
+        break;    
+    case 15: // RX ACG
         optionlist.set((uint8_t)vfo.rxagc, 5, 0, RadioNS::Radio::AGCStr, ui.DBStr);
+        break;
+    case 16: // PTT ID
+        optionlist.set((uint8_t)vfo.pttid, 5, 0, RadioNS::Radio::pttIDStr);
+        break;
+    case 17: // ROGER
+        optionlist.set((uint8_t)vfo.roger, 5, 0, RadioNS::Radio::rogerStr);
         break;
     default:
         break;
@@ -255,12 +260,15 @@ void SetVFO::setOptions() {
         break;
     case 14: // COMPANDER
         vfo.compander = (Settings::TXRX)optionlistSelected;
+        break;    
+    case 15: // RX ACG
+        vfo.rxagc = optionlistSelected & 0x1F;
         break;
-    case 15: // PTT ID
+    case 16: // PTT ID
         vfo.pttid = optionlistSelected & 0xF;
         break;
-    case 16: // RX ACG
-        vfo.rxagc = optionlistSelected & 0x1F;
+    case 17: // ROGER
+        vfo.roger = optionlistSelected & 0xF;
         break;
     default:
         break;

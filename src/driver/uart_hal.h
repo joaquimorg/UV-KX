@@ -8,10 +8,14 @@
 #include "uart.h"
 #include "printf.h"
 #include "sys.h"
+#include "settings.h"
 
 extern uint8_t UART_DMA_Buffer[256];
+
 class UART {
 private:
+    Settings& settings;
+
     static constexpr uint8_t Obfuscation[16] = {
         0x16, 0x6C, 0x14, 0xE6, 0x2E, 0x91, 0x0D, 0x40,
         0x21, 0x35, 0xD5, 0x40, 0x13, 0x03, 0xE9, 0x80
@@ -46,7 +50,8 @@ private:
     bool sendScreenData = false;
 
 public:
-    UART() : isEncrypted(false) {
+
+    UART(Settings& settings) : settings{ settings }, isEncrypted(false) {
         memset(UART_DMA_Buffer, 0, BufferSize);
         // Constructor initializes UART
         init();
@@ -197,6 +202,7 @@ private:
         } reply;
 
         // Fill in the reply data
+        memset(&reply, 0, sizeof(reply));
         reply.header.id = 0x0515;
         reply.header.size = sizeof(reply.Data);
         memcpy(reply.Data.Version, AUTHOR_NAME " " VERSION_STRING, sizeof(reply.Data.Version));
@@ -223,24 +229,108 @@ private:
         }
         return false;
     }*/
+   
+    /* ------------------------------------------------------------------------------------------------- */
 
+    // Handle command 0x0514 (Version Request)
+    // This command is used to request the version of the device
     void handleCmd0514(const uint8_t* pBuffer) {
         // Define the structure of the incoming command
-        struct CMD_0514_t {
-            Header_t Header;
-            uint32_t Timestamp;
+        struct CMD_0514_t {            
+            uint32_t timestamp;
         };
 
         // Cast the buffer to the command structure
         const CMD_0514_t* pCmd = reinterpret_cast<const CMD_0514_t*>(pBuffer);
 
         // Update the session timestamp
-        timestamp = pCmd->Timestamp;
+        timestamp = pCmd->timestamp;
 
         // Send the version response
         sendVersion();
     }
 
+    // Handle command 0x051B (EEPROM Read Request)
+    // This command is used to read data from the EEPROM
+    void handleCmd051B(const uint8_t* pBuffer) {
+        // Define the structure of the incoming command
+        struct CMD_051B_t {            
+            uint16_t offset;
+            uint8_t  size;
+            uint8_t  padding;
+            uint32_t timestamp;
+        };
+
+        // Define the structure of the reply
+        struct {
+            Header_t header;
+            struct {
+                uint16_t offset;
+                uint8_t  size;
+                uint8_t  padding;
+                uint8_t  data[128];
+            } data;
+        } reply;
+
+        // Cast the buffer to the command structure
+        const CMD_051B_t* pCmd = reinterpret_cast<const CMD_051B_t*>(pBuffer);
+    
+        if (pCmd->timestamp != timestamp)
+            return;
+        
+        memset(&reply, 0, sizeof(reply));
+        reply.header.id   = 0x051C;
+        reply.header.size = pCmd->size + 4;
+        reply.data.offset = pCmd->offset;
+        reply.data.size   = pCmd->size;
+        
+        settings.getEEPROM().readBuffer(pCmd->offset, reply.data.data, pCmd->size);
+
+        sendReply(&reply, reply.header.size + sizeof(reply.header));
+
+    }
+
+    // Handle command 0x051D (EEPROM Write Request)
+    // This command is used to write data to the EEPROM
+    void handleCmd051D(const uint8_t* pBuffer) {
+        // Define the structure of the incoming command
+        struct CMD_051D_t {            
+            uint16_t offset;
+            uint8_t  size;
+            bool     bAllowPassword;
+            uint32_t timestamp;
+            uint8_t  data[128];
+        };
+
+        // Define the structure of the reply
+        struct {
+            Header_t header;
+            struct {
+                uint16_t offset;                
+            } data;
+        } reply;
+
+        // Cast the buffer to the command structure
+        const CMD_051D_t* pCmd = reinterpret_cast<const CMD_051D_t*>(pBuffer);
+
+        if (pCmd->timestamp != timestamp)
+            return;
+
+        reply.header.id   = 0x051E;
+        reply.header.size = sizeof(reply.data);
+        reply.data.offset = pCmd->offset;
+
+        // Write data to EEPROM               
+        settings.getEEPROM().writeBuffer(pCmd->offset, pCmd->data, pCmd->size);
+        
+        if(pCmd->offset == 0x0000) {
+            settings.getRadioSettings();  
+        }
+
+        sendReply(&reply, sizeof(reply));
+    }
+
+    /* ------------------------------------------------------------------------------------------------- */
 
     void decryptCommand(uint8_t* buffer, uint16_t size) {
         for (uint16_t i = 0; i < size; i++) {
@@ -260,7 +350,7 @@ private:
     }
 
 
-public:
+public:    
 
     void sendScreenBuffer(const void* buffer, uint32_t size) {
         const uint16_t screenDumpIdByte = 0xEDAB;
@@ -363,8 +453,20 @@ public:
 
     void handleCommand() {
         switch (commandBuffer.command.header.id) {
+        
+        // Handle command 0x0514 (Version Request)
         case 0x0514:
             handleCmd0514(commandBuffer.command.data);
+            break;
+        
+        // Handle command 0x051B (EPPROM Read Request)
+        case 0x051B:
+            handleCmd051B(commandBuffer.command.data);
+            break;
+
+        // Handle command 0x051D (EEPROM Write Request)
+        case 0x051D:
+            handleCmd051D(commandBuffer.command.data);
             break;
 
         case 0x0527:
@@ -376,7 +478,7 @@ public:
             break;
 
         case 0x05DD: // Reset command
-            //handleReset();
+            //NVIC_SystemReset();
             break;
         case 0x0A03:
             sendScreenData = true;

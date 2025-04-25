@@ -38,6 +38,10 @@ namespace RadioNS
         static constexpr const char* stepStr = "0.5\n1.0\n2.5\n5.0\n6.25\n10.0\n12.5\n15.0\n20.0\n25.0\n30.0\n50.0\n100.0\n500.0";
 
         static constexpr const char* AGCStr = "-43\n-40\n-38\n-35\n-33\n-30\n-28\n-25\n-23\n-20\n-18\n-15\n-13\n-11\n-9\n-6\n-4\n-2\nAUTO";
+        
+        static constexpr const char* rogerStr = "OFF\nDEFAULT\nMOTO TPT";
+
+        static constexpr const char* pttIDStr = "OFF\nQUINDAR\nUP CODE\nDOWN CODE\nUP & DOWN";
 
         Settings::VFO radioVFO[2];
 
