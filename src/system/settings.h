@@ -26,6 +26,40 @@ namespace System {
 class Settings {
 public:
 
+
+    static constexpr const char* squelchStr = "OFF\n1\n2\n3\n4\n5\n6\n7\n8\n9";
+
+    static constexpr const char* codetypeStr = "NONE\nCT\nDCS\n-DCS";
+
+    static constexpr const char* txrxStr = "OFF\nTX\nRX\nRX/TX";
+
+    static constexpr const char* onoffStr = "OFF\nON";
+
+    static constexpr const char* powerStr = "LOW\nMID\nHIGH";
+
+    static constexpr const char* offsetStr = "OFF\n+\n-";
+
+    //static constexpr const char* modulationStr = "FM\nAM\nLSB\nUSB\nBYP\nRAW\nWFM\nPRST";
+    static constexpr const char* modulationStr = "FM\nAM\nLSB";
+
+    static constexpr const char* bandwidthStr = "26\n23\n20\n17\n14\n12\n10\n9\n7\n6";
+
+    static constexpr const char* stepStr = "0.5\n1.0\n2.5\n5.0\n6.25\n10.0\n12.5\n15.0\n20.0\n25.0\n30.0\n50.0\n100.0\n500.0";
+
+    static constexpr const char* AGCStr = "-43\n-40\n-38\n-35\n-33\n-30\n-28\n-25\n-23\n-20\n-18\n-15\n-13\n-11\n-9\n-6\n-4\n-2\nAUTO";
+
+    static constexpr const char* rogerStr = "OFF\nDEFAULT\nMOTO TPT";
+
+    static constexpr const char* pttIDStr = "OFF\nQUINDAR\nUP CODE\nDOWN CODE\nUP & DOWN";
+
+    static constexpr const char* TXTimeoutStr = "30s\n1m\n2m\n4m\n6m\n8m";
+
+    static constexpr const char* BacklightTimeStr = "OFF\nON\n5s\n10s\n15s\n20s\n30s\n1m\n2m\n4m";
+
+    static constexpr const char* MicDBStr = "+1.1dB\n+4.0dB\n+8.0dB\n+12.0dB\n+15.1dB";
+    
+    static constexpr const char* BacklightModeStr = "OFF\nTX\nRX\nTX/RX";
+
     static constexpr uint16_t CTCSSOptions[50] = {
         670,  693,  719,  744,  770,  797,  825,  854,  885,  915,
         948,  974,  1000, 1035, 1072, 1109, 1148, 1188, 1230, 1273,
@@ -131,6 +165,43 @@ public:
         NDCS = 3
     };
 
+    enum class TXTimeout : uint8_t {
+        TX_TIMEOUT_30S = 0,  // 30 seconds
+        TX_TIMEOUT_60S = 1,  // 1 minute
+        TX_TIMEOUT_120S = 2, // 2 minute
+        TX_TIMEOUT_240S = 3, // 4 minute
+        TX_TIMEOUT_360S = 4, // 6 minute
+        TX_TIMEOUT_480S = 5  // 8 minutes        
+    };
+
+    enum class BacklightTime : uint8_t {
+        BACKLIGHT_OFF = 0,  // OFF
+        BACKLIGHT_ON = 1,   // ON
+        BACKLIGHT_5S = 2,   // 5 seconds
+        BACKLIGHT_10S = 3,  // 10 seconds
+        BACKLIGHT_15S = 4,  // 15 seconds
+        BACKLIGHT_20S = 5,  // 20 seconds
+        BACKLIGHT_30S = 6,  // 30 seconds
+        BACKLIGHT_60S = 7,  // 1 minute
+        BACKLIGHT_120S = 8, // 2 minute
+        BACKLIGHT_240S = 9  // 4 minutes
+    };
+
+    enum class MicDB : uint8_t {
+        MIC_DB_1 = 1, // +1.1dB
+        MIC_DB_2 = 2, // +4.0dB
+        MIC_DB_3 = 3, // +8.0dB
+        MIC_DB_4 = 4, // +12.0dB
+        MIC_DB_5 = 5  // +15.1dB
+    };
+
+    enum class BacklightMode : uint8_t {
+        BACKLIGHT_MODE_OFF = 0, // OFF
+        BACKLIGHT_MODE_TX = 1,  // TX
+        BACKLIGHT_MODE_RX = 2,  // RX
+        BACKLIGHT_MODE_TX_RX = 3 // TX/RX
+    };
+
     struct FREQ {
         uint32_t frequency : 27;
         CodeType codeType : 4;
@@ -138,45 +209,46 @@ public:
     } __attribute__((packed)); // 5 Bytes
 
     struct VFO {
-        FREQ     rx;                       // RX Frequency
-        FREQ     tx;                       // TX Frequency
-        char     name[10];                 // Memory Name
-        uint16_t channel;                  // Channel Number
-        uint8_t  squelch : 4;       // Squelch Level
-        Step     step : 4;       // Step Frequency
-        ModType  modulation : 4;       // Modulation Type
-        BK4819_Filter_Bandwidth bw : 4;       // Filter Bandwidth
-        TXOutputPower           power : 2;       // TX Power Level
-        OffsetDirection         shift : 2;       // Offset Direction
-        ONOFF    repeaterSte : 1;       // Repeater STE
-        ONOFF    ste : 1;       // STE
-        TXRX     compander : 2;       // Compander
-        uint8_t  roger : 4;       // Roger Beep
-        uint8_t  pttid : 4;       // PTT ID
-        uint8_t  rxagc : 6;       // RX AGC Level
-        uint8_t  reserved1[5];             // Reserved
-    } __attribute__((packed)); // 32 Bytes    
+        FREQ                    rx;             // RX Frequency
+        FREQ                    tx;             // TX Frequency
+        char                    name[10];       // Memory Name
+        uint16_t                channel;        // Channel Number ??
+        uint8_t                 squelch : 4;    // Squelch Level
+        Step                    step : 4;       // Step Frequency
+        ModType                 modulation : 4; // Modulation Type
+        BK4819_Filter_Bandwidth bw : 4;         // Filter Bandwidth
+        TXOutputPower           power : 2;      // TX Power Level
+        OffsetDirection         shift : 2;      // Offset Direction
+        ONOFF                   repeaterSte : 1;// Repeater STE
+        ONOFF                   ste : 1;        // STE
+        TXRX                    compander : 2;  // Compander
+        uint8_t                 roger : 4;      // Roger Beep
+        uint8_t                 pttid : 4;      // PTT ID
+        uint8_t                 rxagc : 6;      // RX AGC Level
+        uint8_t                 reserved1[5];   // Reserved
+    } __attribute__((packed)); // 32 Bytes
 
     static_assert(sizeof(VFO) == 32, "VFO struct size mismatch");
 
 
     // MIC DB\nBATT SAVE\nBUSY LOCKOUT\nBCKLIGHT LEVEL\nBCKLIGHT TIME\nBCKLIGHT MODE\nLCD CONTRAST\nTX TOT\nBEEP
     struct SETTINGS {
-        uint16_t version;                 // Settings Version
-        uint8_t  batteryType : 2;         // Battery Type
-        uint8_t  busyLockout : 1;         // Busy Lockout
-        uint8_t  beep : 1;                // Beep
-        uint8_t  backlightLevel : 4;      // Backlight Level
-        uint8_t  backlightTime : 4;       // Backlight Time                
-        uint8_t  micDB : 4;               // Mic DB
-        uint8_t  lcdContrast : 4;         // LCD Contrast
-        uint8_t  txTOT : 4;               // TX TOT        
-        uint8_t  batterySave : 4;         // Battery Save
-        uint8_t  backlightMode : 2;       // Backlight Mode
-        uint8_t  vfoSelected : 2;         // VFO Selected - 0 = VFOA, 1 = VFOB, 2 = CH1, 3 = CH2        
-        uint16_t channel[2];              // Channel Number        
-        VFO      vfo[2];                  // VFO Settings        
-        uint8_t  reserved1[6];            // Reserved
+        uint16_t        version;                 // Settings Version
+        BatteryType     batteryType : 2;         // Battery Type
+        ONOFF           busyLockout : 1;         // Busy Lockout
+        ONOFF           beep : 1;                // Beep
+        uint8_t         backlightLevel : 4;      // Backlight Level
+        BacklightTime   backlightTime : 4;       // Backlight Time
+        MicDB           micDB : 4;               // Mic DB
+        uint8_t         lcdContrast : 4;         // LCD Contrast
+        TXTimeout       txTOT : 4;               // TX TOT
+        ONOFF           batterySave : 4;         // Battery Save
+        BacklightMode   backlightMode : 2;       // Backlight Mode
+        VFOAB           vfoSelected : 2;         // VFO Selected - 0 = VFOA, 1 = VFOB
+        uint16_t        memory[2];               // Memory Number
+        VFO             vfo[2];                  // VFO Settings
+        ONOFF           showVFO[2];              // Show VFO or Memory
+        uint8_t         reserved1[4];            // Reserved
     } __attribute__((packed));
 
     static_assert(sizeof(SETTINGS) == 80, "SETTINGS struct size mismatch");
@@ -188,11 +260,33 @@ public:
 
     void getRadioSettings() {
         eeprom.readBuffer(0x0000, &radioSettings, sizeof(SETTINGS));
-       
     }
 
     void setRadioSettings() {
         eeprom.writeBuffer(0x0000, &radioSettings, sizeof(SETTINGS));
+    }
+
+    void setRadioSettingsDefault() {
+        radioSettings.version           = settingsVersion;
+        radioSettings.batteryType       = BatteryType::BAT_1600;
+        radioSettings.busyLockout       = ONOFF::ON;
+        radioSettings.beep              = ONOFF::ON;
+        radioSettings.backlightLevel    = 0x0A; // 10
+        radioSettings.backlightTime     = BacklightTime::BACKLIGHT_15S;
+        radioSettings.micDB             = MicDB::MIC_DB_5; // +15.1dB
+        radioSettings.lcdContrast       = 0x0A; // 10
+        radioSettings.txTOT             = TXTimeout::TX_TIMEOUT_120S;
+        radioSettings.batterySave       = ONOFF::ON;
+        radioSettings.backlightMode     = BacklightMode::BACKLIGHT_MODE_TX_RX;
+        radioSettings.vfoSelected       = VFOAB::VFOA; // VFOA
+
+        radioSettings.memory[0] = 0x0001; // VFOA Memory Number
+        radioSettings.memory[1] = 0x0001; // VFOB Memory Number
+
+        radioSettings.showVFO[0] = ONOFF::ON; // VFOA Show VFO
+        radioSettings.showVFO[1] = ONOFF::ON; // VFOB Show VFO
+
+        //radioSettings.vfo
     }
 
     uint16_t getSettingsVersion() {
@@ -228,5 +322,7 @@ private:
 
     uint16_t initBlock = 0x0000;
     static constexpr uint16_t maxBlock = 0x000F;
+
+    bool hasDataToSave = false;
 
 };

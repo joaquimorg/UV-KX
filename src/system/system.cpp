@@ -53,9 +53,23 @@ void SystemTask::setupRadio(void) {
     uart.print("[DEBUG] EEPROM Version : %x\r\n", settings.getSettingsVersion());
     delayMs(10);
 
-    radio.setVFO(Settings::VFOAB::VFOA, 44616875, 44616875, 0, ModType::MOD_FM);
-    radio.setVFO(Settings::VFOAB::VFOB, 43932500, 43932500, 0, ModType::MOD_FM);
-    radio.setupToVFO(Settings::VFOAB::VFOA);
+    if (!settings.validateSettingsVersion()) {
+        settings.setRadioSettingsDefault();
+
+        radio.setVFO(Settings::VFOAB::VFOA, 44616875, 44616875, 0, ModType::MOD_FM);
+        radio.setVFO(Settings::VFOAB::VFOB, 43932500, 43932500, 0, ModType::MOD_FM);
+
+        settings.radioSettings.vfo[(uint8_t)Settings::VFOAB::VFOA] = radio.getVFO(Settings::VFOAB::VFOA);
+        settings.radioSettings.vfo[(uint8_t)Settings::VFOAB::VFOB] = radio.getVFO(Settings::VFOAB::VFOB);
+        //settings.setRadioSettings();
+    } else {
+        // Load settings from EEPROM
+        // TODO: need to validate if load VFO or Memory
+        radio.setVFO(Settings::VFOAB::VFOA, settings.radioSettings.vfo[(uint8_t)Settings::VFOAB::VFOA]);
+        radio.setVFO(Settings::VFOAB::VFOB, settings.radioSettings.vfo[(uint8_t)Settings::VFOAB::VFOB]);
+    }
+    
+    radio.setupToVFO(settings.radioSettings.vfoSelected);
     
     radio.setRadioReady(true);
 }

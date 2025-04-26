@@ -17,32 +17,6 @@ namespace RadioNS
 
         /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-
-        static constexpr const char* squelchStr = "OFF\n1\n2\n3\n4\n5\n6\n7\n8\n9";
-
-        static constexpr const char* codetypeStr = "NONE\nCT\nDCS\n-DCS";
-
-        static constexpr const char* txrxStr = "OFF\nTX\nRX\nRX/TX";
-
-        static constexpr const char* onoffStr = "OFF\nON";
-
-        static constexpr const char* powerStr = "LOW\nMID\nHIGH";
-
-        static constexpr const char* offsetStr = "OFF\n+\n-";
-
-        //static constexpr const char* modulationStr = "FM\nAM\nLSB\nUSB\nBYP\nRAW\nWFM\nPRST";
-        static constexpr const char* modulationStr = "FM\nAM\nLSB";
-
-        static constexpr const char* bandwidthStr = "26\n23\n20\n17\n14\n12\n10\n9\n7\n6";
-
-        static constexpr const char* stepStr = "0.5\n1.0\n2.5\n5.0\n6.25\n10.0\n12.5\n15.0\n20.0\n25.0\n30.0\n50.0\n100.0\n500.0";
-
-        static constexpr const char* AGCStr = "-43\n-40\n-38\n-35\n-33\n-30\n-28\n-25\n-23\n-20\n-18\n-15\n-13\n-11\n-9\n-6\n-4\n-2\nAUTO";
-        
-        static constexpr const char* rogerStr = "OFF\nDEFAULT\nMOTO TPT";
-
-        static constexpr const char* pttIDStr = "OFF\nQUINDAR\nUP CODE\nDOWN CODE\nUP & DOWN";
-
         Settings::VFO radioVFO[2];
 
         struct FrequencyBand {
@@ -184,20 +158,20 @@ namespace RadioNS
         };
 
         static constexpr FrequencyBand radioBands[] = {
-            {"HAM 17m", 1806800, 1816800, 1},
-            {"HAM 15m", 2100000, 2145000, 1},
-            {"HAM 12m", 2489000, 2499000, 1},
-            {"HAM 10m", 2800000, 2970000, 1},
-            {"HAM 6m", 5000000, 5400000, 1},
-            {"HAM 4m EU", 7000000, 7100000, 1},
+            {"HAM 17m", 1806800, 1816800, 0},
+            {"HAM 15m", 2100000, 2145000, 0},
+            {"HAM 12m", 2489000, 2499000, 0},
+            {"HAM 10m", 2800000, 2970000, 0},
+            {"HAM 6m", 5000000, 5400000, 0},
+            {"HAM 4m EU", 7000000, 7100000, 0},
             {"HAM 2m", 14400000, 14800000, 1},
-            {"HAM 1.25m", 21900000, 22500000, 1},
+            {"HAM 1.25m", 21900000, 22500000, 0},
             {"HAM 70cm", 42000000, 44600625, 1},
             {"PMR 446", 44600625, 44619375, 1},
-            {"HAM 33cm", 90200000, 92800000, 1},
-            {"HAM 23cm", 124000000, 130000000, 1},
+            {"HAM 33cm", 90200000, 92800000, 0},
+            {"HAM 23cm", 124000000, 130000000, 0},
             // Other Bands
-            {"CB RADIO", 2696500, 2740500, 1}, // 11m Citizens Band
+            {"CB RADIO", 2696500, 2740500, 0}, // 11m Citizens Band
             {"FM", 8800000, 10800000, 0},
             {"AIRCRAFT", 10800000, 13700000, 0},
             {"MARINE VHF", 15600000, 17400000, 0},

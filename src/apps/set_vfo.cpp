@@ -58,26 +58,26 @@ const char* SetVFO::getCurrentOption() {
     menulist.setSuffix(NULL);
     switch (menulist.getListPos() + 1) {
     case 1: // SQUELCH
-        return ui.getStrValue(RadioNS::Radio::squelchStr, (uint8_t)vfo.squelch);
+        return ui.getStrValue(Settings::squelchStr, (uint8_t)vfo.squelch);
     case 2: // STEP
         menulist.setSuffix(ui.KHZStr);
-        return ui.getStrValue(RadioNS::Radio::stepStr, (uint8_t)vfo.step);
+        return ui.getStrValue(Settings::stepStr, (uint8_t)vfo.step);
     case 3: // MODE
-        return ui.getStrValue(RadioNS::Radio::modulationStr, (uint8_t)vfo.modulation);
+        return ui.getStrValue(Settings::modulationStr, (uint8_t)vfo.modulation);
     case 4: // BANDWIDTH
         menulist.setSuffix(ui.KHZStr);
-        return ui.getStrValue(RadioNS::Radio::bandwidthStr, (uint8_t)vfo.bw);
+        return ui.getStrValue(Settings::bandwidthStr, (uint8_t)vfo.bw);
     case 5: // TX POWER
-        return ui.getStrValue(RadioNS::Radio::powerStr, (uint8_t)vfo.power);
+        return ui.getStrValue(Settings::powerStr, (uint8_t)vfo.power);
     case 6: // SHIFT
-        return ui.getStrValue(RadioNS::Radio::offsetStr, (uint8_t)vfo.shift);
+        return ui.getStrValue(Settings::offsetStr, (uint8_t)vfo.shift);
     case 7: // OFFSET
         menulist.setSuffix(ui.KHZStr);
-        return "0.00";//ui.getStrValue(RadioNS::Radio::offsetStr, vfo.rx.frequency - vfo.tx.frequency);
+        return "0.00";//ui.getStrValue(Settings::offsetStr, vfo.rx.frequency - vfo.tx.frequency);
     case 8: // RX CODE TYPE
-        return ui.getStrValue(RadioNS::Radio::codetypeStr, (uint8_t)vfo.rx.codeType);
+        return ui.getStrValue(Settings::codetypeStr, (uint8_t)vfo.rx.codeType);
     case 10: // TX CODE TYPE
-        return ui.getStrValue(RadioNS::Radio::codetypeStr, (uint8_t)vfo.tx.codeType);
+        return ui.getStrValue(Settings::codetypeStr, (uint8_t)vfo.tx.codeType);
     case 9: // RX CODE
         if (vfo.rx.codeType == Settings::CodeType::CT) {
             menulist.setSuffix(ui.HZStr);
@@ -111,20 +111,20 @@ const char* SetVFO::getCurrentOption() {
             return NULL;
         }
     case 12: // TX STE
-        return ui.getStrValue(RadioNS::Radio::onoffStr, (uint8_t)vfo.repeaterSte);
+        return ui.getStrValue(Settings::onoffStr, (uint8_t)vfo.repeaterSte);
     case 13: // RX STE
-        return ui.getStrValue(RadioNS::Radio::onoffStr, (uint8_t)vfo.ste);
+        return ui.getStrValue(Settings::onoffStr, (uint8_t)vfo.ste);
     case 14: // COMPANDER
-        return ui.getStrValue(RadioNS::Radio::txrxStr, (uint8_t)vfo.compander);    
+        return ui.getStrValue(Settings::txrxStr, (uint8_t)vfo.compander);    
     case 15: // RX ACG
-        if (vfo.rxagc < ui.stringLengthNL(RadioNS::Radio::AGCStr) - 1) {
+        if (vfo.rxagc < ui.stringLengthNL(Settings::AGCStr) - 1) {
             menulist.setSuffix(ui.DBStr);
         }
-        return ui.getStrValue(RadioNS::Radio::AGCStr, (uint8_t)vfo.rxagc);
+        return ui.getStrValue(Settings::AGCStr, (uint8_t)vfo.rxagc);
     case 16: // PTT ID
-        return ui.getStrValue(RadioNS::Radio::pttIDStr, (uint8_t)vfo.pttid);
+        return ui.getStrValue(Settings::pttIDStr, (uint8_t)vfo.pttid);
     case 17: // ROGER
-        return ui.getStrValue(RadioNS::Radio::rogerStr, (uint8_t)vfo.roger);
+        return ui.getStrValue(Settings::rogerStr, (uint8_t)vfo.roger);
     default:
         return NULL;
     }
@@ -133,31 +133,31 @@ const char* SetVFO::getCurrentOption() {
 void SetVFO::loadOptions() {
     switch (optionSelected) {
     case 1: // SQUELCH
-        optionlist.set((uint8_t)vfo.squelch, 5, 0, RadioNS::Radio::squelchStr);
+        optionlist.set((uint8_t)vfo.squelch, 5, 0, Settings::squelchStr);
         break;
     case 2: // STEP
-        optionlist.set((uint8_t)vfo.step, 5, 0, RadioNS::Radio::stepStr, ui.KHZStr);
+        optionlist.set((uint8_t)vfo.step, 5, 0, Settings::stepStr, ui.KHZStr);
         break;
     case 3: // MODE
-        optionlist.set((uint8_t)vfo.modulation, 5, 0, RadioNS::Radio::modulationStr);
+        optionlist.set((uint8_t)vfo.modulation, 5, 0, Settings::modulationStr);
         break;
     case 4: // BANDWIDTH
-        optionlist.set((uint8_t)vfo.bw, 5, 0, RadioNS::Radio::bandwidthStr, ui.KHZStr);
+        optionlist.set((uint8_t)vfo.bw, 5, 0, Settings::bandwidthStr, ui.KHZStr);
         break;
     case 5: // TX POWER
-        optionlist.set((uint8_t)vfo.power, 5, 0, RadioNS::Radio::powerStr);
+        optionlist.set((uint8_t)vfo.power, 5, 0, Settings::powerStr);
         break;
     case 6: // SHIFT
-        optionlist.set((uint8_t)vfo.shift, 3, 0, RadioNS::Radio::offsetStr);
+        optionlist.set((uint8_t)vfo.shift, 3, 0, Settings::offsetStr);
         break;
     case 7: // OFFSET
         userOptionInput = uint32_t(vfo.rx.frequency - vfo.tx.frequency);
         break;
     case 8: // RX CODE TYPE
-        optionlist.set((uint8_t)vfo.rx.codeType, 5, 0, RadioNS::Radio::codetypeStr);
+        optionlist.set((uint8_t)vfo.rx.codeType, 5, 0, Settings::codetypeStr);
         break;
     case 10: // TX CODE TYPE
-        optionlist.set((uint8_t)vfo.tx.codeType, 5, 0, RadioNS::Radio::codetypeStr);
+        optionlist.set((uint8_t)vfo.tx.codeType, 5, 0, Settings::codetypeStr);
         break;
     case 9: // RX CODE
         if (vfo.rx.codeType == Settings::CodeType::CT) {
@@ -188,22 +188,22 @@ void SetVFO::loadOptions() {
         }
         break;
     case 12: // TX STE
-        optionlist.set((uint8_t)vfo.repeaterSte, 5, 0, RadioNS::Radio::onoffStr);
+        optionlist.set((uint8_t)vfo.repeaterSte, 5, 0, Settings::onoffStr);
         break;
     case 13: // RX STE
-        optionlist.set((uint8_t)vfo.ste, 5, 0, RadioNS::Radio::onoffStr);
+        optionlist.set((uint8_t)vfo.ste, 5, 0, Settings::onoffStr);
         break;
     case 14: // COMPANDER
-        optionlist.set((uint8_t)vfo.compander, 5, 0, RadioNS::Radio::txrxStr);
+        optionlist.set((uint8_t)vfo.compander, 5, 0, Settings::txrxStr);
         break;    
     case 15: // RX ACG
-        optionlist.set((uint8_t)vfo.rxagc, 5, 0, RadioNS::Radio::AGCStr, ui.DBStr);
+        optionlist.set((uint8_t)vfo.rxagc, 5, 0, Settings::AGCStr, ui.DBStr);
         break;
     case 16: // PTT ID
-        optionlist.set((uint8_t)vfo.pttid, 5, 0, RadioNS::Radio::pttIDStr);
+        optionlist.set((uint8_t)vfo.pttid, 5, 0, Settings::pttIDStr);
         break;
     case 17: // ROGER
-        optionlist.set((uint8_t)vfo.roger, 5, 0, RadioNS::Radio::rogerStr);
+        optionlist.set((uint8_t)vfo.roger, 5, 0, Settings::rogerStr);
         break;
     default:
         break;
