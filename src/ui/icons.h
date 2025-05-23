@@ -1,21 +1,42 @@
+// -----------------------------------------------------------------------------------------
+// This file defines various small monochrome icons used in the user interface.
+// Each icon is represented by its width, height, and a byte array containing
+// the bitmap data. These are typically used for status indicators on the display.
+// The format is compatible with graphics libraries like u8g2 (XBM format).
+// -----------------------------------------------------------------------------------------
 #pragma once
 
+/**
+ * @brief Battery icon (approximately 50% full).
+ * Dimensions: 13 pixels wide, 5 pixels high.
+ */
 #define batt_50_width 13
 #define batt_50_height 5
 static unsigned char batt_50_bits[] = {
    0xff, 0x0f, 0x01, 0x18, 0x01, 0x18, 0x01, 0x18, 0xff, 0x0f };
 
+/**
+ * @brief Charging indicator icon (e.g., a lightning bolt).
+ * Dimensions: 5 pixels wide, 5 pixels high.
+ */
 #define charging_width 5
 #define charging_height 5
 static unsigned char charging_bits[] = {
    0x0a, 0x1f, 0x1f, 0x0e, 0x04 };
 
+/**
+ * @brief Battery icon with a "PS" (Power Save) indicator.
+ * Dimensions: 13 pixels wide, 5 pixels high.
+ */
 #define batt_ps_width 13
 #define batt_ps_height 5
 static unsigned char batt_ps_bits[] = {
    0xbb, 0x1b, 0xa9, 0x10, 0xb9, 0x13, 0x09, 0x12, 0x8b, 0x1b };
    
-
+/**
+ * @brief M-meter icon (purpose might be specific, e.g., modulation meter or memory meter).
+ * Dimensions: 54 pixels wide, 8 pixels high.
+ */
 #define mmeter_width 54
 #define mmeter_height 8
 static unsigned char mmeter_bits[] = {
@@ -25,6 +46,10 @@ static unsigned char mmeter_bits[] = {
    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x11, 0x00, 0x00, 0x00, 0x00, 0x00,
    0x00, 0x91, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0x3b };
 
+/**
+ * @brief S-meter icon (Signal Strength meter).
+ * Dimensions: 35 pixels wide, 9 pixels high.
+ */
 #define smeter_width 35
 #define smeter_height 9
 static unsigned char smeter_bits[] = {
@@ -33,6 +58,11 @@ static unsigned char smeter_bits[] = {
    0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x22, 0x22, 0x22, 0x22, 0x02, 0x22,
    0x22, 0x22, 0x22, 0x02, 0x22, 0x22, 0x22, 0x22, 0x02 };
   
+/**
+ * @brief Dotted line graphic, likely used as a separator.
+ * Spans the typical width of a small display (128 pixels).
+ * Dimensions: 128 pixels wide, 1 pixel high.
+ */
 #define dotline_width 128
 #define dotline_height 1
 static unsigned char dotline_bits[] = {
