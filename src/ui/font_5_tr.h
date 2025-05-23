@@ -1,9 +1,23 @@
-/*
-  Fontname: -FontForge-Pixies-Book-R-Normal--7-70-75-75-P-39-ISO10646-1
-  Copyright: (c) Randy Humphries | i2design  http://home.earthlink.net/~i2design
-  Glyphs: 64/131
-  BBX Build Mode: 0
-*/
+// -----------------------------------------------------------------------------------------
+// This file defines the font data for 'u8g2_font_5_tr'.
+// It is designed for use with the U8g2 graphics library.
+// The font data itself is a byte array representing the glyphs and their metrics.
+// This is a small, pixel-style font.
+//
+// Font Details (from original header):
+//   Fontname: -FontForge-Pixies-Book-R-Normal--7-70-75-75-P-39-ISO10646-1
+//   Copyright: (c) Randy Humphries | i2design  http://home.earthlink.net/~i2design
+//   Glyphs: 64/131 (Indicates a subset of glyphs is included)
+//   BBX Build Mode: 0
+// -----------------------------------------------------------------------------------------
+
+/**
+ * @brief Font data for u8g2_font_5_tr (a small pixel font).
+ * This array contains the binary representation of the font glyphs and metadata
+ * required by the U8g2 library to render text. The `U8G2_FONT_SECTION` macro
+ * ensures that the font data is placed in a specific memory section, which can be
+ * important on memory-constrained devices (e.g., placing it in PROGMEM on AVR).
+ */
 const uint8_t u8g2_font_5_tr[492] U8G2_FONT_SECTION("u8g2_font_5_tr") = 
   "@\0\2\2\3\3\1\4\4\5\7\0\377\5\0\5\0\0\350\0\0\1\323 \4\300T!\6iTV"
   "\0\42\6KfR\0#\12m\364\252\241\252\241*\0$\11\373\343\322\210GJ\0%\12llR\6"
