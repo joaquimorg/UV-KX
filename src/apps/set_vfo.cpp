@@ -340,6 +340,7 @@ void SetVFO::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
                     radio.setVFO(vfoab, vfo);
                     optionSelected = 0;
                     userOptionSelected = 0;
+                    systask.pushMessage(System::SystemTask::SystemMSG::MSG_SAVESETTINGS, 0);
                 }
                 break;
             default:

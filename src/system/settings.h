@@ -292,6 +292,21 @@ public:
         return (uint8_t)((initBlock * 100) / maxBlock);
     }
 
+    void saveRadioSettings() {
+        /*if (hasDataToSave) {
+            eeprom.writeBuffer(0x0000, &radioSettings, sizeof(SETTINGS));
+            hasDataToSave = false;
+        }*/
+    }
+
+    void loadRadioSettings() {
+        //eeprom.readBuffer(0x0000, &radioSettings, sizeof(SETTINGS));
+    }
+
+    void applyRadioSettings() {
+        
+    }
+
     EEPROM& getEEPROM() {
         return eeprom;
     }

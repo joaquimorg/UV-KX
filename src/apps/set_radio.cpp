@@ -33,7 +33,7 @@ void SetRadio::drawScreen(void) {
 
 
 void SetRadio::init(void) {
-    menulist.set(0, 6, 127, "MIC DB\nBATT SAVE\nBUSY LOCKOUT\nBCKLIGHT LEVEL\nBCKLIGHT TIME\nBCKLIGHT MODE\nLCD CONTRAST\nTX TOT\nBEEP\nRESET");
+    menulist.set(0, 6, 127, "MIC DB\nBATT SAVE\nBUSY LOCKOUT\nBLIGHT LEVEL\nBLIGHT TIME\nBLIGHT MODE\nLCD CONTRAST\nTX TOT\nBEEP\nRESET");
 }
 
 void SetRadio::update(void) {
@@ -117,7 +117,8 @@ void SetRadio::setOptions() {
         settings.radioSettings.busyLockout = (Settings::ONOFF)sel;
         break;
     case 4:
-        settings.radioSettings.backlightLevel = sel & 0x0F;
+        settings.radioSettings.backlightLevel = sel & 0x0F;        
+        systask.pushMessage(System::SystemTask::SystemMSG::MSG_BKCLIGHT_LEVEL, (uint32_t)settings.radioSettings.backlightLevel);
         break;
     case 5:
         settings.radioSettings.backlightTime = (Settings::BacklightTime)sel;
@@ -192,6 +193,8 @@ void SetRadio::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
                 optionSelected = 0;
             } else if (keyCode == Keyboard::KeyCode::KEY_MENU) {
                 setOptions();
+                // Save the settings
+                systask.pushMessage(System::SystemTask::SystemMSG::MSG_SAVESETTINGS, 0);
                 optionSelected = 0;
             }
         }

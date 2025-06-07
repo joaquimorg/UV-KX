@@ -34,6 +34,7 @@ namespace System
         enum class SystemMSG {
             MSG_TIMEOUT,
             MSG_BKCLIGHT,
+            MSG_BKCLIGHT_LEVEL,
             MSG_KEYPRESSED,
             MSG_LOW_BATTERY,
             MSG_PLAY_BEEP,
@@ -42,6 +43,7 @@ namespace System
             MSG_RADIO_RX,
             MSG_RADIO_TX,
             MSG_APP_LOAD,
+            MSG_SAVESETTINGS,
         };
 
         SystemTask() :

@@ -66,6 +66,8 @@ void SystemTask::setupRadio(void) {
         //settings.setRadioSettings();
     } else {
         // Load settings from EEPROM
+        backlight.setBrightness(settings.radioSettings.backlightLevel);
+        settings.applyRadioSettings();
         // TODO: need to validate if load VFO or Memory
         radio.setVFO(Settings::VFOAB::VFOA, settings.radioSettings.vfo[(uint8_t)Settings::VFOAB::VFOA]);
         radio.setVFO(Settings::VFOAB::VFOB, settings.radioSettings.vfo[(uint8_t)Settings::VFOAB::VFOB]);
@@ -169,6 +171,10 @@ void SystemTask::processSystemNotification(SystemMessages notification) {
         timeoutLightCount = 0;
         backlight.setBacklight((Backlight::backLightState)notification.payload);
         break;
+    case SystemMSG::MSG_BKCLIGHT_LEVEL:                
+        backlight.setBrightness((uint8_t)notification.payload);
+        //uart.print("MSG_BKCLIGHT_LEVEL: %d\n", (uint8_t)notification.payload);
+        break;
     case SystemMSG::MSG_PLAY_BEEP:
         playBeep((Settings::BEEPType)notification.payload);
         break;
@@ -216,9 +222,11 @@ void SystemTask::processSystemNotification(SystemMessages notification) {
                 pushMessage(SystemMSG::MSG_RADIO_TX, 0);
             }
         }
-        
         break;
     }
+    case SystemMSG::MSG_SAVESETTINGS: 
+        break;
+    
     case SystemMSG::MSG_APP_LOAD:
         loadApplication((Applications::Applications)notification.payload);
         break;
