@@ -81,7 +81,7 @@ namespace System
             menuApp(*this, ui), // Initialize menu application
             setVFOAApp(*this, ui, Settings::VFOAB::VFOA, settings, radio), // Initialize Set VFO A application
             setVFOBApp(*this, ui, Settings::VFOAB::VFOB, settings, radio), // Initialize Set VFO B application
-            setRadioApp(*this, ui) // Initialize Set Radio application
+            setRadioApp(*this, ui, settings) // Initialize Set Radio application
         {
             initSystem(); // Perform initial system setup
         }
