@@ -7,6 +7,40 @@
 
 using namespace Applications;
 
+const char* SetVFO::codeValue(Settings::CodeType type, uint8_t code, SelectionList& list)
+{
+    switch (type) {
+    case Settings::CodeType::CT:
+        list.setSuffix(ui.HZStr);
+        return ui.getStrValue(ui.generateCTDCList(Settings::CTCSSOptions, 50), code);
+    case Settings::CodeType::DCS:
+        list.setSuffix("I");
+        return ui.getStrValue(ui.generateCTDCList(Settings::DCSOptions, 104, false), code);
+    case Settings::CodeType::NDCS:
+        list.setSuffix("N");
+        return ui.getStrValue(ui.generateCTDCList(Settings::DCSOptions, 104, false), code);
+    default:
+        return nullptr;
+    }
+}
+
+bool SetVFO::configureCodeList(Settings::CodeType type, uint8_t code)
+{
+    switch (type) {
+    case Settings::CodeType::CT:
+        optionlist.set(code, 5, 0, ui.generateCTDCList(Settings::CTCSSOptions, 50), ui.HZStr);
+        return true;
+    case Settings::CodeType::DCS:
+        optionlist.set(code, 5, 0, ui.generateCTDCList(Settings::DCSOptions, 104, false), "I");
+        return true;
+    case Settings::CodeType::NDCS:
+        optionlist.set(code, 5, 0, ui.generateCTDCList(Settings::DCSOptions, 104, false), "N");
+        return true;
+    default:
+        return false;
+    }
+}
+
 void SetVFO::drawScreen(void) {
 
     ui.clearDisplay();
@@ -79,37 +113,9 @@ const char* SetVFO::getCurrentOption() {
     case 10: // TX CODE TYPE
         return ui.getStrValue(Settings::codetypeStr, (uint8_t)vfo.tx.codeType);
     case 9: // RX CODE
-        if (vfo.rx.codeType == Settings::CodeType::CT) {
-            menulist.setSuffix(ui.HZStr);
-            return ui.getStrValue(ui.generateCTDCList(Settings::CTCSSOptions, 50), (uint8_t)vfo.rx.code);
-        }
-        else if (vfo.rx.codeType == Settings::CodeType::DCS) {
-            menulist.setSuffix("I");
-            return ui.getStrValue(ui.generateCTDCList(Settings::DCSOptions, 104, false), (uint8_t)vfo.rx.code);
-        }
-        else if (vfo.rx.codeType == Settings::CodeType::NDCS) {
-            menulist.setSuffix("N");
-            return ui.getStrValue(ui.generateCTDCList(Settings::DCSOptions, 104, false), (uint8_t)vfo.rx.code);
-        }
-        else {
-            return NULL;
-        }
+        return codeValue(vfo.rx.codeType, vfo.rx.code, menulist);
     case 11: // TX CODE
-        if (vfo.tx.codeType == Settings::CodeType::CT) {
-            menulist.setSuffix(ui.HZStr);
-            return ui.getStrValue(ui.generateCTDCList(Settings::CTCSSOptions, 50), (uint8_t)vfo.tx.code);
-        }
-        else if (vfo.tx.codeType == Settings::CodeType::DCS) {
-            menulist.setSuffix("I");
-            return ui.getStrValue(ui.generateCTDCList(Settings::DCSOptions, 104, false), (uint8_t)vfo.tx.code);
-        }
-        else if (vfo.tx.codeType == Settings::CodeType::NDCS) {
-            menulist.setSuffix("N");
-            return ui.getStrValue(ui.generateCTDCList(Settings::DCSOptions, 104, false), (uint8_t)vfo.tx.code);
-        }
-        else {
-            return NULL;
-        }
+        return codeValue(vfo.tx.codeType, vfo.tx.code, menulist);
     case 12: // TX STE
         return ui.getStrValue(Settings::onoffStr, (uint8_t)vfo.repeaterSte);
     case 13: // RX STE
@@ -160,30 +166,12 @@ void SetVFO::loadOptions() {
         optionlist.set((uint8_t)vfo.tx.codeType, 5, 0, Settings::codetypeStr);
         break;
     case 9: // RX CODE
-        if (vfo.rx.codeType == Settings::CodeType::CT) {
-            optionlist.set((uint8_t)vfo.rx.code, 5, 0, ui.generateCTDCList(Settings::CTCSSOptions, 50), ui.HZStr);
-        }
-        else if (vfo.rx.codeType == Settings::CodeType::DCS) {
-            optionlist.set((uint8_t)vfo.rx.code, 5, 0, ui.generateCTDCList(Settings::DCSOptions, 104, false), "I");
-        }
-        else if (vfo.rx.codeType == Settings::CodeType::NDCS) {
-            optionlist.set((uint8_t)vfo.rx.code, 5, 0, ui.generateCTDCList(Settings::DCSOptions, 104, false), "N");
-        }
-        else {
+        if (!configureCodeList(vfo.rx.codeType, vfo.rx.code)) {
             optionSelected = 0;
         }
         break;
     case 11: // TX CODE
-        if (vfo.tx.codeType == Settings::CodeType::CT) {
-            optionlist.set((uint8_t)vfo.tx.code, 5, 0, ui.generateCTDCList(Settings::CTCSSOptions, 50), ui.HZStr);
-        }
-        else if (vfo.tx.codeType == Settings::CodeType::DCS) {
-            optionlist.set((uint8_t)vfo.tx.code, 5, 0, ui.generateCTDCList(Settings::DCSOptions, 104, false), "I");
-        }
-        else if (vfo.tx.codeType == Settings::CodeType::NDCS) {
-            optionlist.set((uint8_t)vfo.tx.code, 5, 0, ui.generateCTDCList(Settings::DCSOptions, 104, false), "N");
-        }
-        else {
+        if (!configureCodeList(vfo.tx.codeType, vfo.tx.code)) {
             optionSelected = 0;
         }
         break;

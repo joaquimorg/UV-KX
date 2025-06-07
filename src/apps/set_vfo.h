@@ -38,6 +38,8 @@ namespace Applications
         void loadOptions();
         void setOptions();
         const char* getCurrentOption();
+        const char* codeValue(Settings::CodeType type, uint8_t code, SelectionList& list);
+        bool configureCodeList(Settings::CodeType type, uint8_t code);
 
     };
 
