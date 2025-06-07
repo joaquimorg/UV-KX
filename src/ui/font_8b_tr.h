@@ -1,24 +1,9 @@
-// -----------------------------------------------------------------------------------------
-// This file defines the font data for 'u8g2_font_8b_tr'.
-// It is designed for use with the U8g2 graphics library.
-// The 'b' in the name likely indicates a "bold" variant of an 8-pixel height font.
-// The font data itself is a byte array representing the glyphs and their metrics.
-//
-// Font Details (from original header):
-//   Fontname: -FontForge-uni 05_63-Book-R-Normal--8-80-75-75-P-65-ISO10646-1 
-//             (Note: "Book-R-Normal" might seem to contradict "bold", this could be base font name)
-//   Copyright: (c)2002 | www.miniml.com | design by craig kroeger
-//   Glyphs: 94/714 (Indicates a subset of glyphs is included)
-//   BBX Build Mode: 0
-// -----------------------------------------------------------------------------------------
-
-/**
- * @brief Font data for u8g2_font_8b_tr (an 8-pixel height bold unicode font).
- * This array contains the binary representation of the font glyphs and metadata
- * required by the U8g2 library to render text. The `U8G2_FONT_SECTION` macro
- * ensures that the font data is placed in a specific memory section, which can be
- * important on memory-constrained devices (e.g., placing it in PROGMEM on AVR).
- */
+/*
+  Fontname: -FontForge-uni 05_63-Book-R-Normal--8-80-75-75-P-65-ISO10646-1
+  Copyright: (c)2002 | www.miniml.com | design by craig kroeger
+  Glyphs: 94/714
+  BBX Build Mode: 0
+*/
 const uint8_t u8g2_font_8b_tr[851] U8G2_FONT_SECTION("u8g2_font_8b_tr") = 
   "^\0\3\3\4\3\2\3\5\10\10\0\376\5\376\6\377\1\25\2\65\3: \5\0K\1!\6\322I"
   "a\22\42\7%o!\241\10#\12Ui\223RI\251\244\0$\12vw%\273Ro\42\0%\10V"

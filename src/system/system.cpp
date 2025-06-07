@@ -1,173 +1,108 @@
-// This file implements the SystemTask class, which is central to the application's architecture.
-// It handles system initialization, message processing, task management, and application lifecycle.
 #include "system.h"
 #include "sys.h"
 
 using namespace System;
 
-// --- Static methods required by FreeRTOS ---
+// Static methods (required by FreeRTOS)
 
-/**
- * @brief Entry point for the system status FreeRTOS task.
- *        This function calls the statusTaskImpl method of the SystemTask instance.
- * @param pvParameters Pointer to the SystemTask instance.
- */
 void SystemTask::runStatusTask(void* pvParameters) {
-    // Cast the void pointer to a SystemTask pointer
     SystemTask* systemTask = static_cast<SystemTask*>(pvParameters);
     if (systemTask) {
-        // Call the implementation of the status task
         systemTask->statusTaskImpl();
     }
 }
 
-/**
- * @brief Callback function for the application timer.
- *        This function is called when the application timer expires.
- * @param xTimer Handle to the timer that expired.
- */
 void SystemTask::appTimerCallback(TimerHandle_t xTimer) {
-    // Retrieve the SystemTask instance from the timer ID
     SystemTask* systemTask = static_cast<SystemTask*>(pvTimerGetTimerID(xTimer));
     if (systemTask) {
-        // Call the application timer implementation
         systemTask->appTimerImpl();
     }
 }
 
-/**
- * @brief Callback function for the run timer.
- *        This function is called when the run timer expires.
- * @param xTimer Handle to the timer that expired.
- */
 void SystemTask::runTimerCallback(TimerHandle_t xTimer) {
-    // Retrieve the SystemTask instance from the timer ID
     SystemTask* systemTask = static_cast<SystemTask*>(pvTimerGetTimerID(xTimer));
     if (systemTask) {
-        // Call the run timer implementation
         systemTask->runTimerImpl();
     }
-    // Restart the timer
     xTimerStart(xTimer, 0);
 }
 
-// --- SystemTask member functions ---
-
-/**
- * @brief Initializes the system components.
- *        This includes creating the message queue, initializing the display, and printing firmware info.
- */
 void SystemTask::initSystem(void) {
-    // Create the static message queue for system tasks
+    // Create message queue
     systemMessageQueue = xQueueCreateStatic(queueLenght, itemSize, systemQueueStorageArea, &systemTasksQueue);
 
-    /* Error handling for queue creation (currently commented out)
-    if (systemMessageQueue == NULL) {
+    /*if (systemMessageQueue == NULL) {
         // need to haldle error
         // uart.sendLog("systemMessageQueue is NULL");
         return;
     }*/
         
-    delayMs(10); // Brief delay
+    delayMs(10);
 
-    st7565.begin(); // Initialize the ST7565 display controller
-    // Print firmware information to UART
+    st7565.begin();
     uart.print("UV-Kx Open Firmware - " AUTHOR_STRING " - " VERSION_STRING "\n");
 }
 
-/**
- * @brief Configures the radio hardware and loads settings.
- *        If radio settings are invalid or not found, default settings are applied.
- */
 void SystemTask::setupRadio(void) {
-    // If the radio is already initialized, return
     if (radio.isRadioReady()) return;
 
-    // Setup BK4819 radio chip registers
     bk4819.setupRegisters();
 
-    delayMs(10); // Brief delay
-    // Get radio settings from EEPROM
+    delayMs(10);
     settings.getRadioSettings();
     uart.print("[DEBUG] EEPROM Version : %x\r\n", settings.getSettingsVersion());
-    delayMs(10); // Brief delay
+    delayMs(10);
 
-    // Validate EEPROM settings version
     if (!settings.validateSettingsVersion()) {
-        // If settings are invalid, apply default radio settings
         settings.setRadioSettingsDefault();
 
-        // Set default VFO A and VFO B settings
         radio.setVFO(Settings::VFOAB::VFOA, 44616875, 44616875, 0, ModType::MOD_FM);
         radio.setVFO(Settings::VFOAB::VFOB, 43932500, 43932500, 0, ModType::MOD_FM);
 
-        // Store the default VFO settings in the settings structure
         settings.radioSettings.vfo[(uint8_t)Settings::VFOAB::VFOA] = radio.getVFO(Settings::VFOAB::VFOA);
         settings.radioSettings.vfo[(uint8_t)Settings::VFOAB::VFOB] = radio.getVFO(Settings::VFOAB::VFOB);
-        //settings.setRadioSettings(); // Potentially save settings back to EEPROM (commented out)
+        //settings.setRadioSettings();
     } else {
-        // Load settings from EEPROM if valid
+        // Load settings from EEPROM
         // TODO: need to validate if load VFO or Memory
         radio.setVFO(Settings::VFOAB::VFOA, settings.radioSettings.vfo[(uint8_t)Settings::VFOAB::VFOA]);
         radio.setVFO(Settings::VFOAB::VFOB, settings.radioSettings.vfo[(uint8_t)Settings::VFOAB::VFOB]);
     }
     
-    // Setup the radio to the selected VFO
     radio.setupToVFO(settings.radioSettings.vfoSelected);
     
-    // Mark the radio as ready
     radio.setRadioReady(true);
 }
 
-/**
- * @brief Pushes a system message to the system message queue from an ISR.
- * @param msg The system message to send.
- * @param value An optional payload value for the message.
- */
 void SystemTask::pushMessage(SystemMSG msg, uint32_t value) {
-    // Create a system message structure
     SystemMessages appMSG = { msg, value, (Keyboard::KeyCode)0, (Keyboard::KeyState)0 };
-    BaseType_t xHigherPriorityTaskWoken = pdTRUE; // Flag to check if a higher priority task was woken
-    // Send the message to the queue from an ISR context
+    BaseType_t xHigherPriorityTaskWoken = pdTRUE;
     xQueueSendFromISR(systemMessageQueue, (void*)&appMSG, &xHigherPriorityTaskWoken);
 }
 
-/**
- * @brief Pushes a key press message to the system message queue from an ISR.
- * @param key The key code of the pressed key.
- * @param state The state of the key (pressed, released, etc.).
- */
 void SystemTask::pushMessageKey(Keyboard::KeyCode key, Keyboard::KeyState state) {
-    // Create a key press message structure
     SystemMessages appMSG = { SystemMSG::MSG_KEYPRESSED, 0, key, state };
-    BaseType_t xHigherPriorityTaskWoken = pdTRUE; // Flag to check if a higher priority task was woken
-    // Send the message to the queue from an ISR context
+    BaseType_t xHigherPriorityTaskWoken = pdTRUE;
     xQueueSendFromISR(systemMessageQueue, (void*)&appMSG, &xHigherPriorityTaskWoken);
 }
 
-/**
- * @brief Implementation of the main system status task.
- *        This task initializes system components, timers, and then enters an infinite loop
- *        to process messages, handle UART commands, and manage radio operations.
- */
 void SystemTask::statusTaskImpl() {
-    SystemMessages notification; // Variable to store received notifications
+    SystemMessages notification;;
 
-    //uart.sendLog("System task started"); // Debug log
+    //uart.sendLog("System task started");
 
-    battery.getReadings(); // Initial battery reading
+    battery.getReadings(); // Update battery readings
 
-    // Create static timers for application and run-time events
     appTimer = xTimerCreateStatic("app", pdMS_TO_TICKS(100), pdTRUE, this, SystemTask::appTimerCallback, &appTimerBuffer);
     runTimer = xTimerCreateStatic("run", pdMS_TO_TICKS(500), pdFALSE, this, SystemTask::runTimerCallback, &runTimerBuffer);    
 
-    backlight.setBacklight(Backlight::backLightState::ON); // Turn on the backlight initially
+    backlight.setBacklight(Backlight::backLightState::ON); // Turn on backlight    
 
     keyboard.init(); // Initialize the keyboard
 
-    playBeep(Settings::BEEPType::BEEP_880HZ_200MS); // Play a startup beep
+    playBeep(Settings::BEEPType::BEEP_880HZ_200MS);
 
-    /* Commented out EEPROM validation and initial app load logic
+    /*
     // Validate the EEPROM content and initialize if necessary
     if (!settings.validateSettingsVersion()) {
         pushMessage(SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::Applications::RESETINIT);
@@ -177,127 +112,105 @@ void SystemTask::statusTaskImpl() {
         pushMessage(SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::Applications::Welcome);
     } 
     */
-    // Load the Welcome application by default
     pushMessage(SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::Applications::Welcome);
 
-    // Start the timers
     xTimerStart(appTimer, 0);
     xTimerStart(runTimer, 0);
     
-    //uart.print("lenght : %i\n", settings.stringLength(ui.generateCTDCList(Settings::DCSOptions, 104, false))); // Debug print
-    
-    // Main task loop
+    //uart.print("lenght : %i\n", settings.stringLength(ui.generateCTDCList(Settings::DCSOptions, 104, false)));
     for (;;) {
-        // Wait for messages from the queue with a timeout
+        // Wait for notifications or messages
         if (xQueueReceive(systemMessageQueue, &notification, pdMS_TO_TICKS(5)) == pdTRUE) {
-            // Process the received system notification
+            // Process system notifications
             processSystemNotification(notification);
         }
 
-        // Critical section to handle UART commands
         taskENTER_CRITICAL();
         if (uart.isCommandAvailable()) {
-            uart.handleCommand(); // Process incoming UART commands
+            uart.handleCommand();
         }
         taskEXIT_CRITICAL();
 
-        radio.checkRadioInterrupts(); // Check for radio interrupts (e.g., RX/TX completion)
-        radio.runDualWatch();         // Manage dual watch functionality
-        //vTaskDelay(pdMS_TO_TICKS(1)); // Optional small delay
+        radio.checkRadioInterrupts(); // Check for radio interrupts
+        radio.runDualWatch(); // Run dual watch
+        //vTaskDelay(pdMS_TO_TICKS(1));
     }
 }
 
-/**
- * @brief Processes system notifications received from the message queue.
- *        This function acts as a state machine based on the message type.
- * @param notification The system message to process.
- */
 void SystemTask::processSystemNotification(SystemMessages notification) {
-    // Handle different system notifications based on message type
+    // Handle different system notifications
+
     switch (notification.message) {
     case SystemMSG::MSG_TIMEOUT:
-        timeoutCount = 0; // Reset timeout counter
-        ui.timeOut();     // Notify UI about the timeout
-        //uart.sendLog("MSG_TIMEOUT\n"); // Debug log
+        timeoutCount = 0;
+        ui.timeOut();
+        //uart.sendLog("MSG_TIMEOUT\n");
         battery.getReadings(); // Update battery readings
         if (battery.isLowBattery()) {
-            // If battery is low, send a low battery message
             pushMessage(SystemMSG::MSG_LOW_BATTERY, 0);
         }
         if (currentApp != Applications::Applications::None) {
-            // Notify the current application about the timeout
             currentApplication->timeout();
         }
         if (keyboard.wasFKeyPressed()) {
-            // Clear the F key pressed state
             keyboard.clearFKeyPressed();
         }        
         break;
     case SystemMSG::MSG_POWER_SAVE:
-        powerSaveCount = 0; // Reset power save counter
+        powerSaveCount = 0;
         if (radio.getState() == Settings::RadioState::IDLE) {
-            // If radio is idle, enter power save mode
             radio.setPowerSaveMode();
         }        
         break;
     case SystemMSG::MSG_BKCLIGHT:
-        //uart.sendLog("MSG_BKCLIGHT\n"); // Debug log
-        timeoutLightCount = 0; // Reset backlight timeout counter
-        // Set the backlight state based on the payload
+        //uart.sendLog("MSG_BKCLIGHT\n");
+        timeoutLightCount = 0;
         backlight.setBacklight((Backlight::backLightState)notification.payload);
         break;
     case SystemMSG::MSG_PLAY_BEEP:
-        // Play a beep sound based on the payload
         playBeep((Settings::BEEPType)notification.payload);
         break;
     case SystemMSG::MSG_RADIO_IDLE:
-        powerSaveCount = 0; // Reset power save counter
-        //uart.sendLog("MSG_RADIO_IDLE\n"); // Debug log
+        powerSaveCount = 0;
+        //uart.sendLog("MSG_RADIO_IDLE\n");
         break;
     case SystemMSG::MSG_RADIO_RX:
-        //uart.sendLog("MSG_RADIO_RX\n"); // Debug log
-        radio.setNormalPowerMode(); // Exit power save mode
-        powerSaveCount = 0;         // Reset power save counter
-        // Turn on the backlight when radio receives
+        //uart.sendLog("MSG_RADIO_RX\n");
+        radio.setNormalPowerMode();
+        powerSaveCount = 0;
         pushMessage(SystemMSG::MSG_BKCLIGHT, (uint32_t)Backlight::backLightState::ON);
         break;
     case SystemMSG::MSG_LOW_BATTERY:        
-        ui.setInfoMessage(UI::InfoMessageType::LOW_BATTERY); // Display low battery message on UI
-        // Play a triple beep to indicate low battery
+        ui.setInfoMessage(UI::InfoMessageType::LOW_BATTERY);
         pushMessage(SystemMSG::MSG_PLAY_BEEP, (uint32_t)Settings::BEEPType::BEEP_880HZ_60MS_TRIPLE_BEEP);
         break;
     case SystemMSG::MSG_RADIO_TX:
-        //uart.sendLog("MSG_RADIO_TX\n"); // Debug log
-        //pushMessage(SystemMSG::MSG_BKCLIGHT, (uint32_t)Backlight::backLightState::ON); // Optionally turn on backlight during TX
-        ui.setInfoMessage(UI::InfoMessageType::TX_DISABLED); // Display TX disabled message (can be updated for actual TX indication)
+        //uart.sendLog("MSG_RADIO_TX\n");
+        //pushMessage(SystemMSG::MSG_BKCLIGHT, (uint32_t)Backlight::backLightState::ON);
+        ui.setInfoMessage(UI::InfoMessageType::TX_DISABLED);
         break;
     case SystemMSG::MSG_KEYPRESSED: {
-        //uart.sendLog("MSG_KEYPRESSED"); // Debug log
-        //uart.print("Key: %d\n", notification.key); // Debug print key code
-        //uart.print("State: %d\n", notification.state); // Debug print key state
+        //uart.sendLog("MSG_KEYPRESSED");
+        //uart.print("Key: %d\n", notification.key);
+        //uart.print("State: %d\n", notification.state);
         Keyboard::KeyCode key = notification.key;
         Keyboard::KeyState state = notification.state;        
 
-        radio.setNormalPowerMode(); // Exit power save mode on key press
-        powerSaveCount = 0;         // Reset power save counter
+        radio.setNormalPowerMode();
+        powerSaveCount = 0;
         if (currentApp != Applications::Applications::None) {
-            // Pass the key event to the current application
             currentApplication->action(key, state);
         }
 
-        // Handle actions for key pressed or long pressed states
         if (state == Keyboard::KeyState::KEY_PRESSED || state == Keyboard::KeyState::KEY_LONG_PRESSED) {
-            timeoutCount = 0;      // Reset general timeout
-            timeoutLightCount = 0; // Reset backlight timeout
-            // Turn on the backlight
+            timeoutCount = 0;
+            timeoutLightCount = 0;
             pushMessage(SystemMSG::MSG_BKCLIGHT, (uint32_t)Backlight::backLightState::ON);
             if (key != Keyboard::KeyCode::KEY_PTT) {
-                // Play a beep for non-PTT key presses
                 playBeep(Settings::BEEPType::BEEP_1KHZ_60MS_OPTIONAL);
                 //pushMessage(SystemMSG::MSG_PLAY_BEEP, (uint32_t)Settings::BEEPType::BEEP_1KHZ_60MS_OPTIONAL);
             }
             else if ( radio.isRadioReady() ){
-                // If PTT is pressed and radio is ready, send TX message
                 pushMessage(SystemMSG::MSG_RADIO_TX, 0);
             }
         }
@@ -305,35 +218,32 @@ void SystemTask::processSystemNotification(SystemMessages notification) {
         break;
     }
     case SystemMSG::MSG_APP_LOAD:
-        // Load a new application based on the payload
         loadApplication((Applications::Applications)notification.payload);
         break;
 
     default:
-        // Unknown message type, do nothing
         break;
     }
 }
 
-/**
- * @brief Implementation for the run timer (0.5-second interval).
- *        Manages timeouts for actions, power saving, and backlight.
- */
 void SystemTask::runTimerImpl(void) {
-    // This timer typically runs every 0.5 seconds
 
-    // Check for general action timeout
-    if (timeoutCount > (actionTimeout * 2)) { // actionTimeout is in seconds, timer ticks every 0.5s
-        //timeoutCount = 0; // Resetting here might be too early if MSG_TIMEOUT handles it
+    // 0.5 second timer
+    
+    /*if (currentApp != Applications::Applications::None) {
+    }*/
+
+    if (timeoutCount > (actionTimeout * 2)) {
+        //timeoutCount = 0;
         pushMessage(SystemMSG::MSG_TIMEOUT, 0);
     }
     else {
         timeoutCount++;
     }
 
-    // Check for power save timeout if not already in power save mode
     if (!radio.isPowerSaveMode()) {
-        if (powerSaveCount > (powerSaveTimeout * 2)) { // powerSaveTimeout is in seconds       
+        
+        if (powerSaveCount > (powerSaveTimeout * 2)) {        
             pushMessage(SystemMSG::MSG_POWER_SAVE, 0);
         }
         else {
@@ -341,10 +251,9 @@ void SystemTask::runTimerImpl(void) {
         }
     }
 
-    // Check for backlight timeout if backlight is currently on
     if (backlight.getBacklightState() == Backlight::backLightState::ON) {
-        if (timeoutLightCount > (backlightTimeout * 2)) { // backlightTimeout is in seconds
-            //timeoutLightCount = 0; // Resetting here might be too early
+        if (timeoutLightCount > (backlightTimeout * 2)) {
+            //timeoutLightCount = 0;
             pushMessage(SystemMSG::MSG_BKCLIGHT, (uint32_t)Backlight::backLightState::OFF);
         }
         else {
@@ -353,50 +262,36 @@ void SystemTask::runTimerImpl(void) {
     }
 }
 
-/**
- * @brief Implementation for the application timer (typically 100ms interval).
- *        Calls the update method of the current application.
- */
 void SystemTask::appTimerImpl(void) {
-    // This timer typically runs at a faster rate (e.g., 100ms) for UI updates
+    // Update the current application    
 
-    // If there is a current application running, call its update method
     if (currentApp != Applications::Applications::None) {
         currentApplication->update();
     }
 }
 
-/**
- * @brief Loads and initializes a new application.
- *        Stops the current application's timer, sets up the new application,
- *        and starts its timer.
- * @param app The application to load.
- */
 void SystemTask::loadApplication(Applications::Applications app) {
-    // Do nothing if the requested application is None
     if (app == Applications::Applications::None) return;
-    //taskENTER_CRITICAL(); // Optional critical section
+    //taskENTER_CRITICAL();
 
-    currentApp = Applications::Applications::None; // Mark current app as none temporarily
-    timeoutCount = 0; // Reset timeout counter
-    xTimerStop(appTimer, 0); // Stop the application timer for the old application
-    setActionTimeout(2); // Set default action timeout
-
-    // Switch to the new application
+    currentApp = Applications::Applications::None;
+    timeoutCount = 0;
+    xTimerStop(appTimer, 0);
+    setActionTimeout(2);
     switch (app) {
     case Applications::Applications::Welcome:
         currentApplication = &welcomeApp;
         break;
     case Applications::Applications::RESETINIT:
         currentApplication = &resetInitApp;
-        setActionTimeout(1); // Shorter timeout for init screen
+        setActionTimeout(1);
         break;
     case Applications::Applications::RESETEEPROM:
         currentApplication = &resetEEPROMApp;
-        setActionTimeout(1); // Shorter timeout for init screen
+        setActionTimeout(1);
         break;
     case Applications::Applications::MainVFO:
-        setupRadio(); // Ensure radio is configured for VFO mode
+        setupRadio();
         currentApplication = &mainVFOApp;
         break;
     case Applications::Applications::Menu:
@@ -404,40 +299,39 @@ void SystemTask::loadApplication(Applications::Applications app) {
         break;
     case Applications::Applications::SETVFOA:
         currentApplication = &setVFOAApp;
-        setActionTimeout(5); // Longer timeout for VFO settings
+        setActionTimeout(5);
         break;
     case Applications::Applications::SETVFOB:
         currentApplication = &setVFOBApp;
-        setActionTimeout(5); // Longer timeout for VFO settings
+        setActionTimeout(5);
         break;
     case Applications::Applications::SETRADIO:
         currentApplication = &setRadioApp;
-        setActionTimeout(5); // Longer timeout for radio settings
+        setActionTimeout(5);
         break;
     case Applications::Applications::MESSENGER:
-        // TODO: Implement Messenger application
+        // TODO: Implement Messenger
         //currentApplication = &messengerApp;
-        currentApplication = &mainVFOApp; // Fallback to MainVFO for now
+        currentApplication = &mainVFOApp;
         pushMessage(SystemMSG::MSG_PLAY_BEEP, (uint32_t)Settings::BEEPType::BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL);
         break;
     case Applications::Applications::SCANNER:
-        // TODO: Implement Scanner application
+        // TODO: Implement Scanner
         //currentApplication = &scannerApp;
-        currentApplication = &mainVFOApp; // Fallback to MainVFO for now
+        currentApplication = &mainVFOApp;
         pushMessage(SystemMSG::MSG_PLAY_BEEP, (uint32_t)Settings::BEEPType::BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL);
         break;
     case Applications::Applications::ABOUT:
-        currentApplication = &welcomeApp; // Show welcome/about screen
+        currentApplication = &welcomeApp;
         break;
     default:
-        // Unknown application, do nothing or load a default
-        return; // Or load a default like MainVFO
+        break;
     }
-    currentApp = app; // Set the new current application
-    xTimerStart(appTimer, 0); // Start the application timer for the new application
-    currentApplication->init();    // Initialize the new application
+    currentApp = app;
+    xTimerStart(appTimer, 0);
+    currentApplication->init();    
 
-    //taskEXIT_CRITICAL(); // End optional critical section
+    //taskEXIT_CRITICAL();
 }
 
 

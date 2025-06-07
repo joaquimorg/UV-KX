@@ -1,23 +1,9 @@
-// -----------------------------------------------------------------------------------------
-// This file defines the font data for 'u8g2_font_8_tr'.
-// It is designed for use with the U8g2 graphics library.
-// The font data itself is a byte array representing the glyphs and their metrics.
-// This font appears to be an 8-pixel height unicode font.
-//
-// Font Details (from original header):
-//   Fontname: -FontForge-uni 05_53-Book-R-Normal--8-80-75-75-P-54-ISO10646-1
-//   Copyright: (c)2002 | www.miniml.com | design by craig kroeger
-//   Glyphs: 94/714 (Indicates a subset of glyphs is included, likely ASCII + some extensions)
-//   BBX Build Mode: 0
-// -----------------------------------------------------------------------------------------
-
-/**
- * @brief Font data for u8g2_font_8_tr (an 8-pixel height unicode font).
- * This array contains the binary representation of the font glyphs and metadata
- * required by the U8g2 library to render text. The `U8G2_FONT_SECTION` macro
- * ensures that the font data is placed in a specific memory section, which can be
- * important on memory-constrained devices (e.g., placing it in PROGMEM on AVR).
- */
+/*
+  Fontname: -FontForge-uni 05_53-Book-R-Normal--8-80-75-75-P-54-ISO10646-1
+  Copyright: (c)2002 | www.miniml.com | design by craig kroeger
+  Glyphs: 94/714
+  BBX Build Mode: 0
+*/
 const uint8_t u8g2_font_8_tr[819] U8G2_FONT_SECTION("u8g2_font_8_tr") = 
   "^\0\3\2\3\3\2\3\5\7\10\0\376\5\376\6\377\1\13\2!\3\32 \5\200\235\0!\6\351\234"
   "X\2\42\7\223\247H\224\0#\13\255\264\251\14JeP*\0$\12\275\263\312\6\365\240E\0%\7"
