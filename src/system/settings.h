@@ -56,6 +56,8 @@ public:
     static constexpr const char* BacklightTimeStr = "OFF\nON\n5s\n10s\n15s\n20s\n30s\n1m\n2m\n4m"; ///< Backlight auto-off timer options.
     static constexpr const char* MicDBStr = "+1.1dB\n+4.0dB\n+8.0dB\n+12.0dB\n+15.1dB"; ///< Microphone gain options.
     static constexpr const char* BacklightModeStr = "OFF\nTX\nRX\nTX/RX"; ///< Backlight activation mode options.
+    static constexpr const char* BacklightLevelStr = "0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10"; ///< Backlight brightness levels.
+    static constexpr const char* LCDContrastStr = "0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15"; ///< LCD contrast options.
 
     // --- CTCSS and DCS code tables ---
     /// Standard CTCSS tone frequencies in 0.1 Hz units (e.g., 670 for 67.0 Hz).
