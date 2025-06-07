@@ -21,6 +21,11 @@
 // The implementations directly interact with the ADC hardware registers.
 // -----------------------------------------------------------------------------------------
 
+#include "ARMCM0.h" // Core ARM Cortex-M0 definitions
+#include "adc.h"    // ADC driver interface (this file's header)
+#include "irq.h"    // Interrupt request definitions/handling (NVIC)
+#include "saradc.h" // SAR ADC peripheral register definitions
+#include "syscon.h" // System controller register definitions (for clock gating/selection)
 
 uint8_t ADC_GetChannelNumber(ADC_CH_MASK Mask)
 {

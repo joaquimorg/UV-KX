@@ -1,4 +1,7 @@
 
+// This file contains the main function and other core functionalities for the application.
+// It includes system initializations, task creations, and error handling routines.
+
 #include <cstdlib>
 #include <cstddef>
 

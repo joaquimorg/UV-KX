@@ -1,3 +1,5 @@
+// This file implements the SystemTask class, which is central to the application's architecture.
+// It handles system initialization, message processing, task management, and application lifecycle.
 #include "system.h"
 #include "sys.h"
 

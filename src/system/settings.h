@@ -1,22 +1,21 @@
 #pragma once
 
-#include <cstdint>
-#include "bk4819.h"
-#include "sys.h"
-#include "eeprom.h"
-
+#include <cstdint>  // For standard integer types like uint16_t, uint8_t
+#include "bk4819.h" // For BK4819 specific types like BK4819_Filter_Bandwidth and ModType
+#include "sys.h"    // For system-level definitions or utilities
+#include "eeprom.h" // For EEPROM read/write operations
 
 /*
+    EEPROM Layout Overview:
+    This comment block describes how data is organized within the EEPROM.
 
-    EEPROM Layout:
-
-    [0x0000] - Settings
-    [0x0050] - MEMORY - (230 memory's 32 bytes each)
-    [0x1D10] - EMPTY
-    [0x1E00] - CALIBRATION DATA
-
-    [0x1FFF] - END OF EEPROM
-
+    [0x0000 - 0x004F] : Global Radio Settings (defined by SETTINGS struct, approx 80 bytes)
+    [0x0050 - 0x1D0F] : Memory Channels (e.g., 230 channels * 32 bytes/channel = 7360 bytes = 0x1CC0 bytes)
+                       (End address would be 0x0050 + 0x1CC0 - 1 = 0x1D0F)
+    [0x1D10 - 0x1DFF] : Empty / Unused space
+    [0x1E00 - ... ]   : Calibration Data
+    ...
+    [0x1FFF]          : End of a typical 8KB EEPROM (like 24C64)
 */
 
 namespace System {

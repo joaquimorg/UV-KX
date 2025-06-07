@@ -20,8 +20,7 @@
 // and function prototypes for initializing, controlling, and reading values from the ADC.
 // -----------------------------------------------------------------------------------------
 
-#ifndef DRIVER_ADC_H
-#define DRIVER_ADC_H
+#pragma once
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -83,7 +82,5 @@ extern "C" {
 
 #ifdef __cplusplus
 }
-#endif
-
 #endif
 
