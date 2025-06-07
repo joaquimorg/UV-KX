@@ -43,40 +43,7 @@ public:
     static constexpr const char* MicDBStr = "+1.1dB\n+4.0dB\n+8.0dB\n+12.0dB\n+15.1dB"; ///< Microphone gain options.
     static constexpr const char* BacklightModeStr = "OFF\nTX\nRX\nTX/RX"; ///< Backlight activation mode options.
     static constexpr const char* BacklightLevelStr = "0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10"; ///< Backlight brightness levels.
-    static constexpr const char* LCDContrastStr = "0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15"; ///< LCD contrast options.
-
-    static constexpr const char* squelchStr = "OFF\n1\n2\n3\n4\n5\n6\n7\n8\n9";
-
-    static constexpr const char* codetypeStr = "NONE\nCT\nDCS\n-DCS";
-
-    static constexpr const char* txrxStr = "OFF\nTX\nRX\nRX/TX";
-
-    static constexpr const char* onoffStr = "OFF\nON";
-
-    static constexpr const char* powerStr = "LOW\nMID\nHIGH";
-
-    static constexpr const char* offsetStr = "OFF\n+\n-";
-
-    //static constexpr const char* modulationStr = "FM\nAM\nLSB\nUSB\nBYP\nRAW\nWFM\nPRST";
-    static constexpr const char* modulationStr = "FM\nAM\nLSB";
-
-    static constexpr const char* bandwidthStr = "26\n23\n20\n17\n14\n12\n10\n9\n7\n6";
-
-    static constexpr const char* stepStr = "0.5\n1.0\n2.5\n5.0\n6.25\n10.0\n12.5\n15.0\n20.0\n25.0\n30.0\n50.0\n100.0\n500.0";
-
-    static constexpr const char* AGCStr = "-43\n-40\n-38\n-35\n-33\n-30\n-28\n-25\n-23\n-20\n-18\n-15\n-13\n-11\n-9\n-6\n-4\n-2\nAUTO";
-
-    static constexpr const char* rogerStr = "OFF\nDEFAULT\nMOTO TPT";
-
-    static constexpr const char* pttIDStr = "OFF\nQUINDAR\nUP CODE\nDOWN CODE\nUP & DOWN";
-
-    static constexpr const char* TXTimeoutStr = "30s\n1m\n2m\n4m\n6m\n8m";
-
-    static constexpr const char* BacklightTimeStr = "OFF\nON\n5s\n10s\n15s\n20s\n30s\n1m\n2m\n4m";
-
-    static constexpr const char* MicDBStr = "+1.1dB\n+4.0dB\n+8.0dB\n+12.0dB\n+15.1dB";
-    
-    static constexpr const char* BacklightModeStr = "OFF\nTX\nRX\nTX/RX";
+    static constexpr const char* LCDContrastStr = "0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15"; ///< LCD contrast options.    
 
     static constexpr uint16_t CTCSSOptions[50] = {
         670,  693,  719,  744,  770,  797,  825,  854,  885,  915,
