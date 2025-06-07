@@ -93,8 +93,8 @@ public:
 
         // Read multiple ADC samples for voltage and current.
         // `boardADCGetBatteryInfo` is a hardware-specific function.
-        for (unsigned int i = 0; i < sizeof(batteryVoltages); i++) // sizeof(batteryVoltages) is likely incorrect for number of readings, should be batteryVoltages.size()
-            boardADCGetBatteryInfo(&batteryVoltages[i], &batteryCurrent); // TODO: Review loop condition, should be .size() for std::array
+        for (unsigned int i = 0; i < batteryVoltages.size(); i++)
+            boardADCGetBatteryInfo(&batteryVoltages[i], &batteryCurrent);
 
         // Calculate average of the first 4 voltage readings.
         uint16_t voltage = static_cast<uint16_t>((batteryVoltages[0] + batteryVoltages[1] + batteryVoltages[2] + batteryVoltages[3]) / 4);
