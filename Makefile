@@ -14,6 +14,10 @@ PROJECT_NAME := uv-kx_$(VERSION_STRING)
 BUILD := _build
 BIN := firmware
 
+# Use parallel jobs if available (override with JOBS=<n>)
+JOBS ?= $(shell nproc 2>/dev/null || echo 1)
+MAKEFLAGS += -j$(JOBS)
+
 EXTERNAL_LIB := external
 LINKER := linker
 BSP := bsp
@@ -50,10 +54,13 @@ else
 	MKDIR = mkdir -p $(1)
 	RM = rm -rf
 	FixPath = $1
-	WHERE = which
-	DEL = del
-	K5PROG = utils/k5prog/k5prog -D -F -YYY -p /dev/$(COMPORT) -b
+        WHERE = which
+        DEL = del
+        K5PROG = utils/k5prog/k5prog -D -F -YYY -p /dev/$(COMPORT) -b
 endif
+
+# Detect if PowerShell is available for directory listing
+PS_EXISTS := $(shell $(WHERE) powershell 2>/dev/null)
 
 ifneq (, $(shell $(WHERE) python))
 	MY_PYTHON := python
@@ -188,7 +195,11 @@ APP_OBJS = $(addprefix $(BUILD)/, $(APP_SRCS:.cpp=.o))
 INCLUDE_PATH += $(BSP)/dp32g030/.
 INCLUDE_PATH += $(EXTERNAL_LIB)/.
 INCLUDE_PATH += $(SRC)/.
+ifeq ($(PS_EXISTS),)
+INCLUDE_PATH += $(shell find $(SRC) -type d)
+else
 INCLUDE_PATH += $(shell powershell -Command "Get-ChildItem -Path $(SRC) -Directory -Recurse | Resolve-Path -Relative")
+endif
 
 #------------------------------------------------------------------------------
 
