@@ -145,7 +145,7 @@ void SetRadio::setOptions() {
         settings.radioSettings.busyLockout = (Settings::ONOFF)sel;
         break;
     case 4:
-        settings.radioSettings.backlightLevel = sel;
+        settings.radioSettings.backlightLevel = sel & 0x0F;
         break;
     case 5:
         settings.radioSettings.backlightTime = (Settings::BacklightTime)sel;
@@ -154,7 +154,7 @@ void SetRadio::setOptions() {
         settings.radioSettings.backlightMode = (Settings::BacklightMode)sel;
         break;
     case 7:
-        settings.radioSettings.lcdContrast = sel;
+        settings.radioSettings.lcdContrast = sel & 0x0F;
         break;
     case 8:
         settings.radioSettings.txTOT = (Settings::TXTimeout)sel;
@@ -184,6 +184,7 @@ void SetRadio::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
             } else if (keyCode == Keyboard::KeyCode::KEY_EXIT) {
                 systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::MainVFO);
             } else if (keyCode == Keyboard::KeyCode::KEY_MENU) {
+                inputSelect = 0; // reset direct input
                 uint8_t idx = menulist.getListPos() + 1;
                 if (idx == 10) {
                     systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::RESETEEPROM);
@@ -192,7 +193,22 @@ void SetRadio::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
                     optionlist.setPopupTitle(menulist.getStringLine());
                     loadOptions();
                 }
-            }
+             } else if (keyCode >= Keyboard::KeyCode::KEY_0 &&
+                       keyCode <= Keyboard::KeyCode::KEY_9 &&
+                       keyState == Keyboard::KeyState::KEY_PRESSED) {
+                uint8_t num = ui.keycodeToNumber(keyCode);
+                inputSelect = (inputSelect == 0) ? num
+                                                 : static_cast<uint8_t>((inputSelect * 10) + num);
+
+                if (inputSelect > menulist.getTotal() || inputSelect == 0) {
+                    inputSelect = 0;
+                } else {
+                    menulist.setCurrentPos(inputSelect - 1);
+                    if (inputSelect * 10 > menulist.getTotal() && inputSelect >= 10) {
+                        inputSelect = 0;
+                    }
+                }
+            }            
         }
     } else {
         if (keyState == Keyboard::KeyState::KEY_PRESSED) {

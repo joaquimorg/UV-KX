@@ -63,6 +63,7 @@ namespace Applications
 
         Settings& settings;            // Reference to global settings
 
+        uint8_t inputSelect = 0;       // Accumulates digits for direct menu selection
         uint8_t optionSelected = 0;    // Currently active option index (0 when none)
 
         void loadOptions();            // Populate optionlist for selected item

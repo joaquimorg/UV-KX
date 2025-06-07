@@ -14,9 +14,7 @@ PROJECT_NAME := uv-kx_$(VERSION_STRING)
 BUILD := _build
 BIN := firmware
 
-# Use parallel jobs if available (override with JOBS=<n>)
-JOBS ?= $(shell nproc 2>/dev/null || echo 1)
-MAKEFLAGS += -j$(JOBS)
+MAKEFLAGS += -j4
 
 EXTERNAL_LIB := external
 LINKER := linker
@@ -50,17 +48,19 @@ ifeq ($(OS), Windows_NT) # windows
 	WHERE = where
 	DEL = del /q
 	K5PROG = utils/k5prog/k5prog.exe -D -F -YYYYY -p /dev/$(COMPORT) -b
+	DEV_NULL = nul
 else
 	MKDIR = mkdir -p $(1)
 	RM = rm -rf
 	FixPath = $1
-        WHERE = which
-        DEL = del
-        K5PROG = utils/k5prog/k5prog -D -F -YYY -p /dev/$(COMPORT) -b
+    WHERE = which
+    DEL = del
+    K5PROG = utils/k5prog/k5prog -D -F -YYY -p /dev/$(COMPORT) -b	
+	DEV_NULL = /dev/null
 endif
 
-# Detect if PowerShell is available for directory listing
-PS_EXISTS := $(shell $(WHERE) powershell 2>/dev/null)
+# Detect if PowerShell is available for directory listing	
+PS_EXISTS := $(shell $(WHERE) powershell 2>$(DEV_NULL))	
 
 ifneq (, $(shell $(WHERE) python))
 	MY_PYTHON := python
