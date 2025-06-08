@@ -4,7 +4,6 @@
 #include "system.h"
 #include "ui.h"
 #include "u8g2.h"
-#include <cstring>
 
 using namespace Applications;
 
@@ -35,7 +34,6 @@ void SetRadio::drawScreen(void) {
 
 void SetRadio::init(void) {
     menulist.set(0, 6, 127, "MIC DB\nBATT SAVE\nBUSY LOCKOUT\nBLIGHT LEVEL\nBLIGHT TIME\nBLIGHT MODE\nLCD CONTRAST\nTX TOT\nBEEP\nRESET");
-    initialSettings = settings.radioSettings; // snapshot original values
 }
 
 void SetRadio::update(void) {
@@ -43,10 +41,7 @@ void SetRadio::update(void) {
 }
 
 void SetRadio::timeout(void) {
-    if (memcmp(&initialSettings, &settings.radioSettings, sizeof(Settings::SETTINGS)) != 0) {
-        systask.pushMessage(System::SystemTask::SystemMSG::MSG_SAVESETTINGS, 0);
-        initialSettings = settings.radioSettings;
-    }
+    settings.scheduleSaveIfNeeded();
     systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::MainVFO);
 };
 
@@ -161,10 +156,7 @@ void SetRadio::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
             } else if (keyCode == Keyboard::KeyCode::KEY_DOWN) {
                 menulist.next();
             } else if (keyCode == Keyboard::KeyCode::KEY_EXIT) {
-                if (memcmp(&initialSettings, &settings.radioSettings, sizeof(Settings::SETTINGS)) != 0) {
-                    systask.pushMessage(System::SystemTask::SystemMSG::MSG_SAVESETTINGS, 0);
-                    initialSettings = settings.radioSettings;
-                }
+                settings.scheduleSaveIfNeeded();
                 systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::MainVFO);
             } else if (keyCode == Keyboard::KeyCode::KEY_MENU) {
                 inputSelect = 0; // reset direct input

@@ -30,7 +30,6 @@ namespace Applications
         SelectionListPopup optionlist; // Popup for selecting option values
 
         Settings& settings;            // Reference to global settings
-        Settings::SETTINGS initialSettings; // Original settings snapshot
 
         uint8_t inputSelect = 0;       // Accumulates digits for direct menu selection
         uint8_t optionSelected = 0;    // Currently active option index (0 when none)

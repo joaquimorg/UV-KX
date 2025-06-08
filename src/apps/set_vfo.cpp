@@ -4,7 +4,6 @@
 #include "system.h"
 #include "ui.h"
 #include "u8g2.h"
-#include <cstring>
 
 using namespace Applications;
 
@@ -72,7 +71,6 @@ void SetVFO::drawScreen(void) {
 void SetVFO::init(void) {
     menulist.set(0, 6, 127, "SQUELCH\nSTEP\nMODE\nBANDWIDTH\nTX POWER\nSHIFT\nOFFSET\nRX CODE TYPE\nRX CODE\nTX CODE TYPE\nTX CODE\nTX STE\nRX STE\nCOMPANDER\nRX ACG\nPTT ID\nROGER");
     vfo = radio.getVFO(vfoab);
-    initialVFO = vfo; // keep original values for change detection
 }
 
 void SetVFO::update(void) {
@@ -81,11 +79,8 @@ void SetVFO::update(void) {
 
 void SetVFO::timeout(void) {
     if (optionSelected == 0 && userOptionSelected == 0) {
-        if (memcmp(&initialVFO, &vfo, sizeof(Settings::VFO)) != 0) {
-            settings.radioSettings.vfo[(uint8_t)vfoab] = vfo;
-            systask.pushMessage(System::SystemTask::SystemMSG::MSG_SAVESETTINGS, 0);
-            initialVFO = vfo;
-        }
+        settings.radioSettings.vfo[(uint8_t)vfoab] = vfo;
+        settings.scheduleSaveIfNeeded();
         systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::MainVFO);
     }
     else {
@@ -287,11 +282,8 @@ void SetVFO::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
                 break;
             case Keyboard::KeyCode::KEY_EXIT:
                 if (keyState == Keyboard::KeyState::KEY_PRESSED) {
-                    if (memcmp(&initialVFO, &vfo, sizeof(Settings::VFO)) != 0) {
-                        settings.radioSettings.vfo[(uint8_t)vfoab] = vfo;
-                        systask.pushMessage(System::SystemTask::SystemMSG::MSG_SAVESETTINGS, 0);
-                        initialVFO = vfo;
-                    }
+                    settings.radioSettings.vfo[(uint8_t)vfoab] = vfo;
+                    settings.scheduleSaveIfNeeded();
                     systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::MainVFO);
                 }
                 break;
@@ -347,15 +339,12 @@ void SetVFO::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
                 break;
             case Keyboard::KeyCode::KEY_MENU:
                 if (keyState == Keyboard::KeyState::KEY_PRESSED) {
-                    Settings::VFO before = vfo;
                     setOptions();
                     radio.setVFO(vfoab, vfo);
                     optionSelected = 0;
                     userOptionSelected = 0;
-                    if (memcmp(&before, &vfo, sizeof(Settings::VFO)) != 0) {
-                        settings.radioSettings.vfo[(uint8_t)vfoab] = vfo;
-                        initialVFO = vfo;
-                    }
+                    settings.radioSettings.vfo[(uint8_t)vfoab] = vfo;
+                    settings.scheduleSaveIfNeeded();
                 }
                 break;
             default:
