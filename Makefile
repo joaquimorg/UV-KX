@@ -49,6 +49,8 @@ ifeq ($(OS), Windows_NT) # windows
 	DEL = del /q
 	K5PROG = utils/k5prog/k5prog.exe -D -F -YYYYY -p /dev/$(COMPORT) -b
 	DEV_NULL = nul
+	# Detect if PowerShell is available for directory listing	
+	PS_EXISTS := $(shell $(WHERE) powershell 2>$(DEV_NULL))	
 else
 	MKDIR = mkdir -p $(1)
 	RM = rm -rf
@@ -58,9 +60,6 @@ else
     K5PROG = utils/k5prog/k5prog -D -F -YYY -p /dev/$(COMPORT) -b	
 	DEV_NULL = /dev/null
 endif
-
-# Detect if PowerShell is available for directory listing	
-PS_EXISTS := $(shell $(WHERE) powershell 2>$(DEV_NULL))	
 
 ifneq (, $(shell $(WHERE) python))
 	MY_PYTHON := python
