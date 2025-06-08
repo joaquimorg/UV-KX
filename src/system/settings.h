@@ -309,11 +309,7 @@ public:
         }
     }
 
-    void scheduleSaveIfNeeded() {
-        if (memcmp(&radioSettings, &lastSavedRadioSettings, sizeof(SETTINGS)) != 0) {
-            systask.pushMessage(System::SystemTask::SystemMSG::MSG_SAVESETTINGS, 0);
-        }
-    }
+    void scheduleSaveIfNeeded();
 
     void handleSaveTimers() {
         if (radioSavePending) {

@@ -42,3 +42,10 @@ void Settings::applyRadioSettings()
     systask.setLCDContrast((uint8_t)(100 + (radioSettings.lcdContrast * 10)));
     systask.setBacklightLevel(radioSettings.backlightLevel);
 }
+
+
+void Settings::scheduleSaveIfNeeded() {
+    if (memcmp(&radioSettings, &lastSavedRadioSettings, sizeof(SETTINGS)) != 0) {
+        systask.pushMessage(System::SystemTask::SystemMSG::MSG_SAVESETTINGS, 0);
+    }
+}

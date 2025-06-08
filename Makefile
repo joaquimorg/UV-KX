@@ -49,8 +49,9 @@ ifeq ($(OS), Windows_NT) # windows
 	DEL = del /q
 	K5PROG = utils/k5prog/k5prog.exe -D -F -YYYYY -p /dev/$(COMPORT) -b
 	DEV_NULL = nul
-	# Detect if PowerShell is available for directory listing	
-	PS_EXISTS := $(shell $(WHERE) powershell 2>$(DEV_NULL))	
+	# Detect if PowerShell is available for directory listing
+	PS_EXISTS := $(shell $(WHERE) powershell 2>$(DEV_NULL))
+	MKDIR_IF_NOT_EXIST = if not exist "$(1)" $(MKDIR) "$(1)"
 else
     MKDIR = mkdir -p
 	RM = rm -rf
@@ -59,7 +60,13 @@ else
     DEL = del
     K5PROG = utils/k5prog/k5prog -D -F -YYYYY -p /dev/$(COMPORT) -b	
 	DEV_NULL = /dev/null
+	MKDIR_IF_NOT_EXIST = [ -d "$(1)" ] || $(MKDIR) "$(1)"
 endif
+
+# Function to create directory if not exist
+define ensure_dir
+	@$(call MKDIR_IF_NOT_EXIST,$(1))
+endef
 
 ifneq (, $(shell $(WHERE) python))
 	MY_PYTHON := python
@@ -214,9 +221,9 @@ INC_PATHS = $(addprefix -I,$(INCLUDE_PATH))
 all: directories app
 
 # Create necessary directories
-directories:
-	@if not exist $(BUILD) $(MKDIR) $(BUILD)
-	@if not exist $(BIN) $(MKDIR) $(BIN)
+directories:	
+	$(call ensure_dir,$(BUILD))
+	$(call ensure_dir,$(BIN))
 
 #------------------------------------------------------------------------------
 
@@ -226,18 +233,18 @@ OBJECTS = $(ASM_OBJS) $(FREERTOS_OBJS) $(CMSIS_OBJS) $(PRINTF_OBJS) $(U8G2_OBJS)
 
 $(BUILD)/%.o: %.c
 	@echo CC $<
-	@if not exist $(@D) $(MKDIR) $(@D)
+	$(call ensure_dir,$(@D))
 	@$(CC) $(CCFLAGS) $(INC_PATHS) -c $< -o $@
 
 $(BUILD)/%.o: %.cpp
 	@echo GCC $<
-	@if not exist $(@D) $(MKDIR) $(@D)
+	$(call ensure_dir,$(@D))
 	@$(CXX) $(CXXFLAGS) $(INC_PATHS) -c $< -o $@
 
 # Assemble files
 $(BUILD)/%.o: %.S
 	@echo AS $<
-	@if not exist $(@D) $(MKDIR) $(@D)
+	$(call ensure_dir,$(@D))
 	@$(CXX) -x assembler-with-cpp $(ASMFLAGS) $(INC_PATHS) -c $< -o $@
 #------------------------------------------------------------------------------
 
