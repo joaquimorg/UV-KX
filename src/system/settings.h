@@ -293,10 +293,25 @@ public:
     }
 
     void saveRadioSettings() {
-        /*if (hasDataToSave) {
-            eeprom.writeBuffer(0x0000, &radioSettings, sizeof(SETTINGS));
-            hasDataToSave = false;
-        }*/
+        eeprom.writeBuffer(0x0000, &radioSettings, sizeof(SETTINGS));
+    }
+
+    void requestSaveRadioSettings() {
+        radioSavePending = true;
+        radioSaveDelay = saveDelayTicks;
+    }
+
+    void handleSaveTimers() {
+        if (radioSavePending) {
+            if (radioSaveDelay > 0) {
+                --radioSaveDelay;
+            } else {
+                saveRadioSettings();
+                radioSavePending = false;
+            }
+        }
+
+        // TODO: implement channel memory save handling when needed
     }
 
     void loadRadioSettings() {
@@ -321,6 +336,13 @@ private:
     uint16_t initBlock = 0x0000;
     static constexpr uint16_t maxBlock = 0x000F;
 
-    bool hasDataToSave = false;
+    static constexpr uint8_t saveDelaySeconds = 5;
+    static constexpr uint8_t saveDelayTicks = saveDelaySeconds * 2; // half-second ticks
+
+    bool radioSavePending = false;
+    uint8_t radioSaveDelay = 0;
+
+    bool memorySavePending = false;        // Placeholder for channel memory save
+    uint8_t memorySaveDelay = 0;           // Placeholder counter
 
 };

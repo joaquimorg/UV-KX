@@ -224,7 +224,8 @@ void SystemTask::processSystemNotification(SystemMessages notification) {
         }
         break;
     }
-    case SystemMSG::MSG_SAVESETTINGS: 
+    case SystemMSG::MSG_SAVESETTINGS:
+        settings.requestSaveRadioSettings();
         break;
     
     case SystemMSG::MSG_APP_LOAD:
@@ -270,6 +271,8 @@ void SystemTask::runTimerImpl(void) {
             timeoutLightCount++;
         }
     }
+
+    settings.handleSaveTimers();
 }
 
 void SystemTask::appTimerImpl(void) {
