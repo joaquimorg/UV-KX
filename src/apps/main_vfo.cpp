@@ -4,6 +4,7 @@
 #include "system.h"
 #include "ui.h"
 #include "u8g2.h"
+#include <cstring>
 
 using namespace Applications;
 
@@ -197,6 +198,7 @@ void MainVFO::timeout(void) {
 
 void MainVFO::savePopupValue(void) {
     Settings::VFO vfo = radio.getActiveVFO();
+    Settings::VFO before = vfo;
 
     if (popupSelected == BANDWIDTH) {
         vfo.bw = (BK4819_Filter_Bandwidth)popupList.getListPos();
@@ -208,10 +210,14 @@ void MainVFO::savePopupValue(void) {
         vfo.power = (Settings::TXOutputPower)popupList.getListPos();
     }
 
+    bool changed = memcmp(&before, &vfo, sizeof(Settings::VFO)) != 0;
+
     radio.setVFO(radio.getCurrentVFO(), vfo);
     radio.setupToVFO(radio.getCurrentVFO());
-    systask.getSettings().radioSettings.vfo[(uint8_t)radio.getCurrentVFO()] = vfo;
-    systask.pushMessage(System::SystemTask::SystemMSG::MSG_SAVESETTINGS, 0);
+    if (changed) {
+        systask.getSettings().radioSettings.vfo[(uint8_t)radio.getCurrentVFO()] = vfo;
+        systask.pushMessage(System::SystemTask::SystemMSG::MSG_SAVESETTINGS, 0);
+    }
 }
 
 void MainVFO::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
@@ -243,32 +249,46 @@ void MainVFO::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
         else {
 
             if (keyCode == Keyboard::KeyCode::KEY_UP) {
+                Settings::VFO before = vfo;
                 uint32_t newFrequency = vfo.rx.frequency + Settings::StepFrequencyTable[(uint8_t)vfo.step];
                 vfo.rx.frequency = (uint32_t)(newFrequency & 0x07FFFFFF);
 
-                radio.setVFO(radio.getCurrentVFO(), vfo);
-                radio.setupToVFO(radio.getCurrentVFO());
-                systask.getSettings().radioSettings.vfo[(uint8_t)radio.getCurrentVFO()] = vfo;
-                systask.pushMessage(System::SystemTask::SystemMSG::MSG_SAVESETTINGS, 0);
-            }
-            else if (keyCode == Keyboard::KeyCode::KEY_DOWN) {
-                uint32_t newFrequency = vfo.rx.frequency - Settings::StepFrequencyTable[(uint8_t)vfo.step];
-                vfo.rx.frequency = (uint32_t)(newFrequency & 0x7FFFFFF);
+                bool changed = memcmp(&before, &vfo, sizeof(Settings::VFO)) != 0;
 
                 radio.setVFO(radio.getCurrentVFO(), vfo);
                 radio.setupToVFO(radio.getCurrentVFO());
-                systask.getSettings().radioSettings.vfo[(uint8_t)radio.getCurrentVFO()] = vfo;
-                systask.pushMessage(System::SystemTask::SystemMSG::MSG_SAVESETTINGS, 0);
+                if (changed) {
+                    systask.getSettings().radioSettings.vfo[(uint8_t)radio.getCurrentVFO()] = vfo;
+                    systask.pushMessage(System::SystemTask::SystemMSG::MSG_SAVESETTINGS, 0);
+                }
+            }
+            else if (keyCode == Keyboard::KeyCode::KEY_DOWN) {
+                Settings::VFO before = vfo;
+                uint32_t newFrequency = vfo.rx.frequency - Settings::StepFrequencyTable[(uint8_t)vfo.step];
+                vfo.rx.frequency = (uint32_t)(newFrequency & 0x7FFFFFF);
+
+                bool changed = memcmp(&before, &vfo, sizeof(Settings::VFO)) != 0;
+
+                radio.setVFO(radio.getCurrentVFO(), vfo);
+                radio.setupToVFO(radio.getCurrentVFO());
+                if (changed) {
+                    systask.getSettings().radioSettings.vfo[(uint8_t)radio.getCurrentVFO()] = vfo;
+                    systask.pushMessage(System::SystemTask::SystemMSG::MSG_SAVESETTINGS, 0);
+                }
             }
             else if (keyCode == Keyboard::KeyCode::KEY_MENU) {
                 if (showFreqInput) {
                     showFreqInput = false;
+                    Settings::VFO before = vfo;
                     vfo.rx.frequency = (uint32_t)(freqInput & 0x7FFFFFF);
                     vfo.tx.frequency = (uint32_t)(freqInput & 0x7FFFFFF);
+                    bool changed = memcmp(&before, &vfo, sizeof(Settings::VFO)) != 0;
                     radio.setVFO(radio.getCurrentVFO(), vfo);
                     radio.setupToVFO(radio.getCurrentVFO());
-                    systask.getSettings().radioSettings.vfo[(uint8_t)radio.getCurrentVFO()] = vfo;
-                    systask.pushMessage(System::SystemTask::SystemMSG::MSG_SAVESETTINGS, 0);
+                    if (changed) {
+                        systask.getSettings().radioSettings.vfo[(uint8_t)radio.getCurrentVFO()] = vfo;
+                        systask.pushMessage(System::SystemTask::SystemMSG::MSG_SAVESETTINGS, 0);
+                    }
                 }
                 else {
                     systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::Menu);
