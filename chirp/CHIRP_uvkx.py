@@ -552,13 +552,72 @@ class UVKxRadio(chirp_common.CloneModeRadio):
 #--------------------------------------------------------------------------------
     def get_settings(self):
         
-        radio = RadioSettingGroup("radio",  "Radio Settings")
-        vfoch = RadioSettingGroup("vfoch",  "VFO / Channel Mode")
-        agc   = RadioSettingGroup("agc",    "RF Gain Settings")
-        calibration = RadioSettingGroup("calibration", _("***Calibration,Don't touch if you don't know what to do*** "))
+        radio = RadioSettingGroup("radio", "Radio Settings")
+        vfoch = RadioSettingGroup("vfoch", "VFO / Channel Mode")
+        agc = RadioSettingGroup("agc", "RF Gain Settings")
+        calibration = RadioSettingGroup(
+            "calibration",
+            _("***Calibration,Don't touch if you don't know what to do*** "),
+        )
         roinfo = RadioSettingGroup("roinfo", _("Driver information"))
 
-        top = RadioSettings( radio, vfoch, agc, calibration, roinfo )
+        radio.append(
+            RadioSetting(
+                "call_channel",
+                _("Call Channel"),
+                RadioSettingValueInteger(1, CHAN_MAX, int(self._memobj.call_channel)),
+            )
+        )
+
+        radio.append(
+            RadioSetting(
+                "max_talk_time",
+                _("Max Talk Time"),
+                RadioSettingValueInteger(0, 255, int(self._memobj.max_talk_time)),
+            )
+        )
+
+        radio.append(
+            RadioSetting(
+                "tx_dev",
+                _("TX Deviation"),
+                RadioSettingValueInteger(0, 255, int(self._memobj.tx_dev)),
+            )
+        )
+
+        radio.append(
+            RadioSetting(
+                "key_lock",
+                _("Key Lock"),
+                RadioSettingValueBoolean(bool(self._memobj.key_lock)),
+            )
+        )
+
+        radio.append(
+            RadioSetting(
+                "vox_switch",
+                _("VOX"),
+                RadioSettingValueBoolean(bool(self._memobj.vox_switch)),
+            )
+        )
+
+        radio.append(
+            RadioSetting(
+                "vox_level",
+                _("VOX Level"),
+                RadioSettingValueInteger(0, 10, int(self._memobj.vox_level)),
+            )
+        )
+
+        radio.append(
+            RadioSetting(
+                "mic_gain",
+                _("Mic Gain"),
+                RadioSettingValueInteger(0, 255, int(self._memobj.mic_gain)),
+            )
+        )
+
+        top = RadioSettings(radio, vfoch, agc, calibration, roinfo)
 
         return top
     
@@ -572,3 +631,22 @@ class UVKxRadio(chirp_common.CloneModeRadio):
             if not isinstance(element, RadioSetting):
                 self.set_settings(element)
                 continue
+
+            name = element.get_name()
+            if name == "call_channel":
+                _mem.call_channel = int(element.value)
+            elif name == "max_talk_time":
+                _mem.max_talk_time = int(element.value)
+            elif name == "tx_dev":
+                _mem.tx_dev = int(element.value)
+            elif name == "key_lock":
+                _mem.key_lock = int(bool(element.value))
+            elif name == "vox_switch":
+                _mem.vox_switch = int(bool(element.value))
+            elif name == "vox_level":
+                _mem.vox_level = int(element.value)
+            elif name == "mic_gain":
+                _mem.mic_gain = int(element.value)
+            else:
+                LOG.debug("Unknown setting: %s" % name)
+
