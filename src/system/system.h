@@ -79,7 +79,14 @@ namespace System
 
         Battery getBattery() { return battery; }
 
-        void playBeep(Settings::BEEPType beep) { radio.playBeep(beep); }
+        void playBeep(Settings::BEEPType beep) {
+            if (settings.radioSettings.beep == Settings::ONOFF::ON) {
+                radio.playBeep(beep);
+            }
+        }
+
+        void setLCDContrast(uint8_t contrast);
+        void setBacklightTimeout(uint16_t seconds);
 
         // Static methods (required by FreeRTOS)
         static void runStatusTask(void* pvParameters);
