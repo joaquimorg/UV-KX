@@ -52,7 +52,7 @@ ifeq ($(OS), Windows_NT) # windows
 	# Detect if PowerShell is available for directory listing	
 	PS_EXISTS := $(shell $(WHERE) powershell 2>$(DEV_NULL))	
 else
-	MKDIR = mkdir -p $(1)
+       MKDIR = mkdir -p
 	RM = rm -rf
 	FixPath = $1
     WHERE = which
@@ -215,8 +215,8 @@ all: directories app
 
 # Create necessary directories
 directories:
-	@if not exist $(BUILD) $(MKDIR) $(BUILD)
-	@if not exist $(BIN) $(MKDIR) $(BIN)
+	@$(MKDIR) $(BUILD)
+	@$(MKDIR) $(BIN)
 
 #------------------------------------------------------------------------------
 
@@ -226,18 +226,18 @@ OBJECTS = $(ASM_OBJS) $(FREERTOS_OBJS) $(CMSIS_OBJS) $(PRINTF_OBJS) $(U8G2_OBJS)
 
 $(BUILD)/%.o: %.c
 	@echo CC $<
-	@if not exist $(@D) $(MKDIR) $(@D)
+	@$(MKDIR) $(@D)
 	@$(CC) $(CCFLAGS) $(INC_PATHS) -c $< -o $@
 
 $(BUILD)/%.o: %.cpp
 	@echo GCC $<
-	@if not exist $(@D) $(MKDIR) $(@D)
+	@$(MKDIR) $(@D)
 	@$(CXX) $(CXXFLAGS) $(INC_PATHS) -c $< -o $@
 
 # Assemble files
 $(BUILD)/%.o: %.S
 	@echo AS $<
-	@if not exist $(@D) $(MKDIR) $(@D)
+	@$(MKDIR) $(@D)
 	@$(CXX) -x assembler-with-cpp $(ASMFLAGS) $(INC_PATHS) -c $< -o $@
 #------------------------------------------------------------------------------
 

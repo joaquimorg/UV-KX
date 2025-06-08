@@ -29,6 +29,7 @@ namespace Applications
         RadioNS::Radio& radio;
 
         Settings::VFO vfo;
+        Settings::VFO initialVFO; // store original VFO settings for change detection
 
         uint8_t inputSelect = 0;
         uint8_t optionSelected = 0;

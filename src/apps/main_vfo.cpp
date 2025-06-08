@@ -210,6 +210,8 @@ void MainVFO::savePopupValue(void) {
 
     radio.setVFO(radio.getCurrentVFO(), vfo);
     radio.setupToVFO(radio.getCurrentVFO());
+    systask.getSettings().radioSettings.vfo[(uint8_t)radio.getCurrentVFO()] = vfo;
+    systask.pushMessage(System::SystemTask::SystemMSG::MSG_SAVESETTINGS, 0);
 }
 
 void MainVFO::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
@@ -246,6 +248,8 @@ void MainVFO::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
 
                 radio.setVFO(radio.getCurrentVFO(), vfo);
                 radio.setupToVFO(radio.getCurrentVFO());
+                systask.getSettings().radioSettings.vfo[(uint8_t)radio.getCurrentVFO()] = vfo;
+                systask.pushMessage(System::SystemTask::SystemMSG::MSG_SAVESETTINGS, 0);
             }
             else if (keyCode == Keyboard::KeyCode::KEY_DOWN) {
                 uint32_t newFrequency = vfo.rx.frequency - Settings::StepFrequencyTable[(uint8_t)vfo.step];
@@ -253,6 +257,8 @@ void MainVFO::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
 
                 radio.setVFO(radio.getCurrentVFO(), vfo);
                 radio.setupToVFO(radio.getCurrentVFO());
+                systask.getSettings().radioSettings.vfo[(uint8_t)radio.getCurrentVFO()] = vfo;
+                systask.pushMessage(System::SystemTask::SystemMSG::MSG_SAVESETTINGS, 0);
             }
             else if (keyCode == Keyboard::KeyCode::KEY_MENU) {
                 if (showFreqInput) {
@@ -261,6 +267,8 @@ void MainVFO::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
                     vfo.tx.frequency = (uint32_t)(freqInput & 0x7FFFFFF);
                     radio.setVFO(radio.getCurrentVFO(), vfo);
                     radio.setupToVFO(radio.getCurrentVFO());
+                    systask.getSettings().radioSettings.vfo[(uint8_t)radio.getCurrentVFO()] = vfo;
+                    systask.pushMessage(System::SystemTask::SystemMSG::MSG_SAVESETTINGS, 0);
                 }
                 else {
                     systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::Menu);
