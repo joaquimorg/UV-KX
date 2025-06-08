@@ -57,7 +57,7 @@ else
 	FixPath = $1
     WHERE = which
     DEL = del
-    K5PROG = utils/k5prog/k5prog -D -F -YYY -p /dev/$(COMPORT) -b	
+    K5PROG = utils/k5prog/k5prog -D -F -YYYYY -p /dev/$(COMPORT) -b	
 	DEV_NULL = /dev/null
 endif
 
