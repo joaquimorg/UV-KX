@@ -347,5 +347,13 @@ void SystemTask::loadApplication(Applications::Applications app) {
     //taskEXIT_CRITICAL();
 }
 
+void SystemTask::setLCDContrast(uint8_t contrast) {
+    st7565.setContrast(contrast);
+}
+
+void SystemTask::setBacklightTimeout(uint16_t seconds) {
+    backlightTimeout = seconds;
+}
+
 
 
