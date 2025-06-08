@@ -21,10 +21,13 @@ void ResetInit::drawScreen(void) {
     if (isToInitialize) {
         ui.drawString(TextAlign::CENTER, 0, 128, 8, true, false, false, "EEPROM INITIALIZATION");
         // show progress bar and percentage
-        u8g2_uint_t barWidth = (u8g2_uint_t)((initProgress * 120) / 100); // Calculate the width of the progress bar
+        u8g2_uint_t barWidth = (u8g2_uint_t)((initProgress * 120) / 100);
         ui.lcd()->drawFrame(4, 20, 120, 10);
-        ui.lcd()->drawBox(4, 20, barWidth, 10); // Draw the progress bar
+        ui.lcd()->drawBox(4, 20, barWidth, 10);
         ui.drawStringf(TextAlign::CENTER, 0, 128, 46, true, false, false, "%d%%", initProgress);
+        if (isReady) {
+            ui.drawString(TextAlign::CENTER, 0, 128, 36, true, false, false, "DONE");
+        }
     }
     else {
 
