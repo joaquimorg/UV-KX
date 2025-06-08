@@ -290,11 +290,22 @@ public:
     }
 
     uint8_t initEEPROM(void) {
-        // TODO: Implement EEPROM initialization
+        static constexpr uint16_t blockSize = 0x0200; // 512 bytes per block
+        uint8_t buffer[blockSize];
+
         if (initBlock < maxBlock) {
+            memset(buffer, 0xFF, sizeof(buffer));
+
+            if (initBlock == 0) {
+                setRadioSettingsDefault();
+                memcpy(buffer, &radioSettings, sizeof(SETTINGS));
+            }
+
+            eeprom.writeBuffer(initBlock * blockSize, buffer, sizeof(buffer));
             initBlock++;
         }
-        return (uint8_t)((initBlock * 100) / maxBlock);
+
+        return static_cast<uint8_t>((initBlock * 100) / maxBlock);
     }
 
     void saveRadioSettings() {
