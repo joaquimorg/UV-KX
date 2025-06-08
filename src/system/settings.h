@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>  // For standard integer types like uint16_t, uint8_t
+#include <cstring>
 #include "bk4819.h" // For BK4819 specific types like BK4819_Filter_Bandwidth and ModType
 #include "sys.h"    // For system-level definitions or utilities
 #include "eeprom.h" // For EEPROM read/write operations
@@ -245,10 +246,12 @@ public:
 
     void getRadioSettings() {
         eeprom.readBuffer(0x0000, &radioSettings, sizeof(SETTINGS));
+        lastSavedRadioSettings = radioSettings;
     }
 
     void setRadioSettings() {
         eeprom.writeBuffer(0x0000, &radioSettings, sizeof(SETTINGS));
+        lastSavedRadioSettings = radioSettings;
     }
 
     void setRadioSettingsDefault() {
@@ -270,6 +273,8 @@ public:
 
         radioSettings.showVFO[0] = ONOFF::ON; // VFOA Show VFO
         radioSettings.showVFO[1] = ONOFF::ON; // VFOB Show VFO
+
+        lastSavedRadioSettings = radioSettings;
     }
 
     uint16_t getSettingsVersion() {
@@ -294,11 +299,20 @@ public:
 
     void saveRadioSettings() {
         eeprom.writeBuffer(0x0000, &radioSettings, sizeof(SETTINGS));
+        lastSavedRadioSettings = radioSettings;
     }
 
     void requestSaveRadioSettings() {
-        radioSavePending = true;
-        radioSaveDelay = saveDelayTicks;
+        if (memcmp(&radioSettings, &lastSavedRadioSettings, sizeof(SETTINGS)) != 0) {
+            radioSavePending = true;
+            radioSaveDelay = saveDelayTicks;
+        }
+    }
+
+    void scheduleSaveIfNeeded() {
+        if (memcmp(&radioSettings, &lastSavedRadioSettings, sizeof(SETTINGS)) != 0) {
+            systask.pushMessage(System::SystemTask::SystemMSG::MSG_SAVESETTINGS, 0);
+        }
     }
 
     void handleSaveTimers() {
@@ -340,6 +354,8 @@ private:
 
     bool radioSavePending = false;
     uint8_t radioSaveDelay = 0;
+
+    SETTINGS lastSavedRadioSettings{};
 
     bool memorySavePending = false;        // Placeholder for channel memory save
     uint8_t memorySaveDelay = 0;           // Placeholder counter
