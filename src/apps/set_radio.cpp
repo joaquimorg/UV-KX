@@ -118,7 +118,7 @@ void SetRadio::setOptions() {
         break;
     case 4:
         settings.radioSettings.backlightLevel = sel & 0x0F;        
-        systask.pushMessage(System::SystemTask::SystemMSG::MSG_BKCLIGHT_LEVEL, (uint32_t)settings.radioSettings.backlightLevel);
+        //systask.pushMessage(System::SystemTask::SystemMSG::MSG_BKCLIGHT_LEVEL, (uint32_t)settings.radioSettings.backlightLevel);
         break;
     case 5:
         settings.radioSettings.backlightTime = (Settings::BacklightTime)sel;
@@ -154,7 +154,7 @@ void SetRadio::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
                 menulist.prev();
             } else if (keyCode == Keyboard::KeyCode::KEY_DOWN) {
                 menulist.next();
-            } else if (keyCode == Keyboard::KeyCode::KEY_EXIT) {
+            } else if (keyCode == Keyboard::KeyCode::KEY_EXIT) {                
                 systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::MainVFO);
             } else if (keyCode == Keyboard::KeyCode::KEY_MENU) {
                 inputSelect = 0; // reset direct input
@@ -193,8 +193,7 @@ void SetRadio::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
                 optionSelected = 0;
             } else if (keyCode == Keyboard::KeyCode::KEY_MENU) {
                 setOptions();
-                // Save the settings
-                systask.pushMessage(System::SystemTask::SystemMSG::MSG_SAVESETTINGS, 0);
+                settings.applyRadioSettings();                
                 optionSelected = 0;
             }
         }

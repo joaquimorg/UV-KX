@@ -66,7 +66,6 @@ void SystemTask::setupRadio(void) {
         //settings.setRadioSettings();
     } else {
         // Load settings from EEPROM
-        backlight.setBrightness(settings.radioSettings.backlightLevel);
         settings.applyRadioSettings();
         // TODO: need to validate if load VFO or Memory
         radio.setVFO(Settings::VFOAB::VFOA, settings.radioSettings.vfo[(uint8_t)Settings::VFOAB::VFOA]);
@@ -353,6 +352,10 @@ void SystemTask::setLCDContrast(uint8_t contrast) {
 
 void SystemTask::setBacklightTimeout(uint16_t seconds) {
     backlightTimeout = seconds;
+}
+
+void SystemTask::setBacklightLevel(uint8_t level) {
+    backlight.setBrightness(level);
 }
 
 

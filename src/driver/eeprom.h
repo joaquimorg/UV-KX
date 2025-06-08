@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <cstring>
 #include "i2c_hal.h"
 #include "FreeRTOS.h"
 #include "task.h"

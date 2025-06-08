@@ -88,6 +88,7 @@ namespace System
 
         void setLCDContrast(uint8_t contrast);
         void setBacklightTimeout(uint16_t seconds);
+        void setBacklightLevel(uint8_t level);
 
         // Static methods (required by FreeRTOS)
         static void runStatusTask(void* pvParameters);

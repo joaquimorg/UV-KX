@@ -43,7 +43,7 @@ public:
     static constexpr const char* MicDBStr = "+1.1dB\n+4.0dB\n+8.0dB\n+12.0dB\n+15.1dB"; ///< Microphone gain options.
     static constexpr const char* BacklightModeStr = "OFF\nTX\nRX\nTX/RX"; ///< Backlight activation mode options.
     static constexpr const char* BacklightLevelStr = "0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10"; ///< Backlight brightness levels.
-    static constexpr const char* LCDContrastStr = "0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15"; ///< LCD contrast options.    
+    static constexpr const char* LCDContrastStr = "100\n110\n120\n130\n140\n150\n160\n170\n180\n190\n200"; ///< LCD contrast options.
 
     static constexpr uint16_t CTCSSOptions[50] = {
         670,  693,  719,  744,  770,  797,  825,  854,  885,  915,
@@ -259,7 +259,7 @@ public:
         radioSettings.backlightLevel    = 0x0A; // 10
         radioSettings.backlightTime     = BacklightTime::BACKLIGHT_15S;
         radioSettings.micDB             = MicDB::MIC_DB_5; // +15.1dB
-        radioSettings.lcdContrast       = 0x0A; // 10
+        radioSettings.lcdContrast       = 0x04; // 4
         radioSettings.txTOT             = TXTimeout::TX_TIMEOUT_120S;
         radioSettings.batterySave       = ONOFF::ON;
         radioSettings.backlightMode     = BacklightMode::BACKLIGHT_MODE_TX_RX;
