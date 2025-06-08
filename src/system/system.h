@@ -78,6 +78,7 @@ namespace System
         }
 
         Battery getBattery() { return battery; }
+        Settings& getSettings() { return settings; }
 
         void playBeep(Settings::BEEPType beep) { radio.playBeep(beep); }
 

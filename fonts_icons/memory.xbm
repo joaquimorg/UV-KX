@@ -1,0 +1,4 @@
+#define memory_width 7
+#define memory_height 5
+static unsigned char memory_bits[] = {
+   0x2a, 0x7f, 0x7f, 0x7f, 0x2a };

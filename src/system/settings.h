@@ -314,16 +314,17 @@ public:
         // TODO: implement channel memory save handling when needed
     }
 
-    void loadRadioSettings() {
-        //eeprom.readBuffer(0x0000, &radioSettings, sizeof(SETTINGS));
-    }
-
     void applyRadioSettings() {
         
     }
 
     EEPROM& getEEPROM() {
         return eeprom;
+    }
+
+
+    bool isRadioSavePending() const {
+        return radioSavePending;
     }
 
 private:

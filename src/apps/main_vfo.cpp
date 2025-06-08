@@ -139,6 +139,10 @@ void MainVFO::drawScreen(void) {
         ui.draw_ps(78, 59, BLACK);
     }
 
+    if (systask.getSettings().isRadioSavePending()) {
+        ui.draw_save(68, 59, BLACK);
+    }
+
     if (popupSelected != NONE) {
         popupList.drawPopup(ui);
     }
