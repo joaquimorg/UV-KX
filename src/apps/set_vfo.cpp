@@ -65,7 +65,7 @@ void SetVFO::drawScreen(void) {
     if (userOptionSelected != 0) {
         // display user input
         ui.drawPopupWindow(36, 15, 90, 34, menulist.getStringLine());
-        ui.drawFrequencySmall(true, userOptionInput, 122, 37);
+        ui.drawFrequencySmall(false, userOptionInput, 122, 37);
     }
 
     ui.updateDisplay();
@@ -111,8 +111,11 @@ const char* SetVFO::getCurrentOption() {
     case 6: // SHIFT
         return ui.getStrValue(Settings::offsetStr, (uint8_t)vfo.shift);
     case 7: // OFFSET
-        menulist.setSuffix(ui.KHZStr);
-        return "0.00";//ui.getStrValue(Settings::offsetStr, vfo.rx.frequency - vfo.tx.frequency);
+        if (vfo.rx.frequency >= vfo.tx.frequency) {
+            return ui.getFrequencyString(vfo.rx.frequency - vfo.tx.frequency, 0, true);
+        } else {
+            return ui.getFrequencyString(vfo.tx.frequency - vfo.rx.frequency, 0, true);
+        }
     case 8: // RX CODE TYPE
         return ui.getStrValue(Settings::codetypeStr, (uint8_t)vfo.rx.codeType);
     case 10: // TX CODE TYPE

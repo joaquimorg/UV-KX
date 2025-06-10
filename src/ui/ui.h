@@ -417,6 +417,24 @@ public:
         return uiBuffer;
     }
 
+    const char* getFrequencyString(uint32_t frequency, uint8_t precision = 0, bool isKHz = false) {
+       // Format the frequency string based on the precision and whether it's in kHz
+        if (isKHz) {
+            if (precision == 0) {
+                snprintf(uiBuffer, CHAR_BUFFER_SIZE, "%u.%03u KHz", frequency / 1000, (frequency % 1000) / 10);
+            } else {
+                snprintf(uiBuffer, CHAR_BUFFER_SIZE, "%u.%03u KHz", frequency / 1000, frequency % 1000);
+            }
+        } else {
+            if (precision == 0) {
+                snprintf(uiBuffer, CHAR_BUFFER_SIZE, "%u.%03u Hz", frequency / 1000, (frequency % 1000) / 10);
+            } else {
+                snprintf(uiBuffer, CHAR_BUFFER_SIZE, "%u.%03u Hz", frequency / 1000, frequency % 1000);
+            }
+        }
+        return uiBuffer;
+    }
+
 private:
 
     ST7565& st7565;
