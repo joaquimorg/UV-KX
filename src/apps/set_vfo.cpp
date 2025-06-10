@@ -7,6 +7,8 @@
 
 using namespace Applications;
 
+static constexpr uint32_t MAX_OFFSET_INPUT = 1000000U; // 10 MHz in 10 Hz units
+
 const char* SetVFO::codeValue(Settings::CodeType type, uint8_t code, SelectionList& list)
 {
     switch (type) {
@@ -63,6 +65,7 @@ void SetVFO::drawScreen(void) {
     if (userOptionSelected != 0) {
         // display user input
         ui.drawPopupWindow(36, 15, 90, 34, menulist.getStringLine());
+        ui.drawFrequencySmall(true, userOptionInput, 122, 37);
     }
 
     ui.updateDisplay();
@@ -159,7 +162,14 @@ void SetVFO::loadOptions() {
         optionlist.set((uint8_t)vfo.shift, 3, 0, Settings::offsetStr);
         break;
     case 7: // OFFSET
-        userOptionInput = uint32_t(vfo.rx.frequency - vfo.tx.frequency);
+        if (vfo.rx.frequency >= vfo.tx.frequency) {
+            userOptionInput = vfo.rx.frequency - vfo.tx.frequency;
+        } else {
+            userOptionInput = vfo.tx.frequency - vfo.rx.frequency;
+        }
+        if (userOptionInput > MAX_OFFSET_INPUT) {
+            userOptionInput = MAX_OFFSET_INPUT;
+        }
         break;
     case 8: // RX CODE TYPE
         optionlist.set((uint8_t)vfo.rx.codeType, 5, 0, Settings::codetypeStr);
@@ -347,8 +357,25 @@ void SetVFO::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
                     settings.scheduleSaveIfNeeded();
                 }
                 break;
+            case Keyboard::KeyCode::KEY_STAR:
+                if (keyState == Keyboard::KeyState::KEY_PRESSED && userOptionSelected == 7) {
+                    if (userOptionInput > 0) {
+                        userOptionInput /= 10;
+                    }
+                }
+                break;
             default:
-               break;
+                if (userOptionSelected == 7 && keyState == Keyboard::KeyState::KEY_PRESSED &&
+                    keyCode >= Keyboard::KeyCode::KEY_0 && keyCode <= Keyboard::KeyCode::KEY_9) {
+                    uint8_t number = ui.keycodeToNumber(keyCode);
+                    if (userOptionInput < MAX_OFFSET_INPUT) {
+                        userOptionInput = static_cast<uint32_t>(userOptionInput * 10U + number);
+                        if (userOptionInput > MAX_OFFSET_INPUT) {
+                            userOptionInput = MAX_OFFSET_INPUT;
+                        }
+                    }
+                }
+                break;
         }
     }
 
