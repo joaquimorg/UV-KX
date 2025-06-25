@@ -64,7 +64,9 @@ void MainVFO::drawScreen(void) {
     //ui.lcd()->drawLine(5, 9, 5, 25);
 
     ui.setFont(Font::FONT_8B_TR);
-    ui.drawStringf(TextAlign::LEFT, 2, 0, 14, true, true, false, "%s", activeVFO1 == Settings::VFOAB::VFOA ? "A" : "B");
+    bool showA = !(lastRXVFO == activeVFO1 && lastRXCounter > 0 && blinkState);
+    if (showA)
+        ui.drawStringf(TextAlign::LEFT, 2, 0, 14, true, true, false, "%s", activeVFO1 == Settings::VFOAB::VFOA ? "A" : "B");
 
     if (rxVFO1) {
         ui.drawString(TextAlign::LEFT, 12, 0, 14, true, true, false, ui.RXStr);
@@ -94,7 +96,9 @@ void MainVFO::drawScreen(void) {
     ui.drawFrequencySmall(rxVFO2, vfo2.rx.frequency, 126, vfoBY + 17);
 
     ui.setFont(Font::FONT_8B_TR);
-    ui.drawStringf(TextAlign::LEFT, 2, 0, vfoBY + 15, true, false, true, "%s", activeVFO2 == Settings::VFOAB::VFOB ? "B" : "A");
+    bool showB = !(lastRXVFO == activeVFO2 && lastRXCounter > 0 && blinkState);
+    if (showB)
+        ui.drawStringf(TextAlign::LEFT, 2, 0, vfoBY + 15, true, false, true, "%s", activeVFO2 == Settings::VFOAB::VFOB ? "B" : "A");
 
     if ((rxVFO2 && vfo2.rx.codeType != Settings::CodeType::NONE && radio.isRXToneDetected()) 
         || (rxVFO2 && vfo2.rx.codeType == Settings::CodeType::NONE)) {
@@ -180,9 +184,36 @@ void MainVFO::showRSSI(uint8_t posX, uint8_t posY) {
 }
 
 void MainVFO::init(void) {
+    prevRadioState = radio.getState();
+    prevRXVFO = radio.getRXVFO();
+    lastRXCounter = 0;
+    blinkTimer = 0;
+    blinkState = false;
 }
 
 void MainVFO::update(void) {
+    // Track radio state transitions for RX activity
+    Settings::RadioState curState = radio.getState();
+    if (curState == Settings::RadioState::RX_ON) {
+        // remember the VFO that is currently receiving
+        prevRXVFO = radio.getRXVFO();
+    } else {
+        if (prevRadioState == Settings::RadioState::RX_ON) {
+            // RX just finished, start blink period
+            lastRXVFO = prevRXVFO;
+            lastRXCounter = LAST_RX_DURATION;
+        } else if (lastRXCounter > 0) {
+            lastRXCounter--;
+        }
+    }
+    prevRadioState = curState;
+
+    // Handle blink timing
+    if (++blinkTimer >= BLINK_INTERVAL) {
+        blinkTimer = 0;
+        blinkState = !blinkState;
+    }
+
     drawScreen();
 }
 
