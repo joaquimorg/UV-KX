@@ -184,18 +184,35 @@ void MainVFO::showRSSI(uint8_t posX, uint8_t posY) {
 }
 
 void MainVFO::init(void) {
+    prevRadioState = radio.getState();
+    prevRXVFO = radio.getRXVFO();
+    lastRXCounter = 0;
+    blinkTimer = 0;
+    blinkState = false;
 }
 
 void MainVFO::update(void) {
-    // Update last RX information
-    if (radio.getState() == Settings::RadioState::RX_ON) {
-        lastRXVFO = radio.getRXVFO();
-        lastRXCounter = 30; // roughly 3 seconds assuming 100ms update
-    } else if (lastRXCounter > 0) {
-        lastRXCounter--;
+    // Track radio state transitions for RX activity
+    Settings::RadioState curState = radio.getState();
+    if (curState == Settings::RadioState::RX_ON) {
+        // remember the VFO that is currently receiving
+        prevRXVFO = radio.getRXVFO();
+    } else {
+        if (prevRadioState == Settings::RadioState::RX_ON) {
+            // RX just finished, start blink period
+            lastRXVFO = prevRXVFO;
+            lastRXCounter = LAST_RX_DURATION;
+        } else if (lastRXCounter > 0) {
+            lastRXCounter--;
+        }
     }
+    prevRadioState = curState;
 
-    blinkState = !blinkState;
+    // Handle blink timing
+    if (++blinkTimer >= BLINK_INTERVAL) {
+        blinkTimer = 0;
+        blinkState = !blinkState;
+    }
 
     drawScreen();
 }

@@ -36,9 +36,21 @@ namespace Applications
         uint32_t freqInput = 0;
         PopupList popupSelected = NONE;
 
+        // Timings
+        static constexpr uint8_t BLINK_INTERVAL = 10;    // 1s with 100ms updates
+        static constexpr uint16_t LAST_RX_DURATION = 1200; // 2 minutes
+
         // Track which VFO had the last reception
         Settings::VFOAB lastRXVFO = Settings::VFOAB::NONE;
-        uint8_t lastRXCounter = 0;    // counter in 100ms units
+        uint16_t lastRXCounter = 0;    // counter in 100ms units
+
+        // Previous radio state for detecting RX termination
+        Settings::RadioState prevRadioState = Settings::RadioState::IDLE;
+        Settings::VFOAB prevRXVFO = Settings::VFOAB::NONE;
+
+        // Blink handling
+        uint8_t blinkTimer = 0;
+
         bool blinkState = false;
         
 
