@@ -50,6 +50,7 @@ namespace Applications
 
         // Blink handling
         uint8_t blinkTimer = 0;
+
         bool blinkState = false;
         
 

@@ -256,15 +256,14 @@ $(BUILD)/$(PROJECT_NAME).out: $(OBJECTS)
 	@$(CC) $(CXXFLAGS) $(LDFLAGS) $^ -o $@
 
 #------------------------------------------------------------------------------
-#------------------------------------------------------------------------------
 #------------------- Binary generator -----------------------------------------	
 	@echo Create $(notdir $@)
-	@$(OBJCOPY) -O binary $(BUILD)/$(PROJECT_NAME).out $(BIN)/$(PROJECT_NAME).bin
+	@$(OBJCOPY) -O binary $(BUILD)/$(PROJECT_NAME).out $(BIN)/$(PROJECT_NAME).bin	
+
+prog: all	
 	@echo Create $(PROJECT_NAME).packed.bin
 	@-$(MY_PYTHON) utils/fw-pack.py $(BIN)/$(PROJECT_NAME).bin $(AUTHOR_STRING) $(VERSION_STRING) $(BIN)/$(PROJECT_NAME).packed.bin
-
-
-prog: all
+	@echo Flashing firmware to device...
 	$(K5PROG) $(BIN)/$(PROJECT_NAME).bin
 
 #------------------------------------------------------------------------------
