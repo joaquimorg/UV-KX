@@ -35,6 +35,11 @@ namespace Applications
         bool showFreqInput = false;
         uint32_t freqInput = 0;
         PopupList popupSelected = NONE;
+
+        // Track which VFO had the last reception
+        Settings::VFOAB lastRXVFO = Settings::VFOAB::NONE;
+        uint8_t lastRXCounter = 0;    // counter in 100ms units
+        bool blinkState = false;
         
 
         uint8_t convertRSSIToSLevel(int16_t rssi_dBm);

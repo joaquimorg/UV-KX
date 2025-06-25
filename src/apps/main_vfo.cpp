@@ -64,7 +64,9 @@ void MainVFO::drawScreen(void) {
     //ui.lcd()->drawLine(5, 9, 5, 25);
 
     ui.setFont(Font::FONT_8B_TR);
-    ui.drawStringf(TextAlign::LEFT, 2, 0, 14, true, true, false, "%s", activeVFO1 == Settings::VFOAB::VFOA ? "A" : "B");
+    bool showA = !(lastRXVFO == activeVFO1 && lastRXCounter > 0 && blinkState);
+    if (showA)
+        ui.drawStringf(TextAlign::LEFT, 2, 0, 14, true, true, false, "%s", activeVFO1 == Settings::VFOAB::VFOA ? "A" : "B");
 
     if (rxVFO1) {
         ui.drawString(TextAlign::LEFT, 12, 0, 14, true, true, false, ui.RXStr);
@@ -94,7 +96,9 @@ void MainVFO::drawScreen(void) {
     ui.drawFrequencySmall(rxVFO2, vfo2.rx.frequency, 126, vfoBY + 17);
 
     ui.setFont(Font::FONT_8B_TR);
-    ui.drawStringf(TextAlign::LEFT, 2, 0, vfoBY + 15, true, false, true, "%s", activeVFO2 == Settings::VFOAB::VFOB ? "B" : "A");
+    bool showB = !(lastRXVFO == activeVFO2 && lastRXCounter > 0 && blinkState);
+    if (showB)
+        ui.drawStringf(TextAlign::LEFT, 2, 0, vfoBY + 15, true, false, true, "%s", activeVFO2 == Settings::VFOAB::VFOB ? "B" : "A");
 
     if ((rxVFO2 && vfo2.rx.codeType != Settings::CodeType::NONE && radio.isRXToneDetected()) 
         || (rxVFO2 && vfo2.rx.codeType == Settings::CodeType::NONE)) {
@@ -183,6 +187,16 @@ void MainVFO::init(void) {
 }
 
 void MainVFO::update(void) {
+    // Update last RX information
+    if (radio.getState() == Settings::RadioState::RX_ON) {
+        lastRXVFO = radio.getRXVFO();
+        lastRXCounter = 30; // roughly 3 seconds assuming 100ms update
+    } else if (lastRXCounter > 0) {
+        lastRXCounter--;
+    }
+
+    blinkState = !blinkState;
+
     drawScreen();
 }
 
