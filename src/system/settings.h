@@ -320,9 +320,38 @@ public:
         }
     }
 
-    void scheduleSaveIfNeeded();
+    /**
+     * Request to save a memory channel
+     * @param channelNumber Channel number (1-230)
+     * @param vfoIndex VFO index (0 for VFOA, 1 for VFOB)
+     */
+    void requestSaveMemory(uint16_t channelNumber, uint8_t vfoIndex) {
+        if (channelNumber < 1 || channelNumber > MAX_CHANNELS || vfoIndex > 1) {
+            return;
+        }
+        
+        // Check if the VFO has actually changed compared to what's stored in EEPROM
+        VFO currentChannelData;
+        bool channelExists = readChannel(channelNumber, currentChannelData);
+        
+        // If channel doesn't exist or data has changed, schedule save
+        if (!channelExists || memcmp(&radioSettings.vfo[vfoIndex], &currentChannelData, sizeof(VFO)) != 0) {
+            pendingMemoryChannel = channelNumber;
+            pendingMemoryVFO = vfoIndex;
+            memorySavePending = true;
+            memorySaveDelay = saveDelayTicks;
+        }
+    }
 
+    void scheduleSaveIfNeeded();
+    void scheduleMemorySaveIfNeeded(uint16_t channelNumber, uint8_t vfoIndex);
+
+    /**
+     * Check if a save is pending and handle it
+     * This should be called periodically (e.g., in a loop or timer)
+     */
     void handleSaveTimers() {
+        // Handle radio settings save
         if (radioSavePending) {
             if (radioSaveDelay > 0) {
                 --radioSaveDelay;
@@ -332,7 +361,19 @@ public:
             }
         }
 
-        // TODO: implement channel memory save handling when needed
+        // Handle memory save
+        if (memorySavePending) {
+            if (memorySaveDelay > 0) {
+                --memorySaveDelay;
+            } else {
+                // Save the pending memory channel
+                if (pendingMemoryChannel >= 1 && pendingMemoryChannel <= MAX_CHANNELS && 
+                    pendingMemoryVFO <= 1) {
+                    saveVFOToChannel(pendingMemoryChannel, pendingMemoryVFO);
+                }
+                memorySavePending = false;
+            }
+        }
     }
 
     void applyRadioSettings();
@@ -344,6 +385,219 @@ public:
 
     bool isRadioSavePending() const {
         return radioSavePending;
+    }
+
+    bool isMemorySavePending() const {
+        return memorySavePending;
+    }
+
+    /**
+     * Read a channel from EEPROM
+     * @param channelNumber Channel number (1-230)
+     * @param channel Reference to VFO struct to store the data
+     * @return true if successful, false if channel number is invalid
+     */
+    bool readChannel(uint16_t channelNumber, VFO& channel) {
+        if (channelNumber < 1 || channelNumber > MAX_CHANNELS) {
+            return false;
+        }
+        
+        uint16_t address = static_cast<uint16_t>(CHANNEL_START_ADDRESS + ((channelNumber - 1) * CHANNEL_SIZE));
+        eeprom.readBuffer(address, &channel, sizeof(VFO));
+        return true;
+    }
+
+    /**
+     * Write a channel to EEPROM
+     * @param channelNumber Channel number (1-230)
+     * @param channel Reference to VFO struct containing the data
+     * @return true if successful, false if channel number is invalid
+     */
+    bool writeChannel(uint16_t channelNumber, const VFO& channel) {
+        if (channelNumber < 1 || channelNumber > MAX_CHANNELS) {
+            return false;
+        }
+        
+        uint16_t address = static_cast<uint16_t>(CHANNEL_START_ADDRESS + ((channelNumber - 1) * CHANNEL_SIZE));
+        eeprom.writeBuffer(address, &channel, sizeof(VFO));
+        return true;
+    }
+
+    /**
+     * Check if a channel is in use (has a non-empty name)
+     * @param channelNumber Channel number (1-230)
+     * @return true if channel is in use, false otherwise
+     */
+    bool isChannelInUse(uint16_t channelNumber) {
+        if (channelNumber < 1 || channelNumber > MAX_CHANNELS) {
+            return false;
+        }
+        
+        VFO channel;
+        if (!readChannel(channelNumber, channel)) {
+            return false;
+        }
+        
+        // Check if name is not empty (at least first character is not null or space)
+        return (channel.name[0] != '\0' && channel.name[0] != ' ');
+    }
+
+    /**
+     * Get the next channel in use
+     * @param currentChannel Current channel number
+     * @return Next channel number in use, or first channel in use if at end
+     */
+    uint16_t getNextChannel(uint16_t currentChannel) {
+        if (currentChannel < 1 || currentChannel > MAX_CHANNELS) {
+            currentChannel = 1;
+        }
+
+        // Start searching from the next channel
+        uint16_t searchChannel = static_cast<uint16_t>(currentChannel + 1);
+        
+        // Search forward from current position
+        for (uint16_t i = 0; i < MAX_CHANNELS; i++) {
+            if (searchChannel > MAX_CHANNELS) {
+                searchChannel = 1; // Wrap around to beginning
+            }
+            
+            if (isChannelInUse(searchChannel)) {
+                return searchChannel;
+            }
+            
+            searchChannel = static_cast<uint16_t>(searchChannel + 1);
+        }
+        
+        // If no channels are in use, return channel 1
+        return 1;
+    }
+
+    /**
+     * Get the previous channel in use
+     * @param currentChannel Current channel number
+     * @return Previous channel number in use, or last channel in use if at beginning
+     */
+    uint16_t getPreviousChannel(uint16_t currentChannel) {
+        if (currentChannel < 1 || currentChannel > MAX_CHANNELS) {
+            currentChannel = MAX_CHANNELS;
+        }
+
+        // Start searching from the previous channel
+        uint16_t searchChannel = static_cast<uint16_t>(currentChannel - 1);
+        
+        // Search backward from current position
+        for (uint16_t i = 0; i < MAX_CHANNELS; i++) {
+            if (searchChannel < 1) {
+                searchChannel = MAX_CHANNELS; // Wrap around to end
+            }
+            
+            if (isChannelInUse(searchChannel)) {
+                return searchChannel;
+            }
+            
+            searchChannel = static_cast<uint16_t>(searchChannel - 1);
+        }
+        
+        // If no channels are in use, return channel 1
+        return 1;
+    }
+
+    /**
+     * Get the first channel in use
+     * @return First channel number in use, or 1 if no channels are in use
+     */
+    uint16_t getFirstChannel() {
+        for (uint16_t i = 1; i <= MAX_CHANNELS; i++) {
+            if (isChannelInUse(i)) {
+                return i;
+            }
+        }
+        return 1; // Default to channel 1 if none are in use
+    }
+
+    /**
+     * Get the last channel in use
+     * @return Last channel number in use, or MAX_CHANNELS if no channels are in use
+     */
+    uint16_t getLastChannel() {
+        for (uint16_t i = MAX_CHANNELS; i >= 1; i--) {
+            if (isChannelInUse(i)) {
+                return i;
+            }
+        }
+        return MAX_CHANNELS; // Default to last channel if none are in use
+    }
+
+    /**
+     * Clear/erase a channel (set name to empty)
+     * @param channelNumber Channel number to clear
+     * @return true if successful, false if channel number is invalid
+     */
+    bool clearChannel(uint16_t channelNumber) {
+        if (channelNumber < 1 || channelNumber > MAX_CHANNELS) {
+            return false;
+        }
+        
+        VFO emptyChannel = {};
+        memset(&emptyChannel, 0, sizeof(VFO));
+        return writeChannel(channelNumber, emptyChannel);
+    }
+
+    /**
+     * Get total number of channels in use
+     * @return Number of channels that have non-empty names
+     */
+    uint16_t getChannelsInUseCount() {
+        uint16_t count = 0;
+        for (uint16_t i = 1; i <= MAX_CHANNELS; i++) {
+            if (isChannelInUse(i)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    /**
+     * Copy current VFO settings to a channel
+     * @param channelNumber Channel number to save to
+     * @param vfoIndex VFO index (0 for VFOA, 1 for VFOB)
+     * @return true if successful, false if invalid parameters
+     */
+    bool saveVFOToChannel(uint16_t channelNumber, uint8_t vfoIndex) {
+        if (channelNumber < 1 || channelNumber > MAX_CHANNELS || vfoIndex > 1) {
+            return false;
+        }
+        
+        VFO channelData = radioSettings.vfo[vfoIndex];
+        channelData.channel = channelNumber;
+        
+        return writeChannel(channelNumber, channelData);
+    }
+
+    /**
+     * Load channel settings to current VFO
+     * @param channelNumber Channel number to load from
+     * @param vfoIndex VFO index (0 for VFOA, 1 for VFOB)
+     * @return true if successful, false if invalid parameters or channel not in use
+     */
+    bool loadChannelToVFO(uint16_t channelNumber, uint8_t vfoIndex) {
+        if (channelNumber < 1 || channelNumber > MAX_CHANNELS || vfoIndex > 1) {
+            return false;
+        }
+        
+        if (!isChannelInUse(channelNumber)) {
+            return false;
+        }
+        
+        VFO channelData;
+        if (readChannel(channelNumber, channelData)) {
+            radioSettings.vfo[vfoIndex] = channelData;
+            radioSettings.memory[vfoIndex] = channelNumber;
+            radioSettings.showVFO[vfoIndex] = ONOFF::OFF; // Show memory, not VFO
+            return true;
+        }
+        
+        return false;
     }
 
 private:
@@ -366,5 +620,11 @@ private:
 
     bool memorySavePending = false;        // Placeholder for channel memory save
     uint8_t memorySaveDelay = 0;           // Placeholder counter
+    uint16_t pendingMemoryChannel = 0;     // Channel number to save
+    uint8_t pendingMemoryVFO = 0;          // VFO index to save (0 or 1)
+
+    static constexpr uint16_t CHANNEL_START_ADDRESS = 0x0050;
+    static constexpr uint16_t MAX_CHANNELS = 230;
+    static constexpr uint16_t CHANNEL_SIZE = sizeof(VFO); // 32 bytes
 
 };

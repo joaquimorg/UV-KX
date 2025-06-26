@@ -45,7 +45,29 @@ void Settings::applyRadioSettings()
 
 
 void Settings::scheduleSaveIfNeeded() {
+    // Check if radio settings have changed
     if (memcmp(&radioSettings, &lastSavedRadioSettings, sizeof(SETTINGS)) != 0) {
+        systask.pushMessage(System::SystemTask::SystemMSG::MSG_SAVESETTINGS, 0);
+    }
+}
+
+
+void Settings::scheduleMemorySaveIfNeeded(uint16_t channelNumber, uint8_t vfoIndex) {
+    if (channelNumber < 1 || channelNumber > MAX_CHANNELS || vfoIndex > 1) {
+        return;
+    }
+    
+    // Read current channel data from EEPROM
+    VFO currentChannelData;
+    bool channelExists = readChannel(channelNumber, currentChannelData);
+    
+    // If channel doesn't exist or VFO data has changed, schedule save
+    if (!channelExists || memcmp(&radioSettings.vfo[vfoIndex], &currentChannelData, sizeof(VFO)) != 0) {
+        // Store the channel and VFO to save
+        pendingMemoryChannel = channelNumber;
+        pendingMemoryVFO = vfoIndex;
+        memorySavePending = true;
+        memorySaveDelay = saveDelayTicks;
         systask.pushMessage(System::SystemTask::SystemMSG::MSG_SAVESETTINGS, 0);
     }
 }
