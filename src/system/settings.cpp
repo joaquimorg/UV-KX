@@ -39,8 +39,8 @@ void Settings::applyRadioSettings()
         break;
     }
     systask.setBacklightTimeout(timeout);
-    systask.setLCDContrast((uint8_t)(100 + (radioSettings.lcdContrast * 10)));
-    systask.setBacklightLevel(radioSettings.backlightLevel);
+    //systask.setLCDContrast((uint8_t)(100 + (radioSettings.lcdContrast * 10)));
+    //systask.setBacklightLevel(radioSettings.backlightLevel);
 }
 
 

@@ -11,6 +11,7 @@ void MainVFO::drawScreen(void) {
 
     Settings::VFOAB activeVFO1 = radio.getCurrentVFO();
     Settings::VFOAB activeVFO2 = activeVFO1 == Settings::VFOAB::VFOA ? Settings::VFOAB::VFOB : Settings::VFOAB::VFOA;
+    auto& settings = systask.getSettings();
 
     Settings::VFO vfo1 = radio.getVFO(activeVFO1);
     Settings::VFO vfo2 = radio.getVFO(activeVFO2);
@@ -58,7 +59,17 @@ void MainVFO::drawScreen(void) {
 
     ui.setFont(Font::FONT_8_TR);
     ui.lcd()->setColorIndex(BLACK);
-    ui.drawString(TextAlign::LEFT, 0, 0, 22, true, false, false, ui.VFOStr);
+    bool activeMemoryMode = settings.radioSettings.showVFO[(uint8_t)activeVFO1] == Settings::ONOFF::OFF;
+    char modeLabel[12] = {};
+    const char* labelText = ui.VFOStr;
+    if (activeMemoryMode) {
+        uint16_t mem = settings.radioSettings.memory[(uint8_t)activeVFO1];
+        if (mem >= 1 && mem <= Settings::MAX_CHANNELS) {
+            snprintf(modeLabel, sizeof(modeLabel), "CH-%03u", mem);
+            labelText = modeLabel;
+        }
+    }
+    ui.drawString(TextAlign::LEFT, 0, 0, 22, true, false, false, labelText);
 
     //ui.lcd()->setColorIndex(BLACK);
     //ui.lcd()->drawLine(5, 9, 5, 25);
@@ -77,6 +88,11 @@ void MainVFO::drawScreen(void) {
     }
     else {
         ui.drawFrequencyBig(rxVFO1, vfo1.rx.frequency, 111, 19);
+    }
+
+    if (activeMemoryMode && channelEntryActive && channelEntryValue > 0) {
+        ui.setFont(Font::FONT_5_TR);
+        ui.drawStringf(TextAlign::RIGHT, 0, 127, 14, true, true, false, "CH-%03u*", channelEntryValue);
     }
 
     uint8_t vfoBY = 28;
@@ -273,60 +289,181 @@ void MainVFO::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
         }
         else {
 
-            if (keyCode == Keyboard::KeyCode::KEY_UP) {
-                uint32_t newFrequency = vfo.rx.frequency + Settings::StepFrequencyTable[(uint8_t)vfo.step];
-                vfo.rx.frequency = (uint32_t)(newFrequency);
+            auto& settings = systask.getSettings();
+            uint8_t vfoIndex = (uint8_t)radio.getCurrentVFO();
+            bool showingVFO = settings.radioSettings.showVFO[vfoIndex] == Settings::ONOFF::ON;
 
-                radio.setVFO(radio.getCurrentVFO(), vfo);
-                radio.setupToVFO(radio.getCurrentVFO());
-                systask.getSettings().radioSettings.vfo[(uint8_t)radio.getCurrentVFO()] = vfo;
-                systask.getSettings().scheduleSaveIfNeeded();
-            }
-            else if (keyCode == Keyboard::KeyCode::KEY_DOWN) {
-                uint32_t newFrequency = vfo.rx.frequency - Settings::StepFrequencyTable[(uint8_t)vfo.step];
-                vfo.rx.frequency = (uint32_t)(newFrequency);
+            if (showingVFO) {
+                if (keyCode == Keyboard::KeyCode::KEY_UP) {
+                    uint32_t newFrequency = vfo.rx.frequency + Settings::StepFrequencyTable[(uint8_t)vfo.step];
+                    vfo.rx.frequency = (uint32_t)(newFrequency);
 
-                radio.setVFO(radio.getCurrentVFO(), vfo);
-                radio.setupToVFO(radio.getCurrentVFO());
-                systask.getSettings().radioSettings.vfo[(uint8_t)radio.getCurrentVFO()] = vfo;
-                systask.getSettings().scheduleSaveIfNeeded();
-            }
-            else if (keyCode == Keyboard::KeyCode::KEY_MENU) {
-                if (showFreqInput) {
-                    showFreqInput = false;
-                    vfo.rx.frequency = (uint32_t)(freqInput);
-                    vfo.tx.frequency = (uint32_t)(freqInput);
                     radio.setVFO(radio.getCurrentVFO(), vfo);
                     radio.setupToVFO(radio.getCurrentVFO());
-                    systask.getSettings().radioSettings.vfo[(uint8_t)radio.getCurrentVFO()] = vfo;
-                    systask.getSettings().scheduleSaveIfNeeded();
+                    settings.radioSettings.vfo[vfoIndex] = vfo;
+                    settings.scheduleSaveIfNeeded();
+                }
+                else if (keyCode == Keyboard::KeyCode::KEY_DOWN) {
+                    uint32_t newFrequency = vfo.rx.frequency - Settings::StepFrequencyTable[(uint8_t)vfo.step];
+                    vfo.rx.frequency = (uint32_t)(newFrequency);
+
+                    radio.setVFO(radio.getCurrentVFO(), vfo);
+                    radio.setupToVFO(radio.getCurrentVFO());
+                    settings.radioSettings.vfo[vfoIndex] = vfo;
+                    settings.scheduleSaveIfNeeded();
+                }
+                else if (keyCode == Keyboard::KeyCode::KEY_MENU) {
+                    if (showFreqInput) {
+                        showFreqInput = false;
+                        vfo.rx.frequency = (uint32_t)(freqInput);
+                        vfo.tx.frequency = (uint32_t)(freqInput);
+                        radio.setVFO(radio.getCurrentVFO(), vfo);
+                        radio.setupToVFO(radio.getCurrentVFO());
+                        settings.radioSettings.vfo[vfoIndex] = vfo;
+                        settings.scheduleSaveIfNeeded();
+                    }
+                    else {
+                        systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::Menu);
+                    }
+                }
+                else if (keyCode == Keyboard::KeyCode::KEY_EXIT) {
+                    if (showFreqInput) {
+                        showFreqInput = false;
+                    }
+                }
+                else if (keyCode == Keyboard::KeyCode::KEY_STAR) {
+                    if (showFreqInput && freqInput > 0) {
+                        freqInput /= 10;
+                    }
+                }
+                else if (keyCode >= Keyboard::KeyCode::KEY_0 && keyCode <= Keyboard::KeyCode::KEY_9) {
+                    if (!showFreqInput) {
+                        showFreqInput = true;
+                        freqInput = 0;
+                    }
+                    uint8_t number = ui.keycodeToNumber(keyCode);
+                    freqInput *= (uint32_t)(10);
+                    freqInput += (uint32_t)(number);
+                    if (freqInput >= 999999999) {
+                        showFreqInput = false;
+                    }
+                }
+            } else {
+                showFreqInput = false;
+                auto loadChannel = [&](uint16_t ch) {
+                    Settings::VFO channelData;
+                    if (settings.getChannelData(ch, channelData)) {
+                        radio.setVFO(radio.getCurrentVFO(), channelData);
+                        settings.radioSettings.vfo[vfoIndex] = channelData;
+                        settings.radioSettings.memory[vfoIndex] = ch;
+                        settings.scheduleSaveIfNeeded();
+                        channelEntryActive = false;
+                        channelEntryValue = 0;
+                        return true;
+                    }
+                    radio.playBeep(Settings::BEEPType::BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL);
+                    return false;
+                };
+
+                auto ensureChannelsAvailable = [&]() -> bool {
+                    if (settings.getChannelsInUseCount() == 0) {
+                        radio.playBeep(Settings::BEEPType::BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL);
+                        return false;
+                    }
+                    return true;
+                };
+
+                auto findNextChannel = [&](int direction, uint16_t start, uint16_t& result) -> bool {
+                    if (settings.getChannelsInUseCount() == 0) {
+                        return false;
+                    }
+                    uint16_t candidate = start;
+                    for (uint16_t i = 0; i < Settings::MAX_CHANNELS; ++i) {
+                        if (direction > 0) {
+                            candidate = (candidate % Settings::MAX_CHANNELS) + 1;
+                        } else {
+                            candidate = (candidate == 1) ? Settings::MAX_CHANNELS : candidate - 1;
+                        }
+                        if (settings.isChannelInUse(candidate)) {
+                            result = candidate;
+                            return true;
+                        }
+                    }
+                    return false;
+                };
+
+                uint16_t currentChannel = settings.radioSettings.memory[vfoIndex];
+                if (currentChannel < 1 || !settings.isChannelInUse(currentChannel)) {
+                    currentChannel = settings.getFirstChannel();
+                }
+
+                if (keyCode == Keyboard::KeyCode::KEY_UP) {
+                    if (!ensureChannelsAvailable()) {
+                        return;
+                    }
+                    channelEntryActive = false;
+                    channelEntryValue = 0;
+                    uint16_t nextChannel;
+                    if (findNextChannel(1, currentChannel, nextChannel)) {
+                        loadChannel(nextChannel);
+                    }
+                }
+                else if (keyCode == Keyboard::KeyCode::KEY_DOWN) {
+                    if (!ensureChannelsAvailable()) {
+                        return;
+                    }
+                    channelEntryActive = false;
+                    channelEntryValue = 0;
+                    uint16_t nextChannel;
+                    if (findNextChannel(-1, currentChannel, nextChannel)) {
+                        loadChannel(nextChannel);
+                    }
+                }
+                else if (keyCode >= Keyboard::KeyCode::KEY_0 && keyCode <= Keyboard::KeyCode::KEY_9) {
+                    uint8_t digit = ui.keycodeToNumber(keyCode);
+                    if (!channelEntryActive) {
+                        channelEntryValue = digit;
+                    } else {
+                        if (channelEntryValue >= 100) {
+                            channelEntryValue = channelEntryValue % 100;
+                        }
+                        channelEntryValue = static_cast<uint16_t>(channelEntryValue * 10 + digit);
+                    }
+                    if (channelEntryValue > Settings::MAX_CHANNELS) {
+                        channelEntryValue = digit;
+                    }
+                    channelEntryActive = true;
+                    if (channelEntryValue == 0) {
+                        channelEntryValue = 1;
+                    }
+                }
+                else if (keyCode == Keyboard::KeyCode::KEY_MENU) {
+                    if (channelEntryActive) {
+                        if (channelEntryValue >= 1 && channelEntryValue <= Settings::MAX_CHANNELS) {
+                            loadChannel(channelEntryValue);
+                        } else {
+                            radio.playBeep(Settings::BEEPType::BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL);
+                        }
+                    } else {
+                        systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::Menu);
+                    }
+                }
+                else if (keyCode == Keyboard::KeyCode::KEY_EXIT) {
+                    if (channelEntryActive) {
+                        channelEntryActive = false;
+                        channelEntryValue = 0;
+                    }
+                }
+                else if (keyCode == Keyboard::KeyCode::KEY_STAR) {
+                    if (channelEntryActive) {
+                        channelEntryValue /= 10;
+                        if (channelEntryValue == 0) {
+                            channelEntryActive = false;
+                        }
+                    }
                 }
                 else {
-                    systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::Menu);
-                }
-            }
-            else if (keyCode == Keyboard::KeyCode::KEY_EXIT) {
-                if (showFreqInput) {
-                    showFreqInput = false;
-                }
-            }
-            else if (keyCode == Keyboard::KeyCode::KEY_STAR) {
-                if (showFreqInput && freqInput > 0) {
-                    freqInput /= 10;
-                }
-            }
-            else if (keyCode >= Keyboard::KeyCode::KEY_0 && keyCode <= Keyboard::KeyCode::KEY_9) {
-                if (!showFreqInput) {
-                    showFreqInput = true;
-                    freqInput = 0;
-
-                }
-                uint8_t number = ui.keycodeToNumber(keyCode);
-
-                freqInput *= (uint32_t)(10);
-                freqInput += (uint32_t)(number);
-                if (freqInput >= 999999999) {
-                    showFreqInput = false;
+                    return;
                 }
             }
         }
@@ -338,7 +475,54 @@ void MainVFO::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
                 radio.changeActiveVFO();
             }
             else if (keyCode == Keyboard::KeyCode::KEY_3) {
-                // Change between VFO and Memory
+                auto& settings = systask.getSettings();
+                uint8_t vfoIndex = (uint8_t)radio.getCurrentVFO();
+                bool showingVFO = settings.radioSettings.showVFO[vfoIndex] == Settings::ONOFF::ON;
+
+                if (showingVFO) {
+                    channelEntryActive = false;
+                    channelEntryValue = 0;
+                    showFreqInput = false;
+                    freqInput = 0;
+                    uint16_t channelNumber = settings.radioSettings.memory[vfoIndex];
+                    if (channelNumber < 1 || !settings.isChannelInUse(channelNumber)) {
+                        uint16_t firstChannel = settings.getFirstChannel();
+                        if (!settings.isChannelInUse(firstChannel)) {
+                            radio.playBeep(Settings::BEEPType::BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL);
+                            return;
+                        }
+                        channelNumber = firstChannel;
+                    }
+
+                    Settings::VFO channelData;
+                    if (!settings.getChannelData(channelNumber, channelData)) {
+                        radio.playBeep(Settings::BEEPType::BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL);
+                        return;
+                    }
+
+                    vfoMemoryBackup[vfoIndex] = radio.getVFO(radio.getCurrentVFO());
+                    vfoMemoryBackupValid[vfoIndex] = true;
+
+                    radio.setVFO(radio.getCurrentVFO(), channelData);
+                    settings.radioSettings.vfo[vfoIndex] = channelData;
+                    settings.radioSettings.memory[vfoIndex] = channelNumber;
+                    settings.radioSettings.showVFO[vfoIndex] = Settings::ONOFF::OFF;
+                    settings.scheduleSaveIfNeeded();
+                }
+                else {
+                    channelEntryActive = false;
+                    channelEntryValue = 0;
+                    Settings::VFO restoreVFO = settings.radioSettings.vfo[vfoIndex];
+                    if (vfoMemoryBackupValid[vfoIndex]) {
+                        restoreVFO = vfoMemoryBackup[vfoIndex];
+                    }
+
+                    radio.setVFO(radio.getCurrentVFO(), restoreVFO);
+                    settings.radioSettings.vfo[vfoIndex] = restoreVFO;
+                    settings.radioSettings.showVFO[vfoIndex] = Settings::ONOFF::ON;
+                    settings.scheduleSaveIfNeeded();
+                    vfoMemoryBackupValid[vfoIndex] = false;
+                }
             }
             else if (keyCode == Keyboard::KeyCode::KEY_4) {
                 popupList.set((uint8_t)vfo.bw, 3, 0, Settings::bandwidthStr, ui.KHZStr);

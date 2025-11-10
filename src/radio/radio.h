@@ -44,10 +44,16 @@ namespace RadioNS
             uint8_t vfoIndex = (uint8_t)vfoab;
             radioVFO[vfoIndex] = vfo;
 
+            bool hasCustomName = radioVFO[vfoIndex].name[0] != '\0' &&
+                                 radioVFO[vfoIndex].name[0] != (char)0xFF;
+
             if (radioVFO[vfoIndex].channel > 0) {
-                snprintf(radioVFO[vfoIndex].name, sizeof(radioVFO[vfoIndex].name), "CH-%03d", radioVFO[vfoIndex].channel);
-            }
-            else {
+                if (!hasCustomName) {
+                    snprintf(radioVFO[vfoIndex].name, sizeof(radioVFO[vfoIndex].name), "CH-%03d", radioVFO[vfoIndex].channel);
+                } else {
+                    radioVFO[vfoIndex].name[sizeof(radioVFO[vfoIndex].name) - 1] = '\0';
+                }
+            } else {
                 strncpy(radioVFO[vfoIndex].name, getBandName(radioVFO[vfoIndex].rx.frequency), sizeof(radioVFO[vfoIndex].name) - 1);
                 radioVFO[vfoIndex].name[sizeof(radioVFO[vfoIndex].name) - 1] = '\0'; // Ensure null termination
             }

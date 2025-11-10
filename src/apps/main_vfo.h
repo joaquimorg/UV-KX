@@ -52,7 +52,11 @@ namespace Applications
         uint8_t blinkTimer = 0;
 
         bool blinkState = false;
-        
+
+        Settings::VFO vfoMemoryBackup[2]{};
+        bool vfoMemoryBackupValid[2] = { false, false };
+        bool channelEntryActive = false;
+        uint16_t channelEntryValue = 0;
 
         uint8_t convertRSSIToSLevel(int16_t rssi_dBm);
         int16_t convertRSSIToPlusDB(int16_t rssi_dBm);

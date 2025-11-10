@@ -25,6 +25,7 @@ namespace System {
 
 class Settings {
 public:
+    static constexpr uint16_t MAX_CHANNELS = 230;
 
     static constexpr const char* squelchStr = "OFF\n1\n2\n3\n4\n5\n6\n7\n8\n9"; ///< Squelch level options.
     static constexpr const char* codetypeStr = "NONE\nCT\nDCS\n-DCS"; ///< CTCSS/DCS code type options (-DCS for inverted DCS).
@@ -628,8 +629,31 @@ public:
             radioSettings.showVFO[vfoIndex] = ONOFF::OFF; // Show memory, not VFO
             return true;
         }
-        
+
         return false;
+    }
+
+    /**
+     * Retrieve channel information without modifying the active VFO
+     * @param channelNumber Channel number (1-230)
+     * @param channelData Destination VFO struct
+     * @return true if the channel exists and data was copied
+     */
+    bool getChannelData(uint16_t channelNumber, VFO& channelData) {
+        if (channelNumber < 1 || channelNumber > MAX_CHANNELS) {
+            return false;
+        }
+
+        if (!isChannelInUse(channelNumber)) {
+            return false;
+        }
+
+        if (!readChannel(channelNumber, channelData)) {
+            return false;
+        }
+
+        channelData.channel = channelNumber;
+        return true;
     }
 
 private:
@@ -656,7 +680,6 @@ private:
     uint8_t pendingMemoryVFO = 0;          // VFO index to save (0 or 1)
 
     static constexpr uint16_t CHANNEL_START_ADDRESS = 0x0050;
-    static constexpr uint16_t MAX_CHANNELS = 230;
     static constexpr uint16_t CHANNEL_SIZE = sizeof(VFO); // 32 bytes
 
 };
