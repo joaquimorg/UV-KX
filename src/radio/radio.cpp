@@ -68,8 +68,8 @@ void Radio::setSquelch(uint32_t f, uint8_t sql) {
 
 void Radio::setVFO(Settings::VFOAB vfo, uint32_t rx, uint32_t tx, int16_t channel, ModType modulation) {
     uint8_t vfoIndex = (uint8_t)vfo;
-    radioVFO[vfoIndex].rx.frequency = (uint32_t)(rx & 0x07FFFFFF);
-    radioVFO[vfoIndex].tx.frequency = (uint32_t)(tx & 0x07FFFFFF);
+    radioVFO[vfoIndex].rx.frequency = rx;
+    radioVFO[vfoIndex].tx.frequency = tx;
     radioVFO[vfoIndex].channel = channel;
     radioVFO[vfoIndex].squelch = 1;
     radioVFO[vfoIndex].step = Settings::Step::STEP_12_5kHz;

@@ -275,7 +275,7 @@ void MainVFO::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
 
             if (keyCode == Keyboard::KeyCode::KEY_UP) {
                 uint32_t newFrequency = vfo.rx.frequency + Settings::StepFrequencyTable[(uint8_t)vfo.step];
-                vfo.rx.frequency = (uint32_t)(newFrequency & 0x07FFFFFF);
+                vfo.rx.frequency = (uint32_t)(newFrequency);
 
                 radio.setVFO(radio.getCurrentVFO(), vfo);
                 radio.setupToVFO(radio.getCurrentVFO());
@@ -284,7 +284,7 @@ void MainVFO::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
             }
             else if (keyCode == Keyboard::KeyCode::KEY_DOWN) {
                 uint32_t newFrequency = vfo.rx.frequency - Settings::StepFrequencyTable[(uint8_t)vfo.step];
-                vfo.rx.frequency = (uint32_t)(newFrequency & 0x7FFFFFF);
+                vfo.rx.frequency = (uint32_t)(newFrequency);
 
                 radio.setVFO(radio.getCurrentVFO(), vfo);
                 radio.setupToVFO(radio.getCurrentVFO());
@@ -294,8 +294,8 @@ void MainVFO::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
             else if (keyCode == Keyboard::KeyCode::KEY_MENU) {
                 if (showFreqInput) {
                     showFreqInput = false;
-                    vfo.rx.frequency = (uint32_t)(freqInput & 0x7FFFFFF);
-                    vfo.tx.frequency = (uint32_t)(freqInput & 0x7FFFFFF);
+                    vfo.rx.frequency = (uint32_t)(freqInput);
+                    vfo.tx.frequency = (uint32_t)(freqInput);
                     radio.setVFO(radio.getCurrentVFO(), vfo);
                     radio.setupToVFO(radio.getCurrentVFO());
                     systask.getSettings().radioSettings.vfo[(uint8_t)radio.getCurrentVFO()] = vfo;
@@ -323,8 +323,8 @@ void MainVFO::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
                 }
                 uint8_t number = ui.keycodeToNumber(keyCode);
 
-                freqInput *= (uint32_t)(10 & 0x7FFFFFF);
-                freqInput += (uint32_t)(number & 0x7FFFFFF);
+                freqInput *= (uint32_t)(10);
+                freqInput += (uint32_t)(number);
                 if (freqInput >= 999999999) {
                     showFreqInput = false;
                 }
@@ -336,6 +336,9 @@ void MainVFO::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
         if (!showFreqInput && popupSelected == NONE) {
             if (keyCode == Keyboard::KeyCode::KEY_2) {
                 radio.changeActiveVFO();
+            }
+            else if (keyCode == Keyboard::KeyCode::KEY_3) {
+                // Change between VFO and Memory
             }
             else if (keyCode == Keyboard::KeyCode::KEY_4) {
                 popupList.set((uint8_t)vfo.bw, 3, 0, Settings::bandwidthStr, ui.KHZStr);

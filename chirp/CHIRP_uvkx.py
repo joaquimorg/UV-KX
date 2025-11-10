@@ -43,13 +43,13 @@ DEBUG_SHOW_MEMORY_ACTIONS = True
 
 ## #######################################################################################
 
-CHAN_MAX = 200  
+CHAN_MAX = 230  
 MEM_SIZE = 0x2000
 PROG_SIZE_V = 0x0050
 PROG_SIZE_U = 0x0140
 PROG_SIZE = 0x2000
 PROG_SIZEM = 0x1e00
-START_MEM = 0x0500
+START_MEM = 0x0050
 
 MEM_BLOCK = 0x80  # largest block of memory that we can reliably write
 
@@ -83,24 +83,126 @@ UVK5_POWER_LEVELS = [chirp_common.PowerLevel("Low",  watts=1.00),
                      chirp_common.PowerLevel("Med",  watts=2.50),
                      chirp_common.PowerLevel("High", watts=5.00)]
 
-# steps    0     1     2     3     4     5    6     7      8     9     10     11     12     13      14      15
-STEPS = [0.01, 0.05, 0.10, 0.50, 1.00, 2.50, 5.00, 6.25, 8.33, 9.00, 10.00, 12.50, 20.00, 25.00, 50.00, 100.00]
-
 ## #######################################################################################
 
-MEM_1 = """
-// -------------------0x0000
-ul16 call_channel;
-u8 max_talk_time;
-u8 tx_dev;
-u8 key_lock;
-u8 vox_switch;
-u8 vox_level;
-u8 mic_gain;
+""""
+    EEPROM Layout Overview:
+    This comment block describes how data is organized within the EEPROM.
+
+    [0x0000 - 0x004F] : Global Radio Settings (defined by SETTINGS struct, approx 80 bytes)
+    [0x0050 - 0x1D0F] : Memory Channels (e.g., 230 channels * 32 bytes/channel = 7360 bytes = 0x1CC0 bytes)
+                       (End address would be 0x0050 + 0x1CC0 - 1 = 0x1D0F)
+    [0x1D10 - 0x1DFF] : Empty / Unused space
+    [0x1E00 - ... ]   : Calibration Data
+    ...
+    [0x1FFF]          : End of a typical 8KB EEPROM (like 24C64)
 """
 
+MEM_FORMAT = """
+#seekto 0x0000;
+struct {
+    ul16 version;
+    u8 battery_type:2,
+       busy_lockout:1,
+       beep:1,
+       backlight_level:4;
+    u8 backlight_time:4,
+       mic_gain_db:4;
+    u8 lcd_contrast:4,
+       tx_timeout:4;
+    u8 battery_save:4,
+       backlight_mode:2,
+       vfo_selected:2;
+    ul16 memory[2];
+    struct {
+        ul32 rx_frequency;
+        u8   rx_code_type;
+        u8   rx_code;
+        ul32 tx_frequency;
+        u8   tx_code_type;
+        u8   tx_code;
+        char name[10];
+        ul16 channel_id;
+        u8 squelch:4,
+           step:4;
+        u8 modulation:4,
+           bandwidth:4;
+        u8 power:2,
+           shift:2,
+           repeater_ste:1,
+           ste:1,
+           compander:2;
+        u8 roger:4,
+           pttid:4;
+        u8 rxagc:6,
+           vfo_reserved_bits:2;
+        u8 reserved_bytes[3];
+    } vfo[2];
+    u8 show_vfo[2];
+    u8 settings_reserved[4];
+} settings;
 
-MEM_FORMAT = MEM_1
+#seekto 0x0050;
+struct {
+    ul32 rx_frequency;
+    u8   rx_code_type;
+    u8   rx_code;
+    ul32 tx_frequency;
+    u8   tx_code_type;
+    u8   tx_code;
+    char name[10];
+    ul16 channel_id;
+    u8 squelch:4,
+       step:4;
+    u8 modulation:4,
+       bandwidth:4;
+    u8 power:2,
+       shift:2,
+       repeater_ste:1,
+       ste:1,
+       compander:2;
+    u8 roger:4,
+       pttid:4;
+    u8 rxagc:6,
+       channel_reserved_bits:2;
+    u8 reserved_bytes[3];
+} channel[230];
+"""
+
+FREQ_UNITS = 10
+MAX_FREQ_VALUE = 0xFFFFFFFF
+STEP_TABLE_KHZ = [0.5, 1.0, 2.5, 5.0, 6.25, 10.0, 12.5, 15.0, 20.0, 25.0,
+                  50.0, 100.0, 500.0]
+
+MODE_MAP = {
+    0: "FM",
+    1: "AM",
+    2: "LSB",
+    3: "USB",
+    4: "FM",   # BYP
+    5: "FM",   # RAW
+    6: "WFM",
+    7: "FM",   # Preset
+}
+
+SHIFT_NONE = 0
+SHIFT_PLUS = 1
+SHIFT_MINUS = 2
+
+CODETYPE_NONE = 0
+CODETYPE_TONE = 1
+CODETYPE_DTCS = 2
+CODETYPE_INV_DTCS = 3
+
+BATTERY_TYPES = ["1600 mAh", "2200 mAh", "3500 mAh"]
+BACKLIGHT_TIME_OPTIONS = ["Off", "On", "5s", "10s", "15s",
+                          "20s", "30s", "1m", "2m", "4m"]
+MIC_DB_OPTIONS = ["+1.1 dB", "+4.0 dB", "+8.0 dB", "+12.0 dB", "+15.1 dB"]
+LCD_CONTRAST_OPTIONS = ["100", "110", "120", "130", "140", "150",
+                        "160", "170", "180", "190", "200"]
+TX_TIMEOUT_OPTIONS = ["30s", "1m", "2m", "4m", "6m", "8m"]
+BACKLIGHT_MODE_OPTIONS = ["Off", "TX", "RX", "TX/RX"]
+
 ## #######################################################################################
 
 def min_max_def(value, min_val, max_val, default):
@@ -438,8 +540,6 @@ class UVKxRadio(chirp_common.CloneModeRadio):
     NEEDS_COMPAT_SERIAL = False
     FIRMWARE_VERSION = ""
     _cal_start = 0x1E00  # calibration memory start address
-    _pttid_list = ["Off", "Up code", "Down code", "Up+Down code",
-                   "Apollo Quindar"]
     _steps = [2.5, 5, 6.25, 10, 12.5, 25, 8.33, 0.01, 0.05, 0.1, 0.25, 0.5, 1,
               1.25, 9, 15, 20, 30, 50, 100, 125, 200, 250, 500]
 
@@ -485,8 +585,8 @@ class UVKxRadio(chirp_common.CloneModeRadio):
         rf.valid_name_length = 10
         rf.valid_power_levels = UVK5_POWER_LEVELS
         #rf.valid_special_chans = list(SPECIALS.keys())
-        rf.valid_duplexes = ["", "-", "+", "off"]
-        rf.valid_tuning_steps = STEPS
+        rf.valid_duplexes = ["", "-", "+", "off", "split"]
+        rf.valid_tuning_steps = STEP_TABLE_KHZ
         rf.valid_tmodes = ["", "Tone", "TSQL", "DTCS", "Cross"]
         rf.valid_cross_modes = ["Tone->Tone", "Tone->DTCS", "DTCS->Tone","->Tone", "->DTCS", "DTCS->", "DTCS->DTCS"]
         rf.valid_characters = chirp_common.CHARSET_ASCII
@@ -497,11 +597,7 @@ class UVKxRadio(chirp_common.CloneModeRadio):
         # This radio supports memories 1-200 / 1-999
         rf.memory_bounds = (1, CHAN_MAX)
 
-        rf.valid_bands = []
-        #for a in BANDS:
-        #    rf.valid_bands.append(
-        #            (int(BANDS[a][0]*1000000),
-        #             int(BANDS[a][1]*1000000)))
+        rf.valid_bands = [(int(18e6), int(1300e6))]
         return rf
 # --------------------------------------------------------------------------------
     # Do a download of the radio from the serial port
@@ -526,11 +622,247 @@ class UVKxRadio(chirp_common.CloneModeRadio):
 ## #######################################################################################
 
 # --------------------------------------------------------------------------------
+    def _verify_channel_number(self, number):
+        if number < 1 or number > CHAN_MAX:
+            raise errors.InvalidMemoryLocation("Channel %s out of range" %
+                                               number)
+
+# --------------------------------------------------------------------------------
+    def _channel_struct(self, number):
+        self._verify_channel_number(number)
+        return self._memobj.channel[number-1]
+
+# --------------------------------------------------------------------------------
+    def _extract_name(self, field):
+        name = ""
+        for char in field:
+            if str(char) in ("\x00", "\xff"):
+                break
+            name += str(char)
+        return name.strip()
+
+# --------------------------------------------------------------------------------
+    def _encode_name_value(self, name):
+        clean = (name or "").strip()
+        clean = clean[:10]
+        return clean.ljust(10, "\x00")
+
+# --------------------------------------------------------------------------------
+    def _decode_freq(self, raw_value):
+        return int(raw_value) * FREQ_UNITS
+
+# --------------------------------------------------------------------------------
+    def _encode_freq(self, hz):
+        hz = int(round(hz))
+        value = int(round(hz / FREQ_UNITS))
+        value = max(0, min(MAX_FREQ_VALUE, value))
+        return value
+
+# --------------------------------------------------------------------------------
+    def _mode_from_value(self, value):
+        return MODE_MAP.get(int(value), "FM")
+
+# --------------------------------------------------------------------------------
+    def _mode_to_value(self, mode):
+        if mode is None:
+            return 0
+        mode = mode.upper()
+        if mode == "AM":
+            return 1
+        if mode == "USB":
+            return 3
+        if mode in ("LSB", "CW"):
+            return 2
+        if mode == "WFM":
+            return 6
+        return 0
+
+# --------------------------------------------------------------------------------
+    def _step_from_value(self, value):
+        if 0 <= value < len(STEP_TABLE_KHZ):
+            return STEP_TABLE_KHZ[value]
+        return STEP_TABLE_KHZ[0]
+
+# --------------------------------------------------------------------------------
+    def _step_to_index(self, step):
+        if step is None:
+            return 0
+        closest = min(range(len(STEP_TABLE_KHZ)),
+                      key=lambda idx: abs(STEP_TABLE_KHZ[idx] - step))
+        return closest
+
+# --------------------------------------------------------------------------------
+    def _power_from_value(self, value):
+        idx = int(value)
+        idx = max(0, min(len(UVK5_POWER_LEVELS) - 1, idx))
+        return UVK5_POWER_LEVELS[idx]
+
+# --------------------------------------------------------------------------------
+    def _power_to_value(self, power):
+        if not power:
+            return 0
+        for idx, level in enumerate(UVK5_POWER_LEVELS):
+            if str(level) == str(power):
+                return idx
+        return 0
+
+# --------------------------------------------------------------------------------
+    def _channel_is_empty(self, channel):
+        return int(channel.rx_frequency) == 0
+
+# --------------------------------------------------------------------------------
+    def _clear_channel(self, channel):
+        channel.rx_frequency = 0
+        channel.rx_code_type = CODETYPE_NONE
+        channel.rx_code = 0
+        channel.tx_frequency = 0
+        channel.tx_code_type = CODETYPE_NONE
+        channel.tx_code = 0
+        channel.name = "\x00" * 10
+        channel.channel_id = 0
+        channel.squelch = 0
+        channel.step = 0
+        channel.modulation = 0
+        channel.bandwidth = 0
+        channel.power = 0
+        channel.shift = SHIFT_NONE
+        channel.repeater_ste = 0
+        channel.ste = 0
+        channel.compander = 0
+        channel.roger = 0
+        channel.pttid = 0
+        channel.rxagc = 0
+
+# --------------------------------------------------------------------------------
+    def _tone_triplet(self, code_type, code_index):
+        code_type = int(code_type)
+        code_index = int(code_index)
+        if code_type == CODETYPE_TONE:
+            if 0 <= code_index < len(CTCSS_TONES):
+                return ("Tone", CTCSS_TONES[code_index], "N")
+            return ("Tone", None, "N")
+        if code_type in (CODETYPE_DTCS, CODETYPE_INV_DTCS):
+            if 0 <= code_index < len(DTCS_CODES):
+                polarity = "R" if code_type == CODETYPE_INV_DTCS else "N"
+                return ("DTCS", DTCS_CODES[code_index], polarity)
+            return ("DTCS", None, "N")
+        return ("", None, "N")
+
+# --------------------------------------------------------------------------------
+    def _decode_tones(self, mem, channel):
+        tx_triplet = self._tone_triplet(channel.tx_code_type, channel.tx_code)
+        rx_triplet = self._tone_triplet(channel.rx_code_type, channel.rx_code)
+        chirp_common.split_tone_decode(mem, tx_triplet, rx_triplet)
+
+# --------------------------------------------------------------------------------
+    def _find_ctcss_index(self, tone):
+        if tone is None:
+            return None
+        for idx, value in enumerate(CTCSS_TONES):
+            if abs(value - tone) < 0.1:
+                return idx
+        raise errors.RadioError("Unsupported CTCSS tone %.1f" % tone)
+
+# --------------------------------------------------------------------------------
+    def _find_dtcs_index(self, code):
+        if code is None:
+            return None
+        code = int(code)
+        if code in DTCS_CODES:
+            return DTCS_CODES.index(code)
+        raise errors.RadioError("Unsupported DTCS code %i" % code)
+
+# --------------------------------------------------------------------------------
+    def _set_tone(self, mem, channel):
+        ((tx_mode, tx_tone, tx_pol),
+         (rx_mode, rx_tone, rx_pol)) = chirp_common.split_tone_encode(mem)
+
+        tx_type = CODETYPE_NONE
+        tx_code = 0
+        if tx_mode == "Tone" and tx_tone is not None:
+            tx_type = CODETYPE_TONE
+            tx_code = self._find_ctcss_index(tx_tone)
+        elif tx_mode == "DTCS" and tx_tone is not None:
+            tx_type = CODETYPE_INV_DTCS if tx_pol == "R" else CODETYPE_DTCS
+            tx_code = self._find_dtcs_index(tx_tone)
+
+        rx_type = CODETYPE_NONE
+        rx_code = 0
+        if rx_mode == "Tone" and rx_tone is not None:
+            rx_type = CODETYPE_TONE
+            rx_code = self._find_ctcss_index(rx_tone)
+        elif rx_mode == "DTCS" and rx_tone is not None:
+            rx_type = CODETYPE_INV_DTCS if rx_pol == "R" else CODETYPE_DTCS
+            rx_code = self._find_dtcs_index(rx_tone)
+
+        channel.tx_code_type = tx_type
+        channel.tx_code = tx_code or 0
+        channel.rx_code_type = rx_type
+        channel.rx_code = rx_code or 0
+
+# --------------------------------------------------------------------------------
+    def _decode_duplex(self, channel, rx_hz):
+        tx_hz = self._decode_freq(channel.tx_frequency)
+        shift = int(channel.shift)
+        if tx_hz == 0:
+            return "off", 0
+        if shift == SHIFT_PLUS:
+            return "+", abs(tx_hz - rx_hz)
+        if shift == SHIFT_MINUS:
+            return "-", abs(rx_hz - tx_hz)
+        if tx_hz != rx_hz:
+            return "split", tx_hz
+        return "", 0
+
+# --------------------------------------------------------------------------------
+    def _apply_duplex(self, mem, channel, rx_units):
+        duplex = (mem.duplex or "").lower()
+        if duplex == "+":
+            offset_units = self._encode_freq(mem.offset or 0)
+            channel.tx_frequency = min(MAX_FREQ_VALUE, rx_units + offset_units)
+            channel.shift = SHIFT_PLUS
+        elif duplex == "-":
+            offset_units = self._encode_freq(mem.offset or 0)
+            channel.tx_frequency = max(0, rx_units - offset_units)
+            channel.shift = SHIFT_MINUS
+        elif duplex == "off":
+            channel.tx_frequency = 0
+            channel.shift = SHIFT_NONE
+        elif duplex == "split":
+            channel.tx_frequency = self._encode_freq(mem.offset or 0)
+            channel.shift = SHIFT_NONE
+        else:
+            channel.tx_frequency = rx_units
+            channel.shift = SHIFT_NONE
+
+
+## #######################################################################################
+
+# --------------------------------------------------------------------------------
     # Extract a high-level memory object from the low-level memory map
     # This is called to populate a memory in the UI
     def get_memory(self, number2):
 
         mem = chirp_common.Memory()
+
+        self._verify_channel_number(number2)
+        mem.number = number2
+
+        channel = self._channel_struct(number2)
+
+        if self._channel_is_empty(channel):
+            mem.empty = True
+            mem.name = ""
+            return mem
+
+        mem.empty = False
+        mem.name = self._extract_name(channel.name)
+        mem.freq = self._decode_freq(channel.rx_frequency)
+        mem.duplex, mem.offset = self._decode_duplex(channel, mem.freq)
+        mem.mode = self._mode_from_value(channel.modulation)
+        mem.tuning_step = self._step_from_value(channel.step)
+        mem.power = self._power_from_value(channel.power)
+        self._decode_tones(mem, channel)
 
         return mem
     
@@ -542,6 +874,30 @@ class UVKxRadio(chirp_common.CloneModeRadio):
     # This is called when a user edits a memory in the UI
     def set_memory(self, mem):
 
+        self._verify_channel_number(mem.number)
+        channel = self._channel_struct(mem.number)
+
+        if mem.empty:
+            self._clear_channel(channel)
+            return
+
+        if not mem.freq:
+            raise errors.RadioError("Frequency must be set")
+
+        channel.name = self._encode_name_value(mem.name)
+        channel.channel_id = mem.number
+
+        rx_units = self._encode_freq(mem.freq)
+        channel.rx_frequency = rx_units
+
+        self._apply_duplex(mem, channel, rx_units)
+
+        channel.modulation = self._mode_to_value(mem.mode)
+        channel.step = self._step_to_index(mem.tuning_step or STEP_TABLE_KHZ[0])
+        channel.power = self._power_to_value(mem.power)
+
+        self._set_tone(mem, channel)
+
         return mem
     
 
@@ -552,72 +908,145 @@ class UVKxRadio(chirp_common.CloneModeRadio):
 #--------------------------------------------------------------------------------
     def get_settings(self):
         
-        radio = RadioSettingGroup("radio", "Radio Settings")
-        vfoch = RadioSettingGroup("vfoch", "VFO / Channel Mode")
-        agc = RadioSettingGroup("agc", "RF Gain Settings")
-        calibration = RadioSettingGroup(
-            "calibration",
-            _("***Calibration,Don't touch if you don't know what to do*** "),
-        )
+        settings = self._memobj.settings
+
+        radio = RadioSettingGroup("radio", _("Radio Settings"))
+        display = RadioSettingGroup("display", _("Display"))
         roinfo = RadioSettingGroup("roinfo", _("Driver information"))
 
+        battery_index = min(len(BATTERY_TYPES) - 1, int(settings.battery_type))
+        tx_timeout_index = min(len(TX_TIMEOUT_OPTIONS) - 1,
+                               int(settings.tx_timeout))
+        mic_index = max(0, min(len(MIC_DB_OPTIONS) - 1,
+                               int(settings.mic_gain_db) - 1))
+        backlight_time_index = min(len(BACKLIGHT_TIME_OPTIONS) - 1,
+                                   int(settings.backlight_time))
+        backlight_mode_index = min(len(BACKLIGHT_MODE_OPTIONS) - 1,
+                                   int(settings.backlight_mode))
+        contrast_index = min(len(LCD_CONTRAST_OPTIONS) - 1,
+                             int(settings.lcd_contrast))
+
         radio.append(
             RadioSetting(
-                "call_channel",
-                _("Call Channel"),
-                RadioSettingValueInteger(1, CHAN_MAX, int(self._memobj.call_channel)),
+                "battery_type",
+                _("Battery Type"),
+                RadioSettingValueList(BATTERY_TYPES,
+                                      current_index=battery_index),
             )
         )
 
         radio.append(
             RadioSetting(
-                "max_talk_time",
-                _("Max Talk Time"),
-                RadioSettingValueInteger(0, 255, int(self._memobj.max_talk_time)),
+                "busy_lockout",
+                _("Busy Lockout"),
+                RadioSettingValueBoolean(bool(settings.busy_lockout)),
             )
         )
 
         radio.append(
             RadioSetting(
-                "tx_dev",
-                _("TX Deviation"),
-                RadioSettingValueInteger(0, 255, int(self._memobj.tx_dev)),
+                "beep",
+                _("Keypad Beep"),
+                RadioSettingValueBoolean(bool(settings.beep)),
             )
         )
 
         radio.append(
             RadioSetting(
-                "key_lock",
-                _("Key Lock"),
-                RadioSettingValueBoolean(bool(self._memobj.key_lock)),
+                "battery_save",
+                _("Battery Save"),
+                RadioSettingValueBoolean(bool(settings.battery_save)),
             )
         )
 
         radio.append(
             RadioSetting(
-                "vox_switch",
-                _("VOX"),
-                RadioSettingValueBoolean(bool(self._memobj.vox_switch)),
+                "tx_timeout",
+                _("TX Time-Out Timer"),
+                RadioSettingValueList(TX_TIMEOUT_OPTIONS,
+                                      current_index=tx_timeout_index),
             )
         )
 
         radio.append(
             RadioSetting(
-                "vox_level",
-                _("VOX Level"),
-                RadioSettingValueInteger(0, 10, int(self._memobj.vox_level)),
-            )
-        )
-
-        radio.append(
-            RadioSetting(
-                "mic_gain",
+                "mic_gain_db",
                 _("Mic Gain"),
-                RadioSettingValueInteger(0, 255, int(self._memobj.mic_gain)),
+                RadioSettingValueList(MIC_DB_OPTIONS,
+                                      current_index=mic_index),
             )
         )
 
-        top = RadioSettings(radio, vfoch, agc, calibration, roinfo)
+        display.append(
+            RadioSetting(
+                "backlight_level",
+                _("Backlight Level"),
+                RadioSettingValueInteger(0, 15, int(settings.backlight_level)),
+            )
+        )
+
+        display.append(
+            RadioSetting(
+                "backlight_time",
+                _("Backlight Time"),
+                RadioSettingValueList(BACKLIGHT_TIME_OPTIONS,
+                                      current_index=backlight_time_index),
+            )
+        )
+
+        display.append(
+            RadioSetting(
+                "backlight_mode",
+                _("Backlight Mode"),
+                RadioSettingValueList(BACKLIGHT_MODE_OPTIONS,
+                                      current_index=backlight_mode_index),
+            )
+        )
+
+        display.append(
+            RadioSetting(
+                "lcd_contrast",
+                _("LCD Contrast"),
+                RadioSettingValueList(LCD_CONTRAST_OPTIONS,
+                                      current_index=contrast_index),
+            )
+        )
+
+        display.append(
+            RadioSetting(
+                "vfo_selected",
+                _("Active VFO"),
+                RadioSettingValueList(["VFO A", "VFO B"],
+                                      current_index=min(1, int(settings.vfo_selected))),
+            )
+        )
+
+        display.append(
+            RadioSetting(
+                "show_vfo_a",
+                _("Show VFO A"),
+                RadioSettingValueBoolean(bool(settings.show_vfo[0])),
+            )
+        )
+
+        display.append(
+            RadioSetting(
+                "show_vfo_b",
+                _("Show VFO B"),
+                RadioSettingValueBoolean(bool(settings.show_vfo[1])),
+            )
+        )
+
+        version = "%04X" % int(settings.version)
+        version_setting = RadioSetting(
+            "settings_version",
+            _("Settings Version"),
+            RadioSettingValueString(4, 4, version, autopad=False),
+        )
+        version_setting.value.set_mutable(False)
+        roinfo.append(version_setting)
+
+        top = RadioSettings(radio, display, roinfo)
 
         return top
     
@@ -625,7 +1054,7 @@ class UVKxRadio(chirp_common.CloneModeRadio):
 #--------------------------------------------------------------------------------
     def set_settings(self, settings):
 
-        _mem = self._memobj
+        _mem = self._memobj.settings
 
         for element in settings:
             if not isinstance(element, RadioSetting):
@@ -633,20 +1062,31 @@ class UVKxRadio(chirp_common.CloneModeRadio):
                 continue
 
             name = element.get_name()
-            if name == "call_channel":
-                _mem.call_channel = int(element.value)
-            elif name == "max_talk_time":
-                _mem.max_talk_time = int(element.value)
-            elif name == "tx_dev":
-                _mem.tx_dev = int(element.value)
-            elif name == "key_lock":
-                _mem.key_lock = int(bool(element.value))
-            elif name == "vox_switch":
-                _mem.vox_switch = int(bool(element.value))
-            elif name == "vox_level":
-                _mem.vox_level = int(element.value)
-            elif name == "mic_gain":
-                _mem.mic_gain = int(element.value)
+            if name == "battery_type":
+                _mem.battery_type = int(element.value)
+            elif name == "busy_lockout":
+                _mem.busy_lockout = int(bool(element.value))
+            elif name == "beep":
+                _mem.beep = int(bool(element.value))
+            elif name == "battery_save":
+                _mem.battery_save = int(bool(element.value))
+            elif name == "tx_timeout":
+                _mem.tx_timeout = int(element.value)
+            elif name == "mic_gain_db":
+                _mem.mic_gain_db = int(element.value) + 1
+            elif name == "backlight_level":
+                _mem.backlight_level = int(element.value)
+            elif name == "backlight_time":
+                _mem.backlight_time = int(element.value)
+            elif name == "backlight_mode":
+                _mem.backlight_mode = int(element.value)
+            elif name == "lcd_contrast":
+                _mem.lcd_contrast = int(element.value)
+            elif name == "vfo_selected":
+                _mem.vfo_selected = int(element.value)
+            elif name == "show_vfo_a":
+                _mem.show_vfo[0] = int(bool(element.value))
+            elif name == "show_vfo_b":
+                _mem.show_vfo[1] = int(bool(element.value))
             else:
                 LOG.debug("Unknown setting: %s" % name)
-

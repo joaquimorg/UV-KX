@@ -58,8 +58,8 @@ void SystemTask::setupRadio(void) {
     if (!settings.validateSettingsVersion()) {
         settings.setRadioSettingsDefault();
 
-        radio.setVFO(Settings::VFOAB::VFOA, 44616875, 44616875, 0, ModType::MOD_FM);
-        radio.setVFO(Settings::VFOAB::VFOB, 43932500, 43932500, 0, ModType::MOD_FM);
+        //radio.setVFO(Settings::VFOAB::VFOA, 44616875, 44616875, 0, ModType::MOD_FM);
+        //radio.setVFO(Settings::VFOAB::VFOB, 43932500, 43932500, 0, ModType::MOD_FM);
 
         settings.radioSettings.vfo[(uint8_t)Settings::VFOAB::VFOA] = radio.getVFO(Settings::VFOAB::VFOA);
         settings.radioSettings.vfo[(uint8_t)Settings::VFOAB::VFOB] = radio.getVFO(Settings::VFOAB::VFOB);

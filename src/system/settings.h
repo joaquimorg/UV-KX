@@ -189,11 +189,13 @@ public:
     };
 
     struct FREQ {
-        uint32_t frequency : 27;
-        CodeType codeType : 4;
-        uint8_t  code;
-    } __attribute__((packed)); // 5 Bytes
+        uint32_t frequency;     // 32-bit frequency
+        CodeType codeType;      // Modulation code type
+        uint8_t  code;          // Tone/DCS code
+    } __attribute__((packed)); // 6 Bytes
 
+    static_assert(sizeof(FREQ) == 6, "FREQ struct size mismatch");
+    
     struct VFO {
         FREQ                    rx;             // RX Frequency
         FREQ                    tx;             // TX Frequency
@@ -211,7 +213,7 @@ public:
         uint8_t                 roger : 4;      // Roger Beep
         uint8_t                 pttid : 4;      // PTT ID
         uint8_t                 rxagc : 6;      // RX AGC Level
-        uint8_t                 reserved1[5];   // Reserved
+        uint8_t                 reserved1[3] = {0xFF};   // Reserved
     } __attribute__((packed)); // 32 Bytes
 
     static_assert(sizeof(VFO) == 32, "VFO struct size mismatch");
@@ -234,7 +236,7 @@ public:
         uint16_t        memory[2];               // Memory Number
         VFO             vfo[2];                  // VFO Settings
         ONOFF           showVFO[2];              // Show VFO or Memory
-        uint8_t         reserved1[4];            // Reserved
+        uint8_t         reserved1[4] = {0xFF};   // Reserved
     } __attribute__((packed));
 
     static_assert(sizeof(SETTINGS) == 80, "SETTINGS struct size mismatch");
@@ -268,11 +270,41 @@ public:
         radioSettings.backlightMode     = BacklightMode::BACKLIGHT_MODE_TX_RX;
         radioSettings.vfoSelected       = VFOAB::VFOA; // VFOA
 
-        radioSettings.memory[0] = 0x0001; // VFOA Memory Number
-        radioSettings.memory[1] = 0x0001; // VFOB Memory Number
+        radioSettings.memory[0] = 0x0000; // VFOA Memory Number
+        radioSettings.memory[1] = 0x0000; // VFOB Memory Number
 
         radioSettings.showVFO[0] = ONOFF::ON; // VFOA Show VFO
         radioSettings.showVFO[1] = ONOFF::ON; // VFOB Show VFO
+
+        radioSettings.vfo[0].rx.frequency = 14500000; // VFOA RX Frequency
+        radioSettings.vfo[0].rx.codeType = CodeType::NONE; // VFOA RX Code Type
+        radioSettings.vfo[0].rx.code = 0; // VFOA RX Code
+        radioSettings.vfo[0].tx.frequency = 14500000; // VFOA TX Frequency
+        radioSettings.vfo[0].tx.codeType = CodeType::NONE; // VFOA TX Code Type
+        radioSettings.vfo[0].tx.code = 0; // VFOA TX
+        radioSettings.vfo[0].name[0] = '\0'; // VFOA Name
+        radioSettings.vfo[0].channel = 0; // VFOA Channel Number
+        radioSettings.vfo[0].squelch = 0x1; // VFOA Squelch OFF
+        radioSettings.vfo[0].step = Step::STEP_5_0kHz; // VFOA Step 5.0kHz
+        radioSettings.vfo[0].modulation = ModType::MOD_FM; // VFOA Modulation FM
+        radioSettings.vfo[0].bw = BK4819_Filter_Bandwidth::BK4819_FILTER_BW_20k; // VFOA Bandwidth 20kHz
+        radioSettings.vfo[0].power = TXOutputPower::TX_POWER_LOW; // VFOA Power Low
+        radioSettings.vfo[0].shift = OffsetDirection::OFFSET_NONE; // VFOA Offset None
+
+        radioSettings.vfo[1].rx.frequency = 44000000; // VFOB RX Frequency
+        radioSettings.vfo[1].rx.codeType = CodeType::NONE; // VFOB RX Code Type
+        radioSettings.vfo[1].rx.code = 0; // VFOB RX Code
+        radioSettings.vfo[1].tx.frequency = 44000000; // VFOB TX Frequency
+        radioSettings.vfo[1].tx.codeType = CodeType::NONE; // VFOB TX Code Type
+        radioSettings.vfo[1].tx.code = 0; // VFOB TX
+        radioSettings.vfo[1].name[0] = '\0'; // VFOB Name
+        radioSettings.vfo[1].channel = 0; // VFOB Channel Number
+        radioSettings.vfo[1].squelch = 0x1; // VFOB Squelch OFF
+        radioSettings.vfo[1].step = Step::STEP_5_0kHz; // VFOB Step 5.0kHz
+        radioSettings.vfo[1].modulation = ModType::MOD_FM; // VFOB Modulation FM
+        radioSettings.vfo[1].bw = BK4819_Filter_Bandwidth::BK4819_FILTER_BW_20k; // VFOB Bandwidth 20kHz
+        radioSettings.vfo[1].power = TXOutputPower::TX_POWER_LOW; // VFOB Power Low
+        radioSettings.vfo[1].shift = OffsetDirection::OFFSET_NONE; // VFOB Offset None
 
         lastSavedRadioSettings = radioSettings;
     }

@@ -237,10 +237,10 @@ void SetVFO::setOptions() {
         break;
     case 7: // OFFSET
         if (vfo.shift == Settings::OffsetDirection::OFFSET_PLUS) {
-            vfo.tx.frequency = static_cast<unsigned int>(vfo.rx.frequency + userOptionInput) & 0x7FFFFFF;
+            vfo.tx.frequency = static_cast<unsigned int>(vfo.rx.frequency + userOptionInput);
         }
         else if (vfo.shift == Settings::OffsetDirection::OFFSET_MINUS) {
-            vfo.tx.frequency = static_cast<unsigned int>(vfo.rx.frequency - userOptionInput) & 0x7FFFFFF;
+            vfo.tx.frequency = static_cast<unsigned int>(vfo.rx.frequency - userOptionInput);
         }
         break;
     case 8: // RX CODE TYPE
