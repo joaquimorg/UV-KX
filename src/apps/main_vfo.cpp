@@ -99,6 +99,8 @@ void MainVFO::drawScreen(void) {
     ui.lcd()->setColorIndex(BLACK);
     ui.lcd()->drawBox(0, vfoBY, 128, 7);
 
+    bool activeMemoryModeVFO2 = settings.radioSettings.showVFO[(uint8_t)activeVFO2] == Settings::ONOFF::OFF;
+
     ui.setFont(Font::FONT_5_TR);
     ui.drawStringf(TextAlign::LEFT, 1, 0, vfoBY + 6, false, false, false, "%S", vfo2.name);
 
@@ -121,7 +123,15 @@ void MainVFO::drawScreen(void) {
     }
     else {
         ui.setFont(Font::FONT_8_TR);
-        ui.drawString(TextAlign::LEFT, 12, 0, vfoBY + 15, true, false, false, ui.VFOStr);
+        labelText = ui.VFOStr;
+        if (activeMemoryModeVFO2) {
+            uint16_t mem = settings.radioSettings.memory[(uint8_t)activeVFO2];
+            if (mem >= 1 && mem <= Settings::MAX_CHANNELS) {
+                snprintf(modeLabel, sizeof(modeLabel), "CH-%03u", mem);
+                labelText = modeLabel;
+            }
+        }
+        ui.drawString(TextAlign::LEFT, 12, 0, vfoBY + 15, true, false, false, labelText);        
     }
 
     ui.lcd()->setColorIndex(BLACK);
@@ -204,6 +214,8 @@ void MainVFO::init(void) {
     lastRXCounter = 0;
     blinkTimer = 0;
     blinkState = false;
+    memoryChannelCount = 0;
+    memoryChannelListValid = false;
 }
 
 void MainVFO::update(void) {
@@ -364,57 +376,47 @@ void MainVFO::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
                     return false;
                 };
 
-                auto ensureChannelsAvailable = [&]() -> bool {
-                    if (settings.getChannelsInUseCount() == 0) {
+                auto ensureMemoryListReady = [&]() -> bool {
+                    if (!ensureMemoryChannelList()) {
                         radio.playBeep(Settings::BEEPType::BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL);
                         return false;
                     }
                     return true;
                 };
 
-                auto findNextChannel = [&](int direction, uint16_t start, uint16_t& result) -> bool {
-                    if (settings.getChannelsInUseCount() == 0) {
-                        return false;
-                    }
-                    uint16_t candidate = start;
-                    for (uint16_t i = 0; i < Settings::MAX_CHANNELS; ++i) {
-                        if (direction > 0) {
-                            candidate = (candidate % Settings::MAX_CHANNELS) + 1;
-                        } else {
-                            candidate = (candidate == 1) ? Settings::MAX_CHANNELS : candidate - 1;
-                        }
-                        if (settings.isChannelInUse(candidate)) {
-                            result = candidate;
-                            return true;
+                auto getActiveMemoryChannel = [&]() -> uint16_t {
+                    uint16_t stored = settings.radioSettings.memory[vfoIndex];
+                    if (stored >= 1) {
+                        for (uint16_t i = 0; i < memoryChannelCount; ++i) {
+                            if (memoryChannelList[i] == stored) {
+                                return stored;
+                            }
                         }
                     }
-                    return false;
+                    return memoryChannelCount > 0 ? memoryChannelList[0] : 1;
                 };
 
-                uint16_t currentChannel = settings.radioSettings.memory[vfoIndex];
-                if (currentChannel < 1 || !settings.isChannelInUse(currentChannel)) {
-                    currentChannel = settings.getFirstChannel();
-                }
-
                 if (keyCode == Keyboard::KeyCode::KEY_UP) {
-                    if (!ensureChannelsAvailable()) {
+                    if (!ensureMemoryListReady()) {
                         return;
                     }
                     channelEntryActive = false;
                     channelEntryValue = 0;
                     uint16_t nextChannel;
-                    if (findNextChannel(1, currentChannel, nextChannel)) {
+                    uint16_t baseChannel = getActiveMemoryChannel();
+                    if (getNextMemoryChannel(baseChannel, 1, nextChannel)) {
                         loadChannel(nextChannel);
                     }
                 }
                 else if (keyCode == Keyboard::KeyCode::KEY_DOWN) {
-                    if (!ensureChannelsAvailable()) {
+                    if (!ensureMemoryListReady()) {
                         return;
                     }
                     channelEntryActive = false;
                     channelEntryValue = 0;
                     uint16_t nextChannel;
-                    if (findNextChannel(-1, currentChannel, nextChannel)) {
+                    uint16_t baseChannel = getActiveMemoryChannel();
+                    if (getNextMemoryChannel(baseChannel, -1, nextChannel)) {
                         loadChannel(nextChannel);
                     }
                 }
@@ -483,14 +485,24 @@ void MainVFO::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
                     channelEntryValue = 0;
                     showFreqInput = false;
                     freqInput = 0;
+                    if (!ensureMemoryChannelList()) {
+                        radio.playBeep(Settings::BEEPType::BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL);
+                        return;
+                    }
                     uint16_t channelNumber = settings.radioSettings.memory[vfoIndex];
-                    if (channelNumber < 1 || !settings.isChannelInUse(channelNumber)) {
-                        uint16_t firstChannel = settings.getFirstChannel();
-                        if (!settings.isChannelInUse(firstChannel)) {
-                            radio.playBeep(Settings::BEEPType::BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL);
-                            return;
+                    if (channelNumber < 1) {
+                        channelNumber = memoryChannelList[0];
+                    } else {
+                        bool found = false;
+                        for (uint16_t i = 0; i < memoryChannelCount; ++i) {
+                            if (memoryChannelList[i] == channelNumber) {
+                                found = true;
+                                break;
+                            }
                         }
-                        channelNumber = firstChannel;
+                        if (!found) {
+                            channelNumber = memoryChannelList[0];
+                        }
                     }
 
                     Settings::VFO channelData;
@@ -543,4 +555,47 @@ void MainVFO::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
             }
         }
     }
+}
+
+void MainVFO::refreshMemoryChannelList() {
+    auto& settings = systask.getSettings();
+    memoryChannelCount = 0;
+    for (uint16_t ch = 1; ch <= Settings::MAX_CHANNELS; ++ch) {
+        if (settings.isChannelInUse(ch)) {
+            memoryChannelList[memoryChannelCount++] = ch;
+        }
+    }
+    memoryChannelListValid = true;
+}
+
+bool MainVFO::ensureMemoryChannelList() {
+    if (!memoryChannelListValid) {
+        refreshMemoryChannelList();
+    }
+    return memoryChannelCount > 0;
+}
+
+bool MainVFO::getNextMemoryChannel(uint16_t currentChannel, int direction, uint16_t& result) {
+    if (memoryChannelCount == 0) {
+        return false;
+    }
+
+    int32_t index = -1;
+    for (uint16_t i = 0; i < memoryChannelCount; ++i) {
+        if (memoryChannelList[i] == currentChannel) {
+            index = static_cast<int32_t>(i);
+            break;
+        }
+    }
+
+    if (index == -1) {
+        index = (direction > 0) ? 0 : static_cast<int32_t>(memoryChannelCount) - 1;
+    } else if (direction > 0) {
+        index = (index + 1) % memoryChannelCount;
+    } else {
+        index = (index == 0) ? memoryChannelCount - 1 : index - 1;
+    }
+
+    result = memoryChannelList[index];
+    return true;
 }

@@ -97,7 +97,7 @@ ASMFLAGS += -mcpu=cortex-m0
 # C flags
 CCFLAGS = 
 CCFLAGS += -Wall -Werror -mcpu=cortex-m0 -fno-builtin -fshort-enums -fno-delete-null-pointer-checks -MMD -g
-CCFLAGS += -flto
+#CCFLAGS += -flto=1
 CCFLAGS += -ftree-vectorize -funroll-loops
 CCFLAGS += -Wextra -Wno-unused-function -Wno-unused-variable -Wno-unknown-pragmas 
 #-Wunused-parameter -Wconversion
@@ -109,7 +109,7 @@ CCFLAGS += -DARMCM0
 # C++ flags
 CXXFLAGS =
 CXXFLAGS += -Wall -Werror -mcpu=cortex-m0 -fno-builtin -fshort-enums -fno-delete-null-pointer-checks -MMD -g
-CXXFLAGS += -flto
+#CXXFLAGS += -flto=1
 CXXFLAGS += -ftree-vectorize -funroll-loops
 CXXFLAGS += -Wextra -Wunused-parameter -Wconversion -Wno-unknown-pragmas
 CXXFLAGS += -fno-math-errno -pipe -ffunction-sections -fdata-sections -ffast-math

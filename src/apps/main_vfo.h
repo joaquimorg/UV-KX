@@ -21,6 +21,10 @@ namespace Applications
         void action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState);
 
     private:
+        void refreshMemoryChannelList();
+        bool ensureMemoryChannelList();
+        bool getNextMemoryChannel(uint16_t currentChannel, int direction, uint16_t& result);
+
         RadioNS::Radio& radio;
 
         SelectionListPopup popupList;
@@ -57,6 +61,10 @@ namespace Applications
         bool vfoMemoryBackupValid[2] = { false, false };
         bool channelEntryActive = false;
         uint16_t channelEntryValue = 0;
+
+        uint16_t memoryChannelList[Settings::MAX_CHANNELS] = {};
+        uint16_t memoryChannelCount = 0;
+        bool memoryChannelListValid = false;
 
         uint8_t convertRSSIToSLevel(int16_t rssi_dBm);
         int16_t convertRSSIToPlusDB(int16_t rssi_dBm);
