@@ -62,14 +62,18 @@ void MainVFO::drawScreen(void) {
     bool activeMemoryMode = settings.radioSettings.showVFO[(uint8_t)activeVFO1] == Settings::ONOFF::OFF;
     char modeLabel[12] = {};
     const char* labelText = ui.VFOStr;
-    if (activeMemoryMode) {
+
+    if (activeMemoryMode && channelEntryActive && channelEntryValue > 0) {
+        snprintf(modeLabel, sizeof(modeLabel), "CH-%03u*", channelEntryValue);
+        labelText = modeLabel;
+    } else if (activeMemoryMode) {
         uint16_t mem = settings.radioSettings.memory[(uint8_t)activeVFO1];
         if (mem >= 1 && mem <= Settings::MAX_CHANNELS) {
             snprintf(modeLabel, sizeof(modeLabel), "CH-%03u", mem);
             labelText = modeLabel;
         }
     }
-    ui.drawString(TextAlign::LEFT, 0, 0, 22, true, false, false, labelText);
+    ui.drawString(TextAlign::LEFT, 0, 0, 22, true, channelEntryActive && channelEntryValue, false, labelText);
 
     //ui.lcd()->setColorIndex(BLACK);
     //ui.lcd()->drawLine(5, 9, 5, 25);
@@ -88,12 +92,7 @@ void MainVFO::drawScreen(void) {
     }
     else {
         ui.drawFrequencyBig(rxVFO1, vfo1.rx.frequency, 111, 19);
-    }
-
-    if (activeMemoryMode && channelEntryActive && channelEntryValue > 0) {
-        ui.setFont(Font::FONT_5_TR);
-        ui.drawStringf(TextAlign::RIGHT, 0, 127, 14, true, true, false, "CH-%03u*", channelEntryValue);
-    }
+    }    
 
     uint8_t vfoBY = 28;
 
