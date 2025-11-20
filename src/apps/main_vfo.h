@@ -24,6 +24,8 @@ namespace Applications
         void refreshMemoryChannelList();
         bool ensureMemoryChannelList();
         bool getNextMemoryChannel(uint16_t currentChannel, int direction, uint16_t& result);
+        uint16_t resolveActiveMemoryChannel(uint8_t vfoIndex);
+        void applyActiveVFO(const Settings::VFO& vfo);
 
         RadioNS::Radio& radio;
 

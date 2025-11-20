@@ -296,10 +296,7 @@ void MainVFO::savePopupValue(void) {
         vfo.power = (Settings::TXOutputPower)popupList.getListPos();
     }
 
-    radio.setVFO(radio.getCurrentVFO(), vfo);
-    radio.setupToVFO(radio.getCurrentVFO());
-    systask.getSettings().radioSettings.vfo[(uint8_t)radio.getCurrentVFO()] = vfo;
-    systask.getSettings().scheduleSaveIfNeeded();
+    applyActiveVFO(vfo);
 }
 
 void MainVFO::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
@@ -339,29 +336,20 @@ void MainVFO::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
                     uint32_t newFrequency = vfo.rx.frequency + Settings::StepFrequencyTable[(uint8_t)vfo.step];
                     vfo.rx.frequency = (uint32_t)(newFrequency);
 
-                    radio.setVFO(radio.getCurrentVFO(), vfo);
-                    radio.setupToVFO(radio.getCurrentVFO());
-                    settings.radioSettings.vfo[vfoIndex] = vfo;
-                    settings.scheduleSaveIfNeeded();
+                    applyActiveVFO(vfo);
                 }
                 else if (keyCode == Keyboard::KeyCode::KEY_DOWN) {
                     uint32_t newFrequency = vfo.rx.frequency - Settings::StepFrequencyTable[(uint8_t)vfo.step];
                     vfo.rx.frequency = (uint32_t)(newFrequency);
 
-                    radio.setVFO(radio.getCurrentVFO(), vfo);
-                    radio.setupToVFO(radio.getCurrentVFO());
-                    settings.radioSettings.vfo[vfoIndex] = vfo;
-                    settings.scheduleSaveIfNeeded();
+                    applyActiveVFO(vfo);
                 }
                 else if (keyCode == Keyboard::KeyCode::KEY_MENU) {
                     if (showFreqInput) {
                         showFreqInput = false;
                         vfo.rx.frequency = (uint32_t)(freqInput);
                         vfo.tx.frequency = (uint32_t)(freqInput);
-                        radio.setVFO(radio.getCurrentVFO(), vfo);
-                        radio.setupToVFO(radio.getCurrentVFO());
-                        settings.radioSettings.vfo[vfoIndex] = vfo;
-                        settings.scheduleSaveIfNeeded();
+                        applyActiveVFO(vfo);
                     }
                     else {
                         systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::Menu);
@@ -405,46 +393,28 @@ void MainVFO::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
                     return false;
                 };
 
-                auto ensureMemoryListReady = [&]() -> bool {
+                if (keyCode == Keyboard::KeyCode::KEY_UP) {
                     if (!ensureMemoryChannelList()) {
                         radio.playBeep(Settings::BEEPType::BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL);
-                        return false;
-                    }
-                    return true;
-                };
-
-                auto getActiveMemoryChannel = [&]() -> uint16_t {
-                    uint16_t stored = settings.radioSettings.memory[vfoIndex];
-                    if (stored >= 1) {
-                        for (uint16_t i = 0; i < memoryChannelCount; ++i) {
-                            if (memoryChannelList[i] == stored) {
-                                return stored;
-                            }
-                        }
-                    }
-                    return memoryChannelCount > 0 ? memoryChannelList[0] : 1;
-                };
-
-                if (keyCode == Keyboard::KeyCode::KEY_UP) {
-                    if (!ensureMemoryListReady()) {
                         return;
                     }
                     channelEntryActive = false;
                     channelEntryValue = 0;
                     uint16_t nextChannel;
-                    uint16_t baseChannel = getActiveMemoryChannel();
+                    uint16_t baseChannel = resolveActiveMemoryChannel(vfoIndex);
                     if (getNextMemoryChannel(baseChannel, 1, nextChannel)) {
                         loadChannel(nextChannel);
                     }
                 }
                 else if (keyCode == Keyboard::KeyCode::KEY_DOWN) {
-                    if (!ensureMemoryListReady()) {
+                    if (!ensureMemoryChannelList()) {
+                        radio.playBeep(Settings::BEEPType::BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL);
                         return;
                     }
                     channelEntryActive = false;
                     channelEntryValue = 0;
                     uint16_t nextChannel;
-                    uint16_t baseChannel = getActiveMemoryChannel();
+                    uint16_t baseChannel = resolveActiveMemoryChannel(vfoIndex);
                     if (getNextMemoryChannel(baseChannel, -1, nextChannel)) {
                         loadChannel(nextChannel);
                     }
@@ -518,21 +488,7 @@ void MainVFO::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
                         radio.playBeep(Settings::BEEPType::BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL);
                         return;
                     }
-                    uint16_t channelNumber = settings.radioSettings.memory[vfoIndex];
-                    if (channelNumber < 1) {
-                        channelNumber = memoryChannelList[0];
-                    } else {
-                        bool found = false;
-                        for (uint16_t i = 0; i < memoryChannelCount; ++i) {
-                            if (memoryChannelList[i] == channelNumber) {
-                                found = true;
-                                break;
-                            }
-                        }
-                        if (!found) {
-                            channelNumber = memoryChannelList[0];
-                        }
-                    }
+                    uint16_t channelNumber = resolveActiveMemoryChannel(vfoIndex);
 
                     Settings::VFO channelData;
                     if (!settings.getChannelData(channelNumber, channelData)) {
@@ -556,8 +512,7 @@ void MainVFO::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
                         restoreVFO = vfoMemoryBackup[vfoIndex];
                     }
 
-                    radio.setVFO(radio.getCurrentVFO(), restoreVFO);
-                    settings.radioSettings.vfo[vfoIndex] = restoreVFO;
+                    applyActiveVFO(restoreVFO);
                     settings.radioSettings.showVFO[vfoIndex] = Settings::ONOFF::ON;
                     settings.scheduleSaveIfNeeded();
                     vfoMemoryBackupValid[vfoIndex] = false;
@@ -626,4 +581,26 @@ bool MainVFO::getNextMemoryChannel(uint16_t currentChannel, int direction, uint1
 
     result = memoryChannelList[index];
     return true;
+}
+
+uint16_t MainVFO::resolveActiveMemoryChannel(uint8_t vfoIndex) {
+    auto& settings = systask.getSettings();
+    uint16_t stored = settings.radioSettings.memory[vfoIndex];
+    if (stored >= 1) {
+        for (uint16_t i = 0; i < memoryChannelCount; ++i) {
+            if (memoryChannelList[i] == stored) {
+                return stored;
+            }
+        }
+    }
+    return memoryChannelCount > 0 ? memoryChannelList[0] : 0;
+}
+
+void MainVFO::applyActiveVFO(const Settings::VFO& vfo) {
+    Settings::VFOAB current = radio.getCurrentVFO();
+    radio.setVFO(current, vfo);
+    radio.setupToVFO(current);
+    auto& settings = systask.getSettings();
+    settings.radioSettings.vfo[(uint8_t)current] = vfo;
+    settings.scheduleSaveIfNeeded();
 }
