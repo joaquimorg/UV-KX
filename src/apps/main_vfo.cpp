@@ -18,6 +18,8 @@ void MainVFO::drawScreen(void) {
     bool rxVFO1 = (radio.getState() == Settings::RadioState::RX_ON && activeVFO1 == radio.getRXVFO());
     bool rxVFO2 = (radio.getState() == Settings::RadioState::RX_ON && activeVFO2 == radio.getRXVFO());
 
+    bool activeMemoryMode = settings.radioSettings.showVFO[(uint8_t)activeVFO1] == Settings::ONOFF::OFF;
+
     ui.clearDisplay();
 
     ui.lcd()->setColorIndex(BLACK);
@@ -25,7 +27,14 @@ void MainVFO::drawScreen(void) {
     ui.lcd()->drawBox(0, 0, 128, 7);
 
     ui.setFont(Font::FONT_8B_TR);
-    ui.drawString(TextAlign::LEFT, 1, 0, 6, false, false, false, vfo1.name);
+    const char* displayNameVFO1 = vfo1.name;
+    if (!activeMemoryMode) {
+        const char* bandName = radio.getBandName(vfo1.rx.frequency);
+        if (bandName && bandName[0] != '\0') {
+            displayNameVFO1 = bandName;
+        }
+    }
+    ui.drawString(TextAlign::LEFT, 1, 0, 6, false, false, false, displayNameVFO1);
 
     ui.setFont(Font::FONT_5_TR);
     const char* powerA = ui.getStrValue(Settings::powerStr, (uint8_t)vfo1.power);
@@ -59,7 +68,7 @@ void MainVFO::drawScreen(void) {
 
     ui.setFont(Font::FONT_8_TR);
     ui.lcd()->setColorIndex(BLACK);
-    bool activeMemoryMode = settings.radioSettings.showVFO[(uint8_t)activeVFO1] == Settings::ONOFF::OFF;
+    
     char modeLabel[12] = {};
     const char* labelText = ui.VFOStr;
 
@@ -102,7 +111,14 @@ void MainVFO::drawScreen(void) {
     bool activeMemoryModeVFO2 = settings.radioSettings.showVFO[(uint8_t)activeVFO2] == Settings::ONOFF::OFF;
 
     ui.setFont(Font::FONT_5_TR);
-    ui.drawStringf(TextAlign::LEFT, 1, 0, vfoBY + 6, false, false, false, "%S", vfo2.name);
+    const char* displayNameVFO2 = vfo2.name;
+    if (!activeMemoryModeVFO2) {
+        const char* bandName = radio.getBandName(vfo2.rx.frequency);
+        if (bandName && bandName[0] != '\0') {
+            displayNameVFO2 = bandName;
+        }
+    }
+    ui.drawStringf(TextAlign::LEFT, 1, 0, vfoBY + 6, false, false, false, "%S", displayNameVFO2);
 
     const char* powerB = ui.getStrValue(Settings::powerStr, (uint8_t)vfo2.power);
     const char* bandwidthB = ui.getStrValue(Settings::bandwidthStr, (uint8_t)vfo2.bw);
@@ -216,6 +232,20 @@ void MainVFO::init(void) {
     blinkState = false;
     memoryChannelCount = 0;
     memoryChannelListValid = false;
+
+    auto& settings = systask.getSettings();
+    for (uint8_t index = 0; index < 2; ++index) {
+        if (settings.radioSettings.showVFO[index] == Settings::ONOFF::OFF) {
+            uint16_t channelNumber = settings.radioSettings.memory[index];
+            Settings::VFO channelData;
+            if (channelNumber >= 1 && channelNumber <= Settings::MAX_CHANNELS &&
+                settings.getChannelData(channelNumber, channelData)) {
+                radio.setVFO(static_cast<Settings::VFOAB>(index), channelData);
+            } else {
+                settings.radioSettings.showVFO[index] = Settings::ONOFF::ON;
+            }
+        }
+    }
 }
 
 void MainVFO::update(void) {
@@ -365,7 +395,6 @@ void MainVFO::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
                     Settings::VFO channelData;
                     if (settings.getChannelData(ch, channelData)) {
                         radio.setVFO(radio.getCurrentVFO(), channelData);
-                        settings.radioSettings.vfo[vfoIndex] = channelData;
                         settings.radioSettings.memory[vfoIndex] = ch;
                         settings.scheduleSaveIfNeeded();
                         channelEntryActive = false;
@@ -515,7 +544,6 @@ void MainVFO::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
                     vfoMemoryBackupValid[vfoIndex] = true;
 
                     radio.setVFO(radio.getCurrentVFO(), channelData);
-                    settings.radioSettings.vfo[vfoIndex] = channelData;
                     settings.radioSettings.memory[vfoIndex] = channelNumber;
                     settings.radioSettings.showVFO[vfoIndex] = Settings::ONOFF::OFF;
                     settings.scheduleSaveIfNeeded();
