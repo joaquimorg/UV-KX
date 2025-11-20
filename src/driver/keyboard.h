@@ -77,6 +77,8 @@ private:
     bool mKeyPtt;
     KeyState mPrevStatePtt;
     KeyCode mKeyPressed = KeyCode::KEY_INVALID;
+    KeyCode mDebounceCandidate = KeyCode::KEY_INVALID;
+    uint8_t mDebounceCounter = 0;
     KeyCode mPrevKeyPressed = KeyCode::KEY_INVALID;
     KeyState mPrevKeyState;
     bool mWasFKeyPressed;
@@ -98,4 +100,7 @@ private:
     // Helper methods
     void pushKeyMessage(KeyCode key, KeyState state);
     void resetGPIO();
+    void updateDebouncedKey(KeyCode rawKey);
+
+    static constexpr uint8_t DEBOUNCE_THRESHOLD = 2;
 };

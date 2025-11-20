@@ -5,6 +5,14 @@
 #include "sys.h"
 #include "system.h"
 
+namespace {
+    constexpr uint16_t ROW_RESET_MASK =
+        (1u << GPIOA_PIN_KEYBOARD_4) |
+        (1u << GPIOA_PIN_KEYBOARD_5) |
+        (1u << GPIOA_PIN_KEYBOARD_6) |
+        (1u << GPIOA_PIN_KEYBOARD_7);
+}
+
 const Keyboard::KeyboardRow Keyboard::KEYBOARD_LAYOUT[ROWS] = {
     // FN Row
     {
@@ -63,6 +71,8 @@ Keyboard::Keyboard(System::SystemTask& systask)
     mKeyPtt(false),
     mPrevStatePtt(KeyState::KEY_RELEASED),
     mKeyPressed(KeyCode::KEY_INVALID),
+    mDebounceCandidate(KeyCode::KEY_INVALID),
+    mDebounceCounter(0),
     mPrevKeyPressed(KeyCode::KEY_INVALID),
     mWasFKeyPressed(false)
 {
@@ -101,37 +111,37 @@ void Keyboard::readKeyboard() {
     uint16_t reg, reg2;
     uint8_t ii;
     uint8_t k;
+    KeyCode detectedKey = KeyCode::KEY_INVALID;
 
     // Handle PTT key
     mKeyPtt = !GPIO_CheckBit(&GPIOC->DATA, GPIOC_PIN_PTT);
     if (mPrevStatePtt == KeyState::KEY_PRESSED && !mKeyPtt) {
         pushKeyMessage(KeyCode::KEY_PTT, KeyState::KEY_RELEASED);
         mPrevStatePtt = KeyState::KEY_RELEASED;
+        updateDebouncedKey(KeyCode::KEY_INVALID);
         return;
     }
     else if (mPrevStatePtt == KeyState::KEY_RELEASED && mKeyPtt) {
         pushKeyMessage(KeyCode::KEY_PTT, KeyState::KEY_PRESSED);
         mPrevStatePtt = KeyState::KEY_PRESSED;
+        updateDebouncedKey(KeyCode::KEY_INVALID);
         return;
     }
     else if (mPrevStatePtt == KeyState::KEY_PRESSED && mKeyPtt) {
+        updateDebouncedKey(KeyCode::KEY_INVALID);
         return;
     }
 
     // Read matrix keyboard
 
-    mKeyPressed = KeyCode::KEY_INVALID;
     // Scan main matrix
     for (uint8_t i = 0; i < ROWS; i++) {
         // Reset rows
-        GPIOA->DATA |= (1u << GPIOA_PIN_KEYBOARD_4) |
-            (1u << GPIOA_PIN_KEYBOARD_5) |
-            (1u << GPIOA_PIN_KEYBOARD_6) |
-            (1u << GPIOA_PIN_KEYBOARD_7);
+        GPIOA->DATA |= ROW_RESET_MASK;
 
         GPIOA->DATA &= KEYBOARD_LAYOUT[i].setToZeroMask;
 
-        for (ii = 0, k = 0, reg = 0; ii < 3 && k < 8; ii++, k++) {
+        for (ii = 0, k = 0, reg = 0; ii < 3 && k < 8; ++ii, ++k) {
             delayUs(10);
             reg2 = (uint16_t)GPIOA->DATA;
             if (reg != reg2) { // noise
@@ -145,16 +155,17 @@ void Keyboard::readKeyboard() {
         for (uint8_t j = 0; j < COLS; j++) {
             const uint16_t mask = 1u << KEYBOARD_LAYOUT[i].pins[j].pin; 
             if (!(reg & mask)) {
-                mKeyPressed = KEYBOARD_LAYOUT[i].pins[j].key;
+                detectedKey = KEYBOARD_LAYOUT[i].pins[j].key;
                 break;
             }
         }
-        if (mKeyPressed != KeyCode::KEY_INVALID) {
+        if (detectedKey != KeyCode::KEY_INVALID) {
             break;
         }
     }
 
     resetGPIO();
+    updateDebouncedKey(detectedKey);
 }
 
 void Keyboard::processKeys() {
@@ -225,4 +236,21 @@ void Keyboard::resetGPIO() {
     // Reset VOICE pins
     GPIO_ClearBit(&GPIOA->DATA, GPIOA_PIN_KEYBOARD_6);
     GPIO_SetBit(&GPIOA->DATA, GPIOA_PIN_KEYBOARD_7);
+}
+
+void Keyboard::updateDebouncedKey(KeyCode rawKey) {
+    if (rawKey == mDebounceCandidate) {
+        if (mDebounceCounter < DEBOUNCE_THRESHOLD) {
+            ++mDebounceCounter;
+        }
+    } else {
+        mDebounceCandidate = rawKey;
+        mDebounceCounter = 1;
+    }
+
+    if (mDebounceCounter >= DEBOUNCE_THRESHOLD) {
+        mKeyPressed = mDebounceCandidate;
+    } else {
+        mKeyPressed = KeyCode::KEY_INVALID;
+    }
 }
