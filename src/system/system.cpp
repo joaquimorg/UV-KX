@@ -105,7 +105,8 @@ void SystemTask::statusTaskImpl() {
 
     playBeep(Settings::BEEPType::BEEP_880HZ_200MS);
 
-    /*
+    setupRadio();
+
     // Validate the EEPROM content and initialize if necessary
     if (!settings.validateSettingsVersion()) {
         pushMessage(SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::Applications::RESETINIT);
@@ -113,9 +114,9 @@ void SystemTask::statusTaskImpl() {
     else {
         // Load the Welcome application
         pushMessage(SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::Applications::Welcome);
-    } 
-    */
-    pushMessage(SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::Applications::Welcome);
+    }
+    
+    //pushMessage(SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::Applications::Welcome);
 
     xTimerStart(appTimer, 0);
     xTimerStart(runTimer, 0);
