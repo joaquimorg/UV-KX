@@ -26,7 +26,6 @@ void SystemTask::runTimerCallback(TimerHandle_t xTimer) {
     if (systemTask) {
         systemTask->runTimerImpl();
     }
-    xTimerStart(xTimer, 0);
 }
 
 void SystemTask::initSystem(void) {
@@ -79,14 +78,12 @@ void SystemTask::setupRadio(void) {
 
 void SystemTask::pushMessage(SystemMSG msg, uint32_t value) {
     SystemMessages appMSG = { msg, value, (Keyboard::KeyCode)0, (Keyboard::KeyState)0 };
-    BaseType_t xHigherPriorityTaskWoken = pdTRUE;
-    xQueueSendFromISR(systemMessageQueue, (void*)&appMSG, &xHigherPriorityTaskWoken);
+    xQueueSend(systemMessageQueue, (void*)&appMSG, 0);
 }
 
 void SystemTask::pushMessageKey(Keyboard::KeyCode key, Keyboard::KeyState state) {
     SystemMessages appMSG = { SystemMSG::MSG_KEYPRESSED, 0, key, state };
-    BaseType_t xHigherPriorityTaskWoken = pdTRUE;
-    xQueueSendFromISR(systemMessageQueue, (void*)&appMSG, &xHigherPriorityTaskWoken);
+    xQueueSend(systemMessageQueue, (void*)&appMSG, 0);
 }
 
 void SystemTask::statusTaskImpl() {
@@ -97,7 +94,7 @@ void SystemTask::statusTaskImpl() {
     battery.getReadings(); // Update battery readings
 
     appTimer = xTimerCreateStatic("app", pdMS_TO_TICKS(100), pdTRUE, this, SystemTask::appTimerCallback, &appTimerBuffer);
-    runTimer = xTimerCreateStatic("run", pdMS_TO_TICKS(500), pdFALSE, this, SystemTask::runTimerCallback, &runTimerBuffer);    
+    runTimer = xTimerCreateStatic("run", pdMS_TO_TICKS(runTimerPeriodMs), pdTRUE, this, SystemTask::runTimerCallback, &runTimerBuffer);    
 
     backlight.setBacklight(Backlight::backLightState::ON); // Turn on backlight    
 
@@ -244,7 +241,7 @@ void SystemTask::runTimerImpl(void) {
     /*if (currentApp != Applications::Applications::None) {
     }*/
 
-    if (timeoutCount > (actionTimeout * 2)) {
+    if (timeoutCount > (actionTimeout * runTimerTicksPerSecond)) {
         //timeoutCount = 0;
         pushMessage(SystemMSG::MSG_TIMEOUT, 0);
     }
@@ -254,7 +251,7 @@ void SystemTask::runTimerImpl(void) {
 
     if (!radio.isPowerSaveMode()) {
         
-        if (powerSaveCount > (powerSaveTimeout * 2)) {        
+        if (powerSaveCount > (powerSaveTimeout * runTimerTicksPerSecond)) {        
             pushMessage(SystemMSG::MSG_POWER_SAVE, 0);
         }
         else {
@@ -263,7 +260,7 @@ void SystemTask::runTimerImpl(void) {
     }
 
     if (backlight.getBacklightState() == Backlight::backLightState::ON) {
-        if (timeoutLightCount > (backlightTimeout * 2)) {
+        if (timeoutLightCount > (backlightTimeout * runTimerTicksPerSecond)) {
             //timeoutLightCount = 0;
             pushMessage(SystemMSG::MSG_BKCLIGHT, (uint32_t)Backlight::backLightState::OFF);
         }

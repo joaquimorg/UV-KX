@@ -150,6 +150,8 @@ namespace System
         uint16_t timeoutCount = 0;
         uint16_t timeoutLightCount = 0;
         uint16_t powerSaveCount = 0;
+        static constexpr uint16_t runTimerPeriodMs = 200;
+        static constexpr uint8_t runTimerTicksPerSecond = 1000 / runTimerPeriodMs;
 
         void initSystem(void);
         void showScreen(void);
