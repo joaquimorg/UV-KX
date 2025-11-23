@@ -246,6 +246,9 @@ void MainVFO::init(void) {
             }
         }
     }
+
+    // Preload the list of occupied memory channels so navigation is instant after power-on.
+    refreshMemoryChannelList();
 }
 
 void MainVFO::update(void) {

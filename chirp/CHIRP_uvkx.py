@@ -202,6 +202,7 @@ LCD_CONTRAST_OPTIONS = ["100", "110", "120", "130", "140", "150",
                         "160", "170", "180", "190", "200"]
 TX_TIMEOUT_OPTIONS = ["30s", "1m", "2m", "4m", "6m", "8m"]
 BACKLIGHT_MODE_OPTIONS = ["Off", "TX", "RX", "TX/RX"]
+BANDWIDTH_OPTIONS = ["26", "23", "20", "17", "14", "12", "10", "9", "7", "6"]
 
 ## #######################################################################################
 
@@ -859,10 +860,37 @@ class UVKxRadio(chirp_common.CloneModeRadio):
         mem.name = self._extract_name(channel.name)
         mem.freq = self._decode_freq(channel.rx_frequency)
         mem.duplex, mem.offset = self._decode_duplex(channel, mem.freq)
-        mem.mode = self._mode_from_value(channel.modulation)
-        mem.tuning_step = self._step_from_value(channel.step)
+        # The EEPROM stores modulation in the low nibble and bandwidth in the high
+        # nibble of the same byte; bitwise parses the first field into the high
+        # nibble. Swap them here to get the real values.
+        parsed_mod = int(channel.bandwidth)
+        parsed_bw = int(channel.modulation)
+
+        mem.mode = self._mode_from_value(parsed_mod)
+        # Step nibble is stored high; bitwise swaps it with squelch.
+        parsed_step = int(channel.squelch)
+        parsed_squelch = int(channel.step)
+        mem.tuning_step = self._step_from_value(parsed_step)
         mem.power = self._power_from_value(channel.power)
         self._decode_tones(mem, channel)
+
+        # Expose bandwidth in the per-memory extras so CHIRP can edit it
+        bw_index = int(min(len(BANDWIDTH_OPTIONS) - 1, max(0, parsed_bw)))
+        mem.extra = RadioSettingGroup("extra", "Extra")
+        mem.extra.append(
+            RadioSetting(
+                "bandwidth",
+                "Bandwidth (kHz)",
+                RadioSettingValueList(BANDWIDTH_OPTIONS, current_index=bw_index),
+            )
+        )
+        mem.extra.append(
+            RadioSetting(
+                "squelch",
+                "Squelch (0-9)",
+                RadioSettingValueInteger(0, 9, parsed_squelch),
+            )
+        )
 
         return mem
     
@@ -892,8 +920,35 @@ class UVKxRadio(chirp_common.CloneModeRadio):
 
         self._apply_duplex(mem, channel, rx_units)
 
-        channel.modulation = self._mode_to_value(mem.mode)
-        channel.step = self._step_to_index(mem.tuning_step or STEP_TABLE_KHZ[0])
+        desired_mod = self._mode_to_value(mem.mode)
+        bw_index = int(channel.bandwidth)
+        if mem.extra:
+            for setting in mem.extra:
+                if isinstance(setting, RadioSetting) and setting.get_name() == "bandwidth":
+                    try:
+                        bw_index = int(setting.value)
+                    except Exception:
+                        pass
+                    break
+
+        # Preserve squelch nibble (low) before overwriting fields
+        stored_squelch = int(channel.step)
+        desired_step_index = self._step_to_index(mem.tuning_step or STEP_TABLE_KHZ[0])
+        desired_squelch = stored_squelch
+        if mem.extra:
+            for setting in mem.extra:
+                if isinstance(setting, RadioSetting) and setting.get_name() == "squelch":
+                    try:
+                        desired_squelch = int(setting.value)
+                    except Exception:
+                        pass
+                    break
+
+        # Write back swapped to match EEPROM layout (modulation low nibble, bandwidth high nibble)
+        channel.modulation = min(len(BANDWIDTH_OPTIONS) - 1, max(0, bw_index))
+        channel.bandwidth = desired_mod
+        channel.squelch = desired_step_index
+        channel.step = desired_squelch
         channel.power = self._power_to_value(mem.power)
 
         self._set_tone(mem, channel)

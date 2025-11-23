@@ -219,6 +219,26 @@ public:
 
     static_assert(sizeof(VFO) == 32, "VFO struct size mismatch");
 
+    // Explicit packed representation used in EEPROM to avoid bitfield endianness issues.
+    struct PackedVFOData {
+        uint32_t rx_frequency;
+        uint8_t  rx_code_type;
+        uint8_t  rx_code;
+        uint32_t tx_frequency;
+        uint8_t  tx_code_type;
+        uint8_t  tx_code;
+        char     name[10];
+        uint16_t channel_id;
+        uint8_t  squelch_step;
+        uint8_t  modulation_bw;
+        uint8_t  power_shift_misc;
+        uint8_t  roger_pttid;
+        uint8_t  rxagc_reserved;
+        uint8_t  reserved_bytes[3];
+    } __attribute__((packed));
+
+    static_assert(sizeof(PackedVFOData) == 32, "PackedVFOData size mismatch");
+
 
     // MIC DB\nBATT SAVE\nBUSY LOCKOUT\nBCKLIGHT LEVEL\nBCKLIGHT TIME\nBCKLIGHT MODE\nLCD CONTRAST\nTX TOT\nBEEP
     struct SETTINGS {
@@ -434,9 +454,45 @@ public:
         if (channelNumber < 1 || channelNumber > MAX_CHANNELS) {
             return false;
         }
-        
+
         uint16_t address = static_cast<uint16_t>(CHANNEL_START_ADDRESS + ((channelNumber - 1) * CHANNEL_SIZE));
-        eeprom.readBuffer(address, &channel, sizeof(VFO));
+        PackedVFOData packed{};
+        eeprom.readBuffer(address, &packed, sizeof(PackedVFOData));
+
+        channel.rx.frequency = packed.rx_frequency;
+        channel.rx.codeType = static_cast<CodeType>(packed.rx_code_type);
+        channel.rx.code = packed.rx_code;
+        channel.tx.frequency = packed.tx_frequency;
+        channel.tx.codeType = static_cast<CodeType>(packed.tx_code_type);
+        channel.tx.code = packed.tx_code;
+
+        memcpy(channel.name, packed.name, sizeof(channel.name));
+        channel.name[sizeof(channel.name) - 1] = '\0';
+        if (channel.name[0] == static_cast<char>(0xFF)) {
+            channel.name[0] = '\0';
+        }
+
+        channel.channel = packed.channel_id;
+        channel.squelch = (packed.squelch_step & 0x0F);
+        channel.step = static_cast<Step>((packed.squelch_step >> 4) & 0x0F);
+        channel.modulation = static_cast<ModType>(packed.modulation_bw & 0x0F);
+        channel.bw = static_cast<BK4819_Filter_Bandwidth>((packed.modulation_bw >> 4) & 0x0F);
+
+        uint8_t powerShift = packed.power_shift_misc;
+        channel.power = static_cast<TXOutputPower>(powerShift & 0x03);
+        channel.shift = static_cast<OffsetDirection>((powerShift >> 2) & 0x03);
+        channel.repeaterSte = (powerShift & 0x10) ? ONOFF::ON : ONOFF::OFF;
+        channel.ste = (powerShift & 0x20) ? ONOFF::ON : ONOFF::OFF;
+        channel.compander = static_cast<TXRX>((powerShift >> 6) & 0x03);
+
+        uint8_t rp = packed.roger_pttid;
+        #pragma GCC diagnostic push
+        #pragma GCC diagnostic ignored "-Wconversion"
+        channel.roger = static_cast<decltype(channel.roger)>(rp & 0x0F);
+        channel.pttid = static_cast<decltype(channel.pttid)>((rp >> 4) & 0x0F);
+        #pragma GCC diagnostic pop
+        channel.rxagc = packed.rxagc_reserved & 0x3F;
+        memset(channel.reserved1, 0xFF, sizeof(channel.reserved1));
         return true;
     }
 
@@ -450,9 +506,36 @@ public:
         if (channelNumber < 1 || channelNumber > MAX_CHANNELS) {
             return false;
         }
-        
+
         uint16_t address = static_cast<uint16_t>(CHANNEL_START_ADDRESS + ((channelNumber - 1) * CHANNEL_SIZE));
-        eeprom.writeBuffer(address, &channel, sizeof(VFO));
+        PackedVFOData packed{};
+
+        packed.rx_frequency = channel.rx.frequency;
+        packed.rx_code_type = static_cast<uint8_t>(channel.rx.codeType);
+        packed.rx_code = channel.rx.code;
+        packed.tx_frequency = channel.tx.frequency;
+        packed.tx_code_type = static_cast<uint8_t>(channel.tx.codeType);
+        packed.tx_code = channel.tx.code;
+        memcpy(packed.name, channel.name, sizeof(packed.name));
+        packed.channel_id = channel.channel;
+        packed.squelch_step = static_cast<uint8_t>((channel.squelch & 0x0F) | (static_cast<uint8_t>(channel.step) << 4));
+        packed.modulation_bw = static_cast<uint8_t>((static_cast<uint8_t>(channel.modulation) & 0x0F) |
+                                                    ((static_cast<uint8_t>(channel.bw) & 0x0F) << 4));
+
+        packed.power_shift_misc = static_cast<uint8_t>(
+            (static_cast<uint8_t>(channel.power) & 0x03) |
+            ((static_cast<uint8_t>(channel.shift) & 0x03) << 2) |
+            ((channel.repeaterSte == ONOFF::ON ? 1 : 0) << 4) |
+            ((channel.ste == ONOFF::ON ? 1 : 0) << 5) |
+            ((static_cast<uint8_t>(channel.compander) & 0x03) << 6));
+
+        packed.roger_pttid = static_cast<uint8_t>((channel.roger & 0x0F) | ((channel.pttid & 0x0F) << 4));
+        packed.rxagc_reserved = static_cast<uint8_t>((channel.rxagc & 0x3F) | 0xC0); // keep reserved bits high
+        packed.reserved_bytes[0] = 0xFF;
+        packed.reserved_bytes[1] = 0xFF;
+        packed.reserved_bytes[2] = 0xFF;
+
+        eeprom.writeBuffer(address, &packed, sizeof(PackedVFOData));
         return true;
     }
 
@@ -680,6 +763,6 @@ private:
     uint8_t pendingMemoryVFO = 0;          // VFO index to save (0 or 1)
 
     static constexpr uint16_t CHANNEL_START_ADDRESS = 0x0050;
-    static constexpr uint16_t CHANNEL_SIZE = sizeof(VFO); // 32 bytes
+    static constexpr uint16_t CHANNEL_SIZE = sizeof(PackedVFOData); // 32 bytes
 
 };
