@@ -347,6 +347,15 @@ void SystemTask::loadApplication(Applications::Applications app) {
     //taskEXIT_CRITICAL();
 }
 
+void SystemTask::setPowerSaveEnabled(bool enabled) {
+    powerSaveTimeout = enabled ? 10 : 0xFFFF;
+    powerSaveCount = 0;
+
+    if (!enabled) {
+        radio.setNormalPowerMode();
+    }
+}
+
 void SystemTask::setLCDContrast(uint8_t contrast) {
     st7565.setContrast(contrast);
 }

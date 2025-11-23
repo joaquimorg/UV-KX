@@ -39,8 +39,13 @@ void Settings::applyRadioSettings()
         break;
     }
     systask.setBacklightTimeout(timeout);
-    //systask.setLCDContrast((uint8_t)(100 + (radioSettings.lcdContrast * 10)));
-    //systask.setBacklightLevel(radioSettings.backlightLevel);
+
+    // Apply brightness/contrast immediately so the user sees the change in the menu
+    systask.setBacklightLevel(radioSettings.backlightLevel);
+    systask.setLCDContrast(static_cast<uint8_t>(100 + (radioSettings.lcdContrast * 10)));
+
+    // Battery save controls the power-save timer (disable when OFF)
+    systask.setPowerSaveEnabled(radioSettings.batterySave == ONOFF::ON);
 }
 
 

@@ -85,6 +85,7 @@ namespace System
                 radio.playBeep(beep);
             }
         }
+        void setPowerSaveEnabled(bool enabled);
 
         void setLCDContrast(uint8_t contrast);
         void setBacklightTimeout(uint16_t seconds);
@@ -143,8 +144,8 @@ namespace System
         Applications::Application* currentApplication;
         Applications::Applications currentApp = Applications::Applications::None;
 
-        uint16_t actionTimeout = 5; // Timeout for action 5 seconds
-        uint16_t powerSaveTimeout = 10; // Timeout for power save 10 seconds
+        uint16_t actionTimeout = 10; // Timeout for action 10 seconds
+        uint16_t powerSaveTimeout = 30; // Timeout for power save 30 seconds
         uint16_t backlightTimeout = 30; // Timeout for backlight 30 seconds default
         uint16_t timeoutCount = 0;
         uint16_t timeoutLightCount = 0;
