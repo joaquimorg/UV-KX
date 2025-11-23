@@ -473,6 +473,9 @@ void MainVFO::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
         if (!showFreqInput && popupSelected == NONE) {
             if (keyCode == Keyboard::KeyCode::KEY_2) {
                 radio.changeActiveVFO();
+                auto& settings = systask.getSettings();
+                settings.radioSettings.vfoSelected = radio.getCurrentVFO();
+                settings.scheduleSaveIfNeeded();
             }
             else if (keyCode == Keyboard::KeyCode::KEY_3) {
                 auto& settings = systask.getSettings();

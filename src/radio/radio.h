@@ -61,11 +61,11 @@ namespace RadioNS
         };
         // get active VFO
         Settings::VFOAB getCurrentVFO(void) { return activeVFO; };
+        void setActiveVFO(Settings::VFOAB vfo);
 
         // Change Active VFO
         void changeActiveVFO(void) {
-            activeVFO = (activeVFO == Settings::VFOAB::VFOA) ? Settings::VFOAB::VFOB : Settings::VFOAB::VFOA;
-            setupToVFO(activeVFO);
+            setActiveVFO((activeVFO == Settings::VFOAB::VFOA) ? Settings::VFOAB::VFOB : Settings::VFOAB::VFOA);
         }
 
         Settings::VFOAB getRXVFO(void) { return rxVFO; };

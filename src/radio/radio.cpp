@@ -71,6 +71,12 @@ void Radio::setNormalPowerMode() {
     delayMs(5); // Give the audio path a moment to wake up
 }
 
+void Radio::setActiveVFO(Settings::VFOAB vfo) {
+    activeVFO = vfo;
+    rxVFO = vfo;
+    setupToVFO(vfo);
+}
+
 void Radio::toggleSpeaker(bool on) {
     speakerOn = on;
     if (on) {

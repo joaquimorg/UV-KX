@@ -72,7 +72,7 @@ void SystemTask::setupRadio(void) {
         radio.setVFO(Settings::VFOAB::VFOB, settings.radioSettings.vfo[(uint8_t)Settings::VFOAB::VFOB]);
     }
     
-    radio.setupToVFO(settings.radioSettings.vfoSelected);
+    radio.setActiveVFO(settings.radioSettings.vfoSelected);
     
     radio.setRadioReady(true);
 }
