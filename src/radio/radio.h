@@ -114,20 +114,11 @@ namespace RadioNS
         bool isRadioReady(void) { return radioReady; }
         void setRadioReady(bool ready) { radioReady = ready; }
         
-        void setPowerSaveMode() {
-            inPowerSaveMode = true;            
-            bk4819.setSleepMode();            
-        }
+        void setPowerSaveMode();
 
         bool isPowerSaveMode(void) { return inPowerSaveMode; }
 
-        void setNormalPowerMode() {
-            if (!inPowerSaveMode) {
-                return;
-            }
-            inPowerSaveMode = false;
-            bk4819.setNormalMode();
-        }
+        void setNormalPowerMode();
 
     private:
         System::SystemTask& systask;

@@ -143,7 +143,7 @@ namespace System
         Applications::Application* currentApplication;
         Applications::Applications currentApp = Applications::Applications::None;
 
-        uint16_t actionTimeout = 2; // Timeout for action 2 seconds
+        uint16_t actionTimeout = 5; // Timeout for action 5 seconds
         uint16_t powerSaveTimeout = 10; // Timeout for power save 10 seconds
         uint16_t backlightTimeout = 30; // Timeout for backlight 30 seconds default
         uint16_t timeoutCount = 0;

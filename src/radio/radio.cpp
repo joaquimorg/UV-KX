@@ -51,6 +51,26 @@ int16_t Radio::convertRSSIToPlusDB(int16_t rssi_dBm) {
     return 0; // Return 0 if not greater than S9
 }
 
+void Radio::setPowerSaveMode() {
+    if (inPowerSaveMode) {
+        return;
+    }
+
+    inPowerSaveMode = true;
+    toggleSpeaker(false);
+    bk4819.setSleepMode();
+}
+
+void Radio::setNormalPowerMode() {
+    if (!inPowerSaveMode) {
+        return;
+    }
+
+    bk4819.rxTurnOn();
+    inPowerSaveMode = false;
+    delayMs(5); // Give the audio path a moment to wake up
+}
+
 void Radio::toggleSpeaker(bool on) {
     speakerOn = on;
     if (on) {
@@ -139,6 +159,10 @@ void Radio::toggleRX(bool on, Settings::CodeType codeType = Settings::CodeType::
     uint8_t vfoIndex = (uint8_t)getRXVFO();
 
     if (on) {
+        if (inPowerSaveMode) {
+            setNormalPowerMode();
+        }
+
         if (state != Settings::RadioState::RX_ON) {
             bk4819.toggleGreen(true);
             toggleBK4819(true);
@@ -168,6 +192,10 @@ void Radio::toggleRX(bool on, Settings::CodeType codeType = Settings::CodeType::
 void Radio::playBeep(Settings::BEEPType beep) {
     bool isSpeakerWasOn = speakerOn;
     uint16_t toneConfig = bk4819.getToneRegister();
+
+    if (inPowerSaveMode) {
+        setNormalPowerMode();
+    }
 
     // validate Radio state
     if (state != Settings::RadioState::IDLE) {
