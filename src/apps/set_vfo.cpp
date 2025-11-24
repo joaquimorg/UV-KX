@@ -84,6 +84,10 @@ void SetVFO::timeout(void) {
     if (optionSelected == 0 && userOptionSelected == 0) {
         settings.radioSettings.vfo[(uint8_t)vfoab] = vfo;
         settings.scheduleSaveIfNeeded();
+        if (settings.radioSettings.showVFO[(uint8_t)vfoab] == Settings::ONOFF::OFF) {
+            uint16_t channelNumber = settings.radioSettings.memory[(uint8_t)vfoab];
+            settings.scheduleMemorySaveIfNeeded(channelNumber, (uint8_t)vfoab);
+        }
         systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::MainVFO);
     }
     else {
@@ -297,6 +301,10 @@ void SetVFO::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
                 if (keyState == Keyboard::KeyState::KEY_PRESSED) {
                     settings.radioSettings.vfo[(uint8_t)vfoab] = vfo;
                     settings.scheduleSaveIfNeeded();
+                    if (settings.radioSettings.showVFO[(uint8_t)vfoab] == Settings::ONOFF::OFF) {
+                        uint16_t channelNumber = settings.radioSettings.memory[(uint8_t)vfoab];
+                        settings.scheduleMemorySaveIfNeeded(channelNumber, (uint8_t)vfoab);
+                    }
                     systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::MainVFO);
                 }
                 break;
@@ -358,6 +366,10 @@ void SetVFO::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
                     userOptionSelected = 0;
                     settings.radioSettings.vfo[(uint8_t)vfoab] = vfo;
                     settings.scheduleSaveIfNeeded();
+                    if (settings.radioSettings.showVFO[(uint8_t)vfoab] == Settings::ONOFF::OFF) {
+                        uint16_t channelNumber = settings.radioSettings.memory[(uint8_t)vfoab];
+                        settings.scheduleMemorySaveIfNeeded(channelNumber, (uint8_t)vfoab);
+                    }
                 }
                 break;
             case Keyboard::KeyCode::KEY_STAR:
