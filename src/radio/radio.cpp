@@ -195,6 +195,63 @@ void Radio::toggleRX(bool on, Settings::CodeType codeType = Settings::CodeType::
     }
 }
 
+bool Radio::startTX() {
+    uint8_t vfoIndex = (uint8_t)getCurrentVFO();
+    uint32_t txFrequency = radioVFO[vfoIndex].tx.frequency ? radioVFO[vfoIndex].tx.frequency : radioVFO[vfoIndex].rx.frequency;
+    static constexpr uint16_t paTable[3] = { 0x0018, 0x0022, 0x002C }; // low, mid, high
+
+    if (!radioReady) {
+        return false;
+    }
+
+    if (!bk4819.canTransmit(txFrequency)) {
+        return false;
+    }
+
+    if (state == Settings::RadioState::TX_ON) {
+        return true;
+    }
+
+    setNormalPowerMode();
+    toggleSpeaker(false);
+    bk4819.toggleGreen(false);
+    bk4819.toggleRed(true);
+
+    uint8_t powerIndex = static_cast<uint8_t>(radioVFO[vfoIndex].power);
+    if (powerIndex >= sizeof(paTable) / sizeof(paTable[0])) {
+        powerIndex = 0;
+    }
+    bk4819.setTxPowerLevel(paTable[powerIndex]);
+
+    if (!bk4819.switchToTx(txFrequency)) {
+        bk4819.toggleRed(false);
+        return false;
+    }
+
+    state = Settings::RadioState::TX_ON;
+    return true;
+}
+
+void Radio::stopTX() {
+    if (state != Settings::RadioState::TX_ON) {
+        return;
+    }
+
+    uint8_t vfoIndex = (uint8_t)getCurrentVFO();
+    uint32_t rxFrequency = radioVFO[vfoIndex].rx.frequency;
+
+    bk4819.switchToRx(rxFrequency);
+    bk4819.toggleRed(false);
+
+    // Stay idle and keep audio muted until a real RX event occurs
+    toggleBK4819(false);
+    toggleSpeaker(false);
+    bk4819.toggleGreen(false);
+
+    state = Settings::RadioState::IDLE;
+    systask.pushMessage(System::SystemTask::SystemMSG::MSG_RADIO_IDLE, 0);
+}
+
 void Radio::playBeep(Settings::BEEPType beep) {
     bool isSpeakerWasOn = speakerOn;
     uint16_t toneConfig = bk4819.getToneRegister();

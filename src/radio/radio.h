@@ -80,6 +80,9 @@ namespace RadioNS
         void checkRadioInterrupts(void);
 
         Settings::RadioState getState() { return state; }
+        bool startTX();
+        void stopTX();
+        bool isTXActive() const { return state == Settings::RadioState::TX_ON; }
 
         uint16_t getRSSI() { return bk4819.getRSSI(); }
 

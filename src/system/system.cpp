@@ -203,6 +203,25 @@ void SystemTask::processSystemNotification(SystemMessages notification) {
 
         radio.setNormalPowerMode();
         powerSaveCount = 0;
+
+        if (key == Keyboard::KeyCode::KEY_PTT) {
+            timeoutCount = 0;
+            timeoutLightCount = 0;
+            pushMessage(SystemMSG::MSG_BKCLIGHT, (uint32_t)Backlight::backLightState::ON);
+
+            if (state == Keyboard::KeyState::KEY_PRESSED || state == Keyboard::KeyState::KEY_LONG_PRESSED || state == Keyboard::KeyState::KEY_PRESSED_WITH_F) {
+                if (!radio.startTX()) {
+                    ui.setInfoMessage(UI::InfoMessageType::TX_DISABLED);
+                } else {
+                    ui.timeOut(); // clear any stale info popups
+                }
+            } else if (state == Keyboard::KeyState::KEY_RELEASED) {
+                radio.stopTX();
+                ui.timeOut();
+            }
+            break;
+        }
+
         if (currentApp != Applications::Applications::None) {
             currentApplication->action(key, state);
         }
@@ -214,9 +233,6 @@ void SystemTask::processSystemNotification(SystemMessages notification) {
             if (key != Keyboard::KeyCode::KEY_PTT) {
                 playBeep(Settings::BEEPType::BEEP_1KHZ_60MS_OPTIONAL);
                 //pushMessage(SystemMSG::MSG_PLAY_BEEP, (uint32_t)Settings::BEEPType::BEEP_1KHZ_60MS_OPTIONAL);
-            }
-            else if ( radio.isRadioReady() ){
-                pushMessage(SystemMSG::MSG_RADIO_TX, 0);
             }
         }
         break;

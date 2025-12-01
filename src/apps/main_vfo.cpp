@@ -17,6 +17,7 @@ void MainVFO::drawScreen(void) {
     Settings::VFO vfo2 = radio.getVFO(activeVFO2);
     bool rxVFO1 = (radio.getState() == Settings::RadioState::RX_ON && activeVFO1 == radio.getRXVFO());
     bool rxVFO2 = (radio.getState() == Settings::RadioState::RX_ON && activeVFO2 == radio.getRXVFO());
+    bool txVFO1 = (radio.getState() == Settings::RadioState::TX_ON && activeVFO1 == radio.getCurrentVFO());
 
     bool activeMemoryMode = settings.radioSettings.showVFO[(uint8_t)activeVFO1] == Settings::ONOFF::OFF;
 
@@ -94,14 +95,13 @@ void MainVFO::drawScreen(void) {
 
     if (rxVFO1) {
         ui.drawString(TextAlign::LEFT, 12, 0, 14, true, true, false, ui.RXStr);
+    } else if (txVFO1) {
+        ui.drawString(TextAlign::LEFT, 12, 0, 14, true, true, false, ui.TXStr);
     }
 
-    if (showFreqInput) {
-        ui.drawFrequencyBig(true, freqInput, 111, 19);
-    }
-    else {
-        ui.drawFrequencyBig(rxVFO1, vfo1.rx.frequency, 111, 19);
-    }    
+    uint32_t displayFreqVFO1 = showFreqInput ? freqInput : (txVFO1 ? vfo1.tx.frequency : vfo1.rx.frequency);
+    bool invertFreqVFO1 = txVFO1 || rxVFO1 || showFreqInput;
+    ui.drawFrequencyBig(invertFreqVFO1, displayFreqVFO1, 111, 19);
 
     uint8_t vfoBY = 28;
 
@@ -174,6 +174,9 @@ void MainVFO::drawScreen(void) {
 
     if (radio.getState() == Settings::RadioState::RX_ON) {
         ui.drawString(TextAlign::RIGHT, 0, 108, 64, true, false, false, radio.getRXVFO() == Settings::VFOAB::VFOA ? "A" : "B");
+    }
+    else if (radio.getState() == Settings::RadioState::TX_ON) {
+        ui.drawString(TextAlign::RIGHT, 0, 108, 64, true, false, false, ui.TXStr);
     }
     else {
         ui.drawString(TextAlign::RIGHT, 0, 108, 64, true, false, false, "A/B");

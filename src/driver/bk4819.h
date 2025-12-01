@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <utility>
 
 #include "sys.h"
 #include "spi_sw_hal.h"
@@ -421,6 +422,28 @@ public:
             BK4819_REG_30_DISABLE_TX_DSP | BK4819_REG_30_ENABLE_RX_DSP);
     }
 
+    void enableTxPath(void) {
+        toggleGpioOut(BK4819_GPIO0_PIN28_RX_ENABLE, false);
+        toggleGpioOut(BK4819_GPIO1_PIN29_PA_ENABLE, true);
+
+        spi.writeRegister(BK4819_REG_37, 0x1F0F);
+        spi.writeRegister(BK4819_REG_30, 0x0000);
+        delayMs(10);
+        spi.writeRegister(
+            BK4819_REG_30,
+            BK4819_REG_30_ENABLE_VCO_CALIB | BK4819_REG_30_DISABLE_UNKNOWN |
+            BK4819_REG_30_DISABLE_RX_LINK | BK4819_REG_30_ENABLE_AF_DAC |
+            BK4819_REG_30_ENABLE_DISC_MODE | BK4819_REG_30_ENABLE_PLL_VCO |
+            BK4819_REG_30_ENABLE_PA_GAIN | BK4819_REG_30_ENABLE_MIC_ADC |
+            BK4819_REG_30_ENABLE_TX_DSP | BK4819_REG_30_DISABLE_RX_DSP);
+    }
+
+    void disableTxPath(void) {
+        toggleGpioOut(BK4819_GPIO1_PIN29_PA_ENABLE, false);
+        toggleGpioOut(BK4819_GPIO0_PIN28_RX_ENABLE, true);
+        spi.writeRegister(BK4819_REG_30, 0x0000);
+    }
+
     void setAF(BK4819_AF af) {
         spi.writeRegister(BK4819_REG_47, 0x6040 | ((int)af << 8));
         //spi.writeRegister(BK4819_REG_47, (6u << 12) | ((int)(af) << 8) | (1u << 6));
@@ -734,6 +757,41 @@ public:
         //rxTurnOn();
     }
 
+    bool canTransmit(uint32_t frequency) const {
+        return isFrequencyWithinTxBand(frequency) && isFrequencyValid(frequency);
+    }
+
+    void setTxPowerLevel(uint16_t paValue) {
+        spi.writeRegister(BK4819_REG_36, paValue);
+    }
+
+    bool switchToTx(uint32_t frequency) {
+        if (!canTransmit(frequency)) {
+            return false;
+        }
+
+        tuneTo(frequency, true);
+        enableTxPath();
+        txActive = true;
+        lastTxFrequency = frequency;
+        return true;
+    }
+
+    bool switchToRx(uint32_t frequency) {
+        if (!isFrequencyValid(frequency)) {
+            return false;
+        }
+
+        tuneTo(frequency, true);
+        disableTxPath();
+        rxTurnOn();
+        txActive = false;
+        return true;
+    }
+
+    bool isTxActive() const { return txActive; }
+    uint32_t getLastTxFrequency() const { return lastTxFrequency; }
+
 private:
 
     static constexpr uint32_t frequencyMIN = 1600000;
@@ -744,6 +802,8 @@ private:
 
     SPISoftwareInterface spi;
     uint16_t gpioOutState;
+    bool txActive = false;
+    uint32_t lastTxFrequency = 0;
 
     static constexpr uint16_t gainTable[19] = {
         0x000,
@@ -784,6 +844,10 @@ private:
     // ------------------------------------------------------------------------
 
     // Internal methods
+    static constexpr std::array<std::pair<uint32_t, uint32_t>, 2> txAllowedBands = {
+        std::make_pair(14400000U, 14800000U),  // HAM 2m
+        std::make_pair(42000000U, 45000000U)   // HAM 70cm
+    };
 
     // Method to perform a soft reset
     void softReset() {
@@ -854,6 +918,19 @@ private:
 
     uint16_t scaleFreq(const uint16_t freq) {
         return static_cast<uint16_t>((((uint32_t)freq * 1353245u) + (1u << 16)) >> 17); // with rounding
+    }
+
+    bool isFrequencyWithinTxBand(uint32_t frequency) const {
+        for (const auto& band : txAllowedBands) {
+            if (frequency >= band.first && frequency <= band.second) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    bool isFrequencyValid(uint32_t frequency) const {
+        return frequency >= frequencyMIN && frequency <= frequencyMAX;
     }
 
 };
