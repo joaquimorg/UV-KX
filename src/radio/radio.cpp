@@ -221,8 +221,6 @@ bool Radio::startTX() {
     bk4819.toggleGreen(false);
     bk4819.toggleRed(true);
 
-    applyTxCode(vfoIndex);
-
     uint8_t powerIndex = static_cast<uint8_t>(radioVFO[vfoIndex].power);
     if (powerIndex >= sizeof(paTable) / sizeof(paTable[0])) {
         powerIndex = 0;
@@ -233,6 +231,8 @@ bool Radio::startTX() {
         bk4819.toggleRed(false);
         return false;
     }
+
+    applyTxCode(vfoIndex);
 
     state = Settings::RadioState::TX_ON;
     return true;
@@ -288,15 +288,17 @@ void Radio::applyTxCode(uint8_t vfoIndex) {
 
     switch (vfo.tx.codeType) {
     case Settings::CodeType::CT:
+        bk4819.setAF(BK4819_AF::CTCO);
         bk4819.setCTCSSFrequency(Settings::CTCSSOptions[vfo.tx.code]);
         break;
     case Settings::CodeType::DCS:
     case Settings::CodeType::NDCS:
+        bk4819.setAF(BK4819_AF::CTCO);
         bk4819.setCDCSSCodeWord(DCSGetGolayCodeWord(vfo.tx.codeType, vfo.tx.code));
         break;
     default:
         bk4819.disableTones();
-        bk4819.setAF(BK4819_AF::MUTE);
+        bk4819.setAF(BK4819_AF::FM);
         break;
     }
 }
