@@ -58,11 +58,11 @@ void MainVFO::drawScreen(void) {
 
     if (vfo1.tx.codeType == Settings::CodeType::CT) {
         txCode = ui.getStrValue(ui.generateCTDCList(Settings::CTCSSOptions, 50), (uint8_t)vfo1.tx.code);
-        ui.drawStringf(TextAlign::RIGHT, 0, codeXend, 26, true, false, false, "%s %.*s%s", ui.TXStr, ui.stringLengthNL(txCode), txCode, ui.HZStr);
+        ui.drawStringf(TextAlign::RIGHT, 0, codeXend, 26, true, txVFO1, false, "%s %.*s%s", ui.TXStr, ui.stringLengthNL(txCode), txCode, ui.HZStr);
     }
     else if (vfo1.tx.codeType == Settings::CodeType::DCS || vfo1.tx.codeType == Settings::CodeType::NDCS) {
         txCode = ui.getStrValue(ui.generateCTDCList(Settings::DCSOptions, 104, false), (uint8_t)vfo1.tx.code);
-        ui.drawStringf(TextAlign::RIGHT, 0, codeXend, 26, true, false, false, "%s %.*s%s", ui.TXStr, ui.stringLengthNL(txCode), txCode, vfo1.tx.codeType == Settings::CodeType::NDCS ? "N" : "I");
+        ui.drawStringf(TextAlign::RIGHT, 0, codeXend, 26, true, txVFO1, false, "%s %.*s%s", ui.TXStr, ui.stringLengthNL(txCode), txCode, vfo1.tx.codeType == Settings::CodeType::NDCS ? "N" : "I");
     }
 
     ui.drawStringf(TextAlign::RIGHT, 0, 127, 6, false, false, false, "%.*s %.*sK %.*s", ui.stringLengthNL(modulationA), modulationA, ui.stringLengthNL(bandwidthA), bandwidthA, ui.stringLengthNL(powerA), powerA);
@@ -97,6 +97,25 @@ void MainVFO::drawScreen(void) {
         ui.drawString(TextAlign::LEFT, 12, 0, 14, true, true, false, ui.RXStr);
     } else if (txVFO1) {
         ui.drawString(TextAlign::LEFT, 12, 0, 14, true, true, false, ui.TXStr);
+        const char* txCodeLabel = nullptr;
+        switch (vfo1.tx.codeType) {
+        case Settings::CodeType::CT:
+            txCodeLabel = "CT";
+            break;
+        case Settings::CodeType::DCS:
+            txCodeLabel = "DCS";
+            break;
+        case Settings::CodeType::NDCS:
+            txCodeLabel = "DCS-N";
+            break;
+        default:
+            break;
+        }
+        if (txCodeLabel) {
+            ui.setFont(Font::FONT_5_TR);
+            ui.drawString(TextAlign::LEFT, 36, 0, 14, true, false, false, txCodeLabel);
+            ui.setFont(Font::FONT_8B_TR);
+        }
     }
 
     uint32_t displayFreqVFO1 = showFreqInput ? freqInput : (txVFO1 ? vfo1.tx.frequency : vfo1.rx.frequency);

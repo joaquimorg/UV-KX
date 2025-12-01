@@ -198,6 +198,8 @@ namespace RadioNS
             return code;
         }
 
+        void applyTxCode(uint8_t vfoIndex);
+
     };
 
 } // namespace Radio
