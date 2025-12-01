@@ -83,6 +83,7 @@ namespace RadioNS
         bool startTX();
         void stopTX();
         bool isTXActive() const { return state == Settings::RadioState::TX_ON; }
+        void sendRogerTone(uint8_t rogerSetting);
 
         uint16_t getRSSI() { return bk4819.getRSSI(); }
 

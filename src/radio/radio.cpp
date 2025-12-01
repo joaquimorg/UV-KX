@@ -240,6 +240,11 @@ void Radio::stopTX() {
     uint8_t vfoIndex = (uint8_t)getCurrentVFO();
     uint32_t rxFrequency = radioVFO[vfoIndex].rx.frequency;
 
+    uint8_t rogerSetting = radioVFO[vfoIndex].roger;
+    if (rogerSetting) {
+        sendRogerTone(rogerSetting);
+    }
+
     bk4819.switchToRx(rxFrequency);
     bk4819.toggleRed(false);
 
@@ -250,6 +255,26 @@ void Radio::stopTX() {
 
     state = Settings::RadioState::IDLE;
     systask.pushMessage(System::SystemTask::SystemMSG::MSG_RADIO_IDLE, 0);
+}
+
+void Radio::sendRogerTone(uint8_t rogerSetting) {
+    if (!bk4819.isTxActive() || rogerSetting == 0) {
+        return;
+    }
+
+    uint16_t toneHz = 1000;
+    uint16_t durationMs = 120;
+    if (rogerSetting == 2) { // MOTO TPT style
+        toneHz = 1240;
+        durationMs = 240;
+    }
+
+    bk4819.setAF(BK4819_AF::BEEP);
+    bk4819.enableTone1(96);
+    bk4819.setToneFrequency(toneHz);
+    delayMs(durationMs);
+    bk4819.disableTones();
+    bk4819.setAF(BK4819_AF::MUTE);
 }
 
 void Radio::playBeep(Settings::BEEPType beep) {

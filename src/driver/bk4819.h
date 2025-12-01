@@ -765,6 +765,17 @@ public:
         spi.writeRegister(BK4819_REG_36, paValue);
     }
 
+    void enableTone1(uint8_t gain) {
+        spi.writeRegister(
+            BK4819_REG_70,
+            BK4819_REG_70_ENABLE_TONE1 |
+            (static_cast<uint16_t>(gain) << BK4819_REG_70_SHIFT_TONE1_TUNING_GAIN));
+    }
+
+    void disableTones(void) {
+        spi.writeRegister(BK4819_REG_70, 0);
+    }
+
     bool switchToTx(uint32_t frequency) {
         if (!canTransmit(frequency)) {
             return false;
