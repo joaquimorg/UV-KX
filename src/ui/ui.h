@@ -56,12 +56,13 @@ public:
 
     uint8_t menu_pos = 1;
 
-    static constexpr const char* InfoMessageStr = "BATTERY LOW\nTX DISABLED";
+    static constexpr const char* InfoMessageStr = "BATTERY LOW\nTX DISABLED\nUART IN USE";
 
     enum class InfoMessageType : uint8_t {
         INFO_NONE = 0,
         LOW_BATTERY = 1,
-        TX_DISABLED = 2
+        TX_DISABLED = 2,
+        UART_COMM = 3
     };
 
     void clearDisplay() {
@@ -90,6 +91,10 @@ public:
 
     void setInfoMessage(InfoMessageType message) {
         infoMessage = message;
+    }
+
+    InfoMessageType getInfoMessage() const {
+        return infoMessage;
     }
 
     void setFont(Font font) {

@@ -199,6 +199,10 @@ bool Radio::startTX() {
     uint8_t vfoIndex = (uint8_t)getCurrentVFO();
     uint32_t txFrequency = radioVFO[vfoIndex].tx.frequency ? radioVFO[vfoIndex].tx.frequency : radioVFO[vfoIndex].rx.frequency;
 
+    if (systask.isUARTBusy()) {
+        return false;
+    }
+
     if (!radioReady) {
         return false;
     }

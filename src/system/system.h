@@ -90,6 +90,7 @@ namespace System
         void setLCDContrast(uint8_t contrast);
         void setBacklightTimeout(uint16_t seconds);
         void setBacklightLevel(uint8_t level);
+        bool isUARTBusy() const { return uartBusy; }
 
         // Static methods (required by FreeRTOS)
         static void runStatusTask(void* pvParameters);
@@ -152,6 +153,10 @@ namespace System
         uint16_t powerSaveCount = 0;
         static constexpr uint16_t runTimerPeriodMs = 200;
         static constexpr uint8_t runTimerTicksPerSecond = 1000 / runTimerPeriodMs;
+        bool uartBusy = false;
+        UI::InfoMessageType infoMessageBeforeUART = UI::InfoMessageType::INFO_NONE;
+        uint8_t uartIdleCycles = 0;
+        static constexpr uint8_t uartIdleCyclesToClear = 5;
 
         void initSystem(void);
         void showScreen(void);

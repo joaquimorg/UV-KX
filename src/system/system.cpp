@@ -126,11 +126,46 @@ void SystemTask::statusTaskImpl() {
             processSystemNotification(notification);
         }
 
+        bool handledUartCommand = false;
+
         taskENTER_CRITICAL();
         if (uart.isCommandAvailable()) {
+            if (!uartBusy || ui.getInfoMessage() != UI::InfoMessageType::UART_COMM) {
+                infoMessageBeforeUART = ui.getInfoMessage();
+            }
+            uartBusy = true;
+            ui.setInfoMessage(UI::InfoMessageType::UART_COMM);
             uart.handleCommand();
+            handledUartCommand = true;
+            uartIdleCycles = 0;
         }
         taskEXIT_CRITICAL();
+
+        // If we are currently busy or receiving bytes but a full command isn't ready, keep UART busy
+        if (!handledUartCommand && uart.hasPendingData()) {
+            if (!uartBusy || ui.getInfoMessage() != UI::InfoMessageType::UART_COMM) {
+                infoMessageBeforeUART = ui.getInfoMessage();
+            }
+            uartBusy = true;
+            ui.setInfoMessage(UI::InfoMessageType::UART_COMM);
+            uartIdleCycles = 0;
+        }
+
+        if (uartBusy && !handledUartCommand && !uart.hasPendingData()) {
+            if (uartIdleCycles < uartIdleCyclesToClear) {
+                uartIdleCycles++;
+            } else {
+                uartBusy = false;
+                if (ui.getInfoMessage() == UI::InfoMessageType::UART_COMM) {
+                    ui.setInfoMessage(infoMessageBeforeUART);
+                }
+                infoMessageBeforeUART = UI::InfoMessageType::INFO_NONE;
+            }
+        }
+
+        if (uartBusy) {
+            continue;
+        }
 
         radio.checkRadioInterrupts(); // Check for radio interrupts
         radio.runDualWatch(); // Run dual watch
@@ -205,6 +240,11 @@ void SystemTask::processSystemNotification(SystemMessages notification) {
         powerSaveCount = 0;
 
         if (key == Keyboard::KeyCode::KEY_PTT) {
+            if (uartBusy) {
+                ui.setInfoMessage(UI::InfoMessageType::UART_COMM);
+                break;
+            }
+
             timeoutCount = 0;
             timeoutLightCount = 0;
             pushMessage(SystemMSG::MSG_BKCLIGHT, (uint32_t)Backlight::backLightState::ON);

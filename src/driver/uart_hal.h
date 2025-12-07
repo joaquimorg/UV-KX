@@ -360,6 +360,11 @@ public:
         }
     }
 
+    bool hasPendingData() const {
+        uint16_t dmaLength = DMA_CH0->ST & 0xFFFU;
+        return writeIndex != dmaLength;
+    }
+
     bool isCommandAvailable() {
         uint16_t index;
         uint16_t tailIndex;
