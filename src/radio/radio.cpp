@@ -198,7 +198,6 @@ void Radio::toggleRX(bool on, Settings::CodeType codeType = Settings::CodeType::
 bool Radio::startTX() {
     uint8_t vfoIndex = (uint8_t)getCurrentVFO();
     uint32_t txFrequency = radioVFO[vfoIndex].tx.frequency ? radioVFO[vfoIndex].tx.frequency : radioVFO[vfoIndex].rx.frequency;
-    static constexpr uint16_t paTable[3] = { 0x0018, 0x0022, 0x002C }; // low, mid, high
 
     if (!radioReady) {
         return false;
@@ -222,10 +221,13 @@ bool Radio::startTX() {
     bk4819.toggleRed(true);
 
     uint8_t powerIndex = static_cast<uint8_t>(radioVFO[vfoIndex].power);
-    if (powerIndex >= sizeof(paTable) / sizeof(paTable[0])) {
+    if (powerIndex >= 3) {
         powerIndex = 0;
     }
-    bk4819.setTxPowerLevel(paTable[powerIndex]);
+
+    loadTxCalibrationFromEEPROM();
+    uint8_t paBias = selectBias(static_cast<Settings::TXOutputPower>(powerIndex), txFrequency);
+    bk4819.setTxPowerLevel(paBias, txFrequency);
 
     if (!bk4819.switchToTx(txFrequency)) {
         bk4819.toggleRed(false);
@@ -589,4 +591,122 @@ void Radio::checkRadioInterrupts(void) {
 
 
     }
+}
+
+void Radio::loadTxCalibrationFromEEPROM() {
+    if (txCalLoaded) {
+        return;
+    }
+
+    struct Slot {
+        uint32_t freq;
+        uint16_t addr;
+    };
+
+    // Calibration markers in EEPROM (start addresses of 16-byte blocks)
+    static constexpr Slot slots[] = {
+        { 5000000u,  0x1ED0 },  // 50 MHz
+        { 10800000u, 0x1EE0 },  // 108 MHz
+        { 13700000u, 0x1EF0 },  // 137 MHz
+        { 17400000u, 0x1F00 },  // 174 MHz
+        { 35000000u, 0x1F10 },  // 350 MHz
+        { 40000000u, 0x1F20 },  // 400 MHz
+        { 47000000u, 0x1F30 },  // 470 MHz
+    };
+
+    bool anyValid = false;
+    for (size_t i = 0; i < txCalibration.size(); ++i) {
+        uint8_t buf[9] = { 0xFF };
+        settings.getEEPROM().readBuffer(slots[i].addr, buf, sizeof(buf));
+
+        TxCalPoint pt{};
+        pt.freq = slots[i].freq;
+        pt.low = buf[0];
+        pt.mid = buf[3];
+        pt.high = buf[6];
+        pt.valid = (pt.low != 0xFF && pt.mid != 0xFF && pt.high != 0xFF);
+        txCalibration[i] = pt;
+        anyValid |= pt.valid;
+    }
+
+    txCalHasValid = anyValid;
+    txCalLoaded = true;
+}
+
+uint8_t Radio::pickBiasForLevel(const TxCalPoint& pt, Settings::TXOutputPower level) {
+    switch (level) {
+    case Settings::TXOutputPower::TX_POWER_LOW:
+        return pt.low;
+    case Settings::TXOutputPower::TX_POWER_MID:
+        return pt.mid;
+    case Settings::TXOutputPower::TX_POWER_HIGH:
+        return pt.high;
+    default:
+        return pt.low;
+    }
+}
+
+uint8_t Radio::interpolateBias(uint8_t a, uint8_t b, uint32_t fa, uint32_t fb, uint32_t f) {
+    if (fa == fb || f <= fa) {
+        return a;
+    }
+    if (f >= fb) {
+        return b;
+    }
+    int32_t delta = static_cast<int32_t>(b) - static_cast<int32_t>(a);
+    uint32_t span = fb - fa;
+    return static_cast<uint8_t>(a + (delta * static_cast<int32_t>(f - fa)) / static_cast<int32_t>(span));
+}
+
+uint8_t Radio::selectBias(Settings::TXOutputPower level, uint32_t freq) const {
+    // Fallback if no calibration present
+    if (!txCalLoaded || !txCalHasValid) {
+        return defaultPaBias[static_cast<uint8_t>(level) % 3];
+    }
+
+    const TxCalPoint* lower = nullptr;
+    const TxCalPoint* upper = nullptr;
+
+    const TxCalPoint* lastValid = nullptr;
+    for (const auto& pt : txCalibration) {
+        if (!pt.valid) {
+            continue;
+        }
+
+        if (freq <= pt.freq) {
+            upper = &pt;
+            break;
+        }
+
+        lastValid = &pt;
+    }
+
+    lower = lastValid;
+    if (!lower) {
+        // All valid points are above the frequency
+        for (const auto& pt : txCalibration) {
+            if (pt.valid) {
+                lower = &pt;
+                break;
+            }
+        }
+    }
+
+    if (!upper) {
+        // No higher point found; use the last valid as upper too
+        for (auto it = txCalibration.rbegin(); it != txCalibration.rend(); ++it) {
+            if (it->valid) {
+                upper = &(*it);
+                break;
+            }
+        }
+    }
+
+    if (!lower || !upper) {
+        return defaultPaBias[static_cast<uint8_t>(level) % 3];
+    }
+
+    uint8_t biasLow = pickBiasForLevel(*lower, level);
+    uint8_t biasHigh = pickBiasForLevel(*upper, level);
+    return interpolateBias(biasLow, biasHigh, lower->freq, upper->freq, freq);
 }

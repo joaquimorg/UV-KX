@@ -1,5 +1,7 @@
 #pragma once
 
+#include <array>
+
 #include "bk4819.h"
 #include "uart_hal.h"
 #include "misc.h"
@@ -178,6 +180,19 @@ namespace RadioNS
             {"MARINE VHF", 15600000, 17400000, 0},
         };
 
+        struct TxCalPoint {
+            uint32_t freq = 0;
+            uint8_t low = 0;
+            uint8_t mid = 0;
+            uint8_t high = 0;
+            bool valid = false;
+        };
+
+        static constexpr uint8_t defaultPaBias[3] = { 0x18, 0x22, 0x2C };
+        std::array<TxCalPoint, 7> txCalibration{};
+        bool txCalLoaded = false;
+        bool txCalHasValid = false;
+
         void toggleBK4819(bool on);
 
         uint32_t DCSCalculateGolay(uint32_t codeWord) {
@@ -199,6 +214,10 @@ namespace RadioNS
         }
 
         void applyTxCode(uint8_t vfoIndex);
+        void loadTxCalibrationFromEEPROM();
+        uint8_t selectBias(Settings::TXOutputPower level, uint32_t freq) const;
+        static uint8_t pickBiasForLevel(const TxCalPoint& pt, Settings::TXOutputPower level);
+        static uint8_t interpolateBias(uint8_t a, uint8_t b, uint32_t fa, uint32_t fb, uint32_t f);
 
     };
 

@@ -235,18 +235,16 @@ public:
         spi.writeRegister(BK4819_REG_10, 0x007A);
 
         uint8_t Lo = 0;    // 0-1 - auto, 2 - low, 3 high
-        uint8_t low = 56;  // 1dB / LSB 56
-        uint8_t high = 84; // 1dB / LSB 84
+        // Thresholds tuned to stay longer in high gain for weak signals while
+        // still backing off cleanly on strong ones.
+        uint8_t low = useDefault ? agcLowDefault : agcLowFast;    // 1dB / LSB
+        uint8_t high = useDefault ? agcHighDefault : agcHighFast; // 1dB / LSB
 
         if (useDefault) {
             spi.writeRegister(BK4819_REG_14, 0x0019);
         }
         else {
             spi.writeRegister(BK4819_REG_14, 0x0000);
-            // slow 25 45
-            // fast 15 50
-            low = 20;
-            high = 50;
         }
         spi.writeRegister(BK4819_REG_49, (Lo << 14) | (high << 7) | (low << 0));
         spi.writeRegister(BK4819_REG_7B, 0x8420);
@@ -761,8 +759,27 @@ public:
         return isFrequencyWithinTxBand(frequency) && isFrequencyValid(frequency);
     }
 
-    void setTxPowerLevel(uint16_t paValue) {
-        spi.writeRegister(BK4819_REG_36, paValue);
+    void setTxPowerLevel(const uint8_t bias, const uint32_t frequency) {
+        // REG_36 <15:8> 0 PA Bias output 0 ~ 3.2V
+        //               255 = 3.2V
+        //                 0 = 0V
+        //
+        // REG_36 <7>    0
+        //               1 = Enable PA-CTL output
+        //               0 = Disable (Output 0 V)
+        //
+        // REG_36 <5:3>  7 PA gain 1 tuning
+        //               7 = max
+        //               0 = min
+        //
+        // REG_36 <2:0>  7 PA gain 2 tuning
+        //               7 = max
+        //               0 = min
+        //
+        //                                  280MHz       g1=1  g2=0 (-14.9dBm),  g1=4  g2=2 (0.13dBm)
+        const uint8_t gain   = (frequency < 28000000) ? (1u << 3) | (0u << 0) : (4u << 3) | (2u << 0);
+        const uint8_t enable = 1;
+        spi.writeRegister(BK4819_REG_36, (bias << 8) | (enable << 7) | (gain << 0));
     }
 
     void enableTone1(uint8_t gain) {
@@ -810,6 +827,12 @@ private:
 
     static constexpr uint32_t VHF_UHF_BOUND1 = 24000000;
     static constexpr uint32_t VHF_UHF_BOUND2 = 28000000;
+
+    // AGC thresholds (dB/LSB) chosen to keep RF gain up on weak signals.
+    static constexpr uint8_t agcLowDefault = 48;   // Datasheet default 0x30
+    static constexpr uint8_t agcHighDefault = 80;  // Datasheet default 0x50
+    static constexpr uint8_t agcLowFast = 32;      // Faster/looser profile
+    static constexpr uint8_t agcHighFast = 64;
 
     SPISoftwareInterface spi;
     uint16_t gpioOutState;
