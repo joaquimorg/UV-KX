@@ -203,6 +203,8 @@ LCD_CONTRAST_OPTIONS = ["100", "110", "120", "130", "140", "150",
 TX_TIMEOUT_OPTIONS = ["30s", "1m", "2m", "4m", "6m", "8m"]
 BACKLIGHT_MODE_OPTIONS = ["Off", "TX", "RX", "TX/RX"]
 BANDWIDTH_OPTIONS = ["26", "23", "20", "17", "14", "12", "10", "9", "7", "6"]
+RXAGC_OPTIONS = ["-43", "-40", "-38", "-35", "-33", "-30", "-28", "-25", "-23",
+                 "-20", "-18", "-15", "-13", "-11", "-9", "-6", "-4", "-2", "AUTO"]
 
 ## #######################################################################################
 
@@ -891,6 +893,14 @@ class UVKxRadio(chirp_common.CloneModeRadio):
                 RadioSettingValueInteger(0, 9, parsed_squelch),
             )
         )
+        rxagc_index = int(min(len(RXAGC_OPTIONS) - 1, max(0, int(channel.rxagc))))
+        mem.extra.append(
+            RadioSetting(
+                "rxagc",
+                "RX AGC (dB)",
+                RadioSettingValueList(RXAGC_OPTIONS, current_index=rxagc_index),
+            )
+        )
 
         return mem
     
@@ -940,6 +950,15 @@ class UVKxRadio(chirp_common.CloneModeRadio):
                 if isinstance(setting, RadioSetting) and setting.get_name() == "squelch":
                     try:
                         desired_squelch = int(setting.value)
+                    except Exception:
+                        pass
+                    break
+
+        if mem.extra:
+            for setting in mem.extra:
+                if isinstance(setting, RadioSetting) and setting.get_name() == "rxagc":
+                    try:
+                        channel.rxagc = int(setting.value)
                     except Exception:
                         pass
                     break
