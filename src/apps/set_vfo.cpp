@@ -1,5 +1,6 @@
 #include "printf.h"
 #include "apps.h"
+#include <cstring>
 #include "set_vfo.h"
 #include "system.h"
 #include "ui.h"
@@ -74,6 +75,8 @@ void SetVFO::drawScreen(void) {
 void SetVFO::init(void) {
     menulist.set(0, 6, 127, "SQUELCH\nSTEP\nMODE\nBANDWIDTH\nTX POWER\nSHIFT\nOFFSET\nRX CODE TYPE\nRX CODE\nTX CODE TYPE\nTX CODE\nTX STE\nRX STE\nCOMPANDER\nRX ACG\nPTT ID\nROGER");
     vfo = radio.getVFO(vfoab);
+    originalVfo = vfo;
+    modified = false;
 }
 
 void SetVFO::update(void) {
@@ -82,13 +85,7 @@ void SetVFO::update(void) {
 
 void SetVFO::timeout(void) {
     if (optionSelected == 0 && userOptionSelected == 0) {
-        settings.radioSettings.vfo[(uint8_t)vfoab] = vfo;
-        settings.scheduleSaveIfNeeded();
-        if (settings.radioSettings.showVFO[(uint8_t)vfoab] == Settings::ONOFF::OFF) {
-            uint16_t channelNumber = settings.radioSettings.memory[(uint8_t)vfoab];
-            settings.scheduleMemorySaveIfNeeded(channelNumber, (uint8_t)vfoab);
-        }
-        systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::MainVFO);
+        finalizeAndExit();
     }
     else {
         //optionSelected = 0;
@@ -218,6 +215,24 @@ void SetVFO::loadOptions() {
 
 }
 
+void SetVFO::updateModifiedFlag() {
+    modified = std::memcmp(&vfo, &originalVfo, sizeof(Settings::VFO)) != 0;
+}
+
+void SetVFO::finalizeAndExit() {
+    updateModifiedFlag();
+    if (modified) {
+        settings.radioSettings.vfo[(uint8_t)vfoab] = vfo;
+        radio.setVFO(vfoab, vfo);
+        settings.scheduleSaveIfNeeded();
+        if (settings.radioSettings.showVFO[(uint8_t)vfoab] == Settings::ONOFF::OFF) {
+            uint16_t channelNumber = settings.radioSettings.memory[(uint8_t)vfoab];
+            settings.scheduleMemorySaveIfNeeded(channelNumber, (uint8_t)vfoab);
+        }
+    }
+    systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::MainVFO);
+}
+
 void SetVFO::setOptions() {
     uint8_t optionlistSelected = optionlist.getListPos();
     switch (optionSelected) {
@@ -280,6 +295,8 @@ void SetVFO::setOptions() {
     default:
         break;
     }
+
+    updateModifiedFlag();
 }
 
 void SetVFO::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
@@ -299,13 +316,7 @@ void SetVFO::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
                 break;
             case Keyboard::KeyCode::KEY_EXIT:
                 if (keyState == Keyboard::KeyState::KEY_PRESSED) {
-                    settings.radioSettings.vfo[(uint8_t)vfoab] = vfo;
-                    settings.scheduleSaveIfNeeded();
-                    if (settings.radioSettings.showVFO[(uint8_t)vfoab] == Settings::ONOFF::OFF) {
-                        uint16_t channelNumber = settings.radioSettings.memory[(uint8_t)vfoab];
-                        settings.scheduleMemorySaveIfNeeded(channelNumber, (uint8_t)vfoab);
-                    }
-                    systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::MainVFO);
+                    finalizeAndExit();
                 }
                 break;
             case Keyboard::KeyCode::KEY_MENU:
@@ -361,15 +372,12 @@ void SetVFO::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
             case Keyboard::KeyCode::KEY_MENU:
                 if (keyState == Keyboard::KeyState::KEY_PRESSED) {
                     setOptions();
-                    radio.setVFO(vfoab, vfo);
+                    if (modified) {
+                        settings.radioSettings.vfo[(uint8_t)vfoab] = vfo;
+                        radio.setVFO(vfoab, vfo);
+                    }
                     optionSelected = 0;
                     userOptionSelected = 0;
-                    settings.radioSettings.vfo[(uint8_t)vfoab] = vfo;
-                    settings.scheduleSaveIfNeeded();
-                    if (settings.radioSettings.showVFO[(uint8_t)vfoab] == Settings::ONOFF::OFF) {
-                        uint16_t channelNumber = settings.radioSettings.memory[(uint8_t)vfoab];
-                        settings.scheduleMemorySaveIfNeeded(channelNumber, (uint8_t)vfoab);
-                    }
                 }
                 break;
             case Keyboard::KeyCode::KEY_STAR:

@@ -2,14 +2,15 @@
 
 #include "apps.h"
 #include "ui.h"
+#include "radio.h"
 
 namespace Applications
 {
 
     class Menu : public Application {
     public:
-        Menu(System::SystemTask& systask, UI& ui)
-            : Application(systask, ui), menulist(ui) {
+        Menu(System::SystemTask& systask, UI& ui, RadioNS::Radio& radio)
+            : Application(systask, ui), radio{ radio }, menulist(ui) {
         }
 
         void drawScreen(void);
@@ -19,7 +20,10 @@ namespace Applications
         void action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState);
 
     private:
+        RadioNS::Radio& radio;
         SelectionList menulist;
+        bool firstVFOIsA = true;
+        char menuText[96]{};
 
     };
 

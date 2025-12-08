@@ -61,7 +61,7 @@ namespace System
             resetInitApp(*this, ui, settings, true), // Initialize reset/init application
             resetEEPROMApp(*this, ui, settings, false), // Initialize EEPROM reset application
             mainVFOApp(*this, ui, radio), // Initialize main VFO application
-            menuApp(*this, ui), // Initialize menu application
+            menuApp(*this, ui, radio), // Initialize menu application
             setVFOAApp(*this, ui, Settings::VFOAB::VFOA, settings, radio), // Initialize Set VFO A application
             setVFOBApp(*this, ui, Settings::VFOAB::VFOB, settings, radio), // Initialize Set VFO B application
             setRadioApp(*this, ui, settings) // Initialize Set Radio application

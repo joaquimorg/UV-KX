@@ -29,6 +29,8 @@ namespace Applications
         RadioNS::Radio& radio;
 
         Settings::VFO vfo;
+        Settings::VFO originalVfo;
+        bool modified = false;
 
         uint8_t inputSelect = 0;
         uint8_t optionSelected = 0;
@@ -40,6 +42,8 @@ namespace Applications
         const char* getCurrentOption();
         const char* codeValue(Settings::CodeType type, uint8_t code, SelectionList& list);
         bool configureCodeList(Settings::CodeType type, uint8_t code);
+        void updateModifiedFlag();
+        void finalizeAndExit();
 
     };
 

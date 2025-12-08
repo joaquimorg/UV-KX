@@ -2,6 +2,8 @@
 
 #include <array>
 
+#include <stdio.h>
+
 #include "bk4819.h"
 #include "uart_hal.h"
 #include "misc.h"

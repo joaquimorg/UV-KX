@@ -1,5 +1,6 @@
 #include "printf.h"
 #include "apps.h"
+
 #include "menu.h"
 #include "system.h"
 #include "ui.h"
@@ -28,7 +29,12 @@ void Menu::drawScreen(void) {
 
 
 void Menu::init(void) {
-    menulist.set(0, 6, 127, "VFO A SETTINGS\nVFO B SETTINGS\nRADIO SETTINGS\nMESSENGER\nSCANNER\nABOUT");
+    firstVFOIsA = radio.getCurrentVFO() != Settings::VFOAB::VFOB;
+    const char* first = firstVFOIsA ? "VFO A SETTINGS" : "VFO B SETTINGS";
+    const char* second = firstVFOIsA ? "VFO B SETTINGS" : "VFO A SETTINGS";
+
+    snprintf(menuText, sizeof(menuText), "%s\n%s\nRADIO SETTINGS\nMESSENGER\nSCANNER\nABOUT", first, second);
+    menulist.set(0, 6, 127, menuText);
     //drawScreen();
 }
 
@@ -54,10 +60,12 @@ void Menu::action(Keyboard::KeyCode keyCode, Keyboard::KeyState keyState) {
         if (keyCode == Keyboard::KeyCode::KEY_MENU) {
             switch (menulist.getListPos()) {
                 case 0:
-                    systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::SETVFOA);
+                    systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD,
+                        (uint32_t)(firstVFOIsA ? Applications::SETVFOA : Applications::SETVFOB));
                     break;
                 case 1:
-                    systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::SETVFOB);
+                    systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD,
+                        (uint32_t)(firstVFOIsA ? Applications::SETVFOB : Applications::SETVFOA));
                     break;
                 case 2:
                     systask.pushMessage(System::SystemTask::SystemMSG::MSG_APP_LOAD, (uint32_t)Applications::SETRADIO);
