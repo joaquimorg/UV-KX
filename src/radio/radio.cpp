@@ -133,8 +133,13 @@ void Radio::setupToVFO(Settings::VFOAB vfo) {
     // RX expander
     bk4819.setCompander((radioVFO[vfoIndex].modulation == ModType::MOD_FM && static_cast<uint8_t>(radioVFO[vfoIndex].compander) >= 2) ? static_cast<uint8_t>(radioVFO[vfoIndex].compander) : 0);
 
-    bk4819.setAGC(radioVFO[vfoIndex].modulation != ModType::MOD_AM, radioVFO[vfoIndex].rxagc);
-    bk4819.setFilterBandwidth(radioVFO[vfoIndex].bw);
+    const bool isAM = radioVFO[vfoIndex].modulation == ModType::MOD_AM;
+    if (isAM && static_cast<uint8_t>(radioVFO[vfoIndex].bw) > static_cast<uint8_t>(BK4819_Filter_Bandwidth::BK4819_FILTER_BW_14k)) {
+        radioVFO[vfoIndex].bw = BK4819_Filter_Bandwidth::BK4819_FILTER_BW_14k; // tighten AM passband to cut noise
+    }
+
+    bk4819.setAGC(true, isAM, radioVFO[vfoIndex].rxagc);
+    bk4819.setFilterBandwidth(radioVFO[vfoIndex].bw, isAM); // keep weak-signal bandwidth the same on AM
 
     bk4819.rxTurnOn();
 

@@ -33,7 +33,7 @@ namespace RadioNS
         void toggleSpeaker(bool on);
 
         void setSquelch(uint32_t f, uint8_t sql);
-        void setFilterBandwidth(BK4819_Filter_Bandwidth bw) { bk4819.setFilterBandwidth(bw); }
+        void setFilterBandwidth(BK4819_Filter_Bandwidth bw, bool keepWeakSame = false) { bk4819.setFilterBandwidth(bw, keepWeakSame); }
         void setVFO(Settings::VFOAB vfo, uint32_t rx, uint32_t tx, int16_t channel, ModType modulation);
         void setupToVFO(Settings::VFOAB vfo);
 

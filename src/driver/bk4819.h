@@ -127,7 +127,7 @@ public:
         spi.writeRegister(BK4819_REG_33, gpioOutState);
         //spi.writeRegister(BK4819_REG_3F, 0);
 
-        setAGC(true, 18);
+        setAGC(true, false, 18);
 
         //Automatic MIC PGA Gain Controller
         spi.writeRegister(BK4819_REG_19, 0x1041);
@@ -192,8 +192,8 @@ public:
         spi.writeRegister(BK4819_REG_48, //  0xB3A8);     // 1011 00 111010 1000
             (11u << 12) |     // ??? 0..15
             (0u << 10) |     // AF Rx Gain-1
-            (50u << 4) |     // AF Rx Gain-2
-            (0u << 0));     // AF DAC Gain (after Gain-1 and Gain-2)
+            (58u << 4) |     // AF Rx Gain-2
+            (8u << 0));     // AF DAC Gain (after Gain-1 and Gain-2)
 
         // disableScramble(); // default is off
         // disableVox() // default is off;
@@ -213,177 +213,56 @@ public:
         // spi.writeRegister(BK4819_REG_40, (1 << 12) | (1450));
     }
 
-    void setAGC(bool useDefault, uint8_t gainIndex) {
-        const uint8_t GAIN_AUTO = 18;
-        const bool enableAgc = gainIndex == GAIN_AUTO;
-        uint16_t regVal = spi.readRegister(BK4819_REG_7E);
-
-        spi.writeRegister(BK4819_REG_7E, static_cast<uint16_t>((regVal & ~(1 << 15) & ~(0b111 << 12)) |
-            (!enableAgc << 15) // 0  AGC fix mode
-            | (3u << 12))      // 3  AGC fix index
-        );
-
-        if (gainIndex == GAIN_AUTO) {
-            spi.writeRegister(BK4819_REG_13, 0x03BE);
-        }
-        else {
-            spi.writeRegister(BK4819_REG_13,
-                gainTable[gainIndex] | 6 | (3 << 3));
-        }
+    void initAGC(bool amModulation) {
+        // Gain table remains the same for FM and AM, thresholds change
+        spi.writeRegister(BK4819_REG_13, 0x03BE);
         spi.writeRegister(BK4819_REG_12, 0x037B);
         spi.writeRegister(BK4819_REG_11, 0x027B);
         spi.writeRegister(BK4819_REG_10, 0x007A);
 
-        uint8_t Lo = 0;    // 0-1 - auto, 2 - low, 3 high
-        // Thresholds tuned to stay longer in high gain for weak signals while
-        // still backing off cleanly on strong ones.
-        uint8_t low = useDefault ? agcLowDefault : agcLowFast;    // 1dB / LSB
-        uint8_t high = useDefault ? agcHighDefault : agcHighFast; // 1dB / LSB
+        const uint16_t highThresh = amModulation ? 50 : 84;
+        const uint16_t lowThresh  = amModulation ? 32 : 56;
+        const uint16_t reg14      = amModulation ? 0x0000 : 0x0019;
 
-        if (useDefault) {
-            spi.writeRegister(BK4819_REG_14, 0x0019);
-        }
-        else {
-            spi.writeRegister(BK4819_REG_14, 0x0000);
-        }
-        spi.writeRegister(BK4819_REG_49, (Lo << 14) | (high << 7) | (low << 0));
+        spi.writeRegister(BK4819_REG_14, reg14);
+        spi.writeRegister(BK4819_REG_49, static_cast<uint16_t>((0u << 14) | (highThresh << 7) | (lowThresh << 0)));
         spi.writeRegister(BK4819_REG_7B, 0x8420);
     }
 
-    void setFilterBandwidth(BK4819_Filter_Bandwidth bw) {
+    void setAGC(bool enable, bool amModulation, uint8_t gainIndex = 18) {
+        initAGC(amModulation);
 
-        // TODO: fix
+        const uint8_t GAIN_AUTO = 18;
+        const bool useAutoGain = enable && gainIndex == GAIN_AUTO;
 
-        uint8_t bandwidth = (uint8_t)bw;
+        uint16_t regVal = spi.readRegister(BK4819_REG_7E);
+        regVal &= static_cast<uint16_t>(~((1u << 15) | (0b111u << 12)));
+        regVal |= static_cast<uint16_t>((!useAutoGain ? 1u : 0u) << 15);   // 0 = AGC on, 1 = fixed gain
+        regVal |= static_cast<uint16_t>(3u << 12);                        // fixed gain index placeholder
+        spi.writeRegister(BK4819_REG_7E, regVal);
 
-        if (bandwidth > 9)
+        if (!useAutoGain && gainIndex < (sizeof(gainTable) / sizeof(gainTable[0]))) {
+            spi.writeRegister(BK4819_REG_13,
+                static_cast<uint16_t>(gainTable[gainIndex] | 6 | (3 << 3)));
+        }
+    }
+
+    void setFilterBandwidth(BK4819_Filter_Bandwidth bw, bool keepWeakSame = false) {
+        const uint8_t bandwidth = static_cast<uint8_t>(bw);
+        if (bandwidth > 9) {
             return;
+        }
 
-        // REG_43
-        // <15>    0 ???
-        //
+        // Profiles taken from reference firmware; weak-signal path can optionally match strong path
+        uint16_t val = keepWeakSame ? 0x3628 : 0x3428; // default to wide (25 kHz) profile
 
-        static const uint8_t rf[] = { 7, 5, 4, 3, 2, 1, 3, 1, 1, 0 };
-
-        // <14:12> 4 RF filter bandwidth
-        //         0 = 1.7  KHz
-        //         1 = 2.0  KHz
-        //         2 = 2.5  KHz
-        //         3 = 3.0  KHz *W
-        //         4 = 3.75 KHz *N
-        //         5 = 4.0  KHz
-        //         6 = 4.25 KHz
-        //         7 = 4.5  KHz
-        // if <5> == 1, RF filter bandwidth * 2
-
-        static const uint8_t wb[] = { 6, 4, 3, 2, 2, 1, 2, 1, 0, 0 };
-
-        // <11:9>  0 RF filter bandwidth when signal is weak
-        //         0 = 1.7  KHz *WN
-        //         1 = 2.0  KHz
-        //         2 = 2.5  KHz
-        //         3 = 3.0  KHz
-        //         4 = 3.75 KHz
-        //         5 = 4.0  KHz
-        //         6 = 4.25 KHz
-        //         7 = 4.5  KHz
-        // if <5> == 1, RF filter bandwidth * 2
-
-        static const uint8_t af[] = { 4, 5, 6, 7, 0, 0, 3, 0, 2, 1 };
-
-        // <8:6>   1 AFTxLPF2 filter Band Width
-        //         1 = 2.5  KHz (for 12.5k channel space) *N
-        //         2 = 2.75 KHz
-        //         0 = 3.0  KHz (for 25k   channel space) *W
-        //         3 = 3.5  KHz
-        //         4 = 4.5  KHz
-        //         5 = 4.25 KHz
-        //         6 = 4.0  KHz
-        //         7 = 3.75 KHz
-
-        static const uint8_t bs[] = { 2, 2, 2, 2, 2, 2, 0, 0, 1, 1 };
-
-        // <5:4>   0 BW Mode Selection
-        //         0 = 12.5k
-        //         1 =  6.25k
-        //         2 = 25k/20k
-        //
-        // <3>     1 ???
-        //
-        // <2>     0 Gain after FM Demodulation
-        //         0 = 0dB
-        //         1 = 6dB
-        //
-        // <1:0>   0 ???
-
-        const uint16_t val =
-            (0u << 15) |     //  0
-            (rf[bandwidth] << 12) | // *3 RF filter bandwidth
-            (wb[bandwidth] << 9) |  // *0 RF filter bandwidth when signal is weak
-            (af[bandwidth] << 6) |  // *0 AFTxLPF2 filter Band Width
-            (bs[bandwidth] << 4) |  //  2 BW Mode Selection 25K
-            (1u << 3) |      //  1
-            (0u << 2) |      //  0 Gain after FM Demodulation
-            (0u << 0);       //  0
-
-
-
-        /*
-        uint16_t val = 0;
-        bool weakSignal = false;
-        switch (bandwidth)
-        {
-        default:
-        case BK4819_Filter_Bandwidth::BK4819_FILTER_BW_WIDE:	// 25kHz
-            val = (4u << 12) |     // *3 RF filter bandwidth
-                (6u << 6) |     // *0 AFTxLPF2 filter Band Width
-                (2u << 4) |     //  2 BW Mode Selection
-                (1u << 3) |     //  1
-                (0u << 2);     //  0 Gain after FM Demodulation
-
-            if (weakSignal) {
-                // make the RX bandwidth the same with weak signals
-                val |= (4u << 9);     // *0 RF filter bandwidth when signal is weak
-            }
-            else {
-                /// with weak RX signals the RX bandwidth is reduced
-                val |= (2u << 9);     // *0 RF filter bandwidth when signal is weak
-            }
-
-            break;
-
-        case BK4819_Filter_Bandwidth::BK4819_FILTER_BW_NARROW:	// 12.5kHz
-            val = (4u << 12) |     // *4 RF filter bandwidth
-                (0u << 6) |     // *1 AFTxLPF2 filter Band Width
-                (0u << 4) |     //  0 BW Mode Selection
-                (1u << 3) |     //  1
-                (0u << 2);      //  0 Gain after FM Demodulation
-
-            if (weakSignal) {
-                val |= (4u << 9);     // *0 RF filter bandwidth when signal is weak
-            }
-            else {
-                val |= (2u << 9);
-            }
-
-            break;
-
-        case BK4819_Filter_Bandwidth::BK4819_FILTER_BW_NARROWER:	// 6.25kHz
-            val = (3u << 12) |     //  3 RF filter bandwidth
-                (3u << 9) |     // *0 RF filter bandwidth when signal is weak
-                (1u << 6) |     //  1 AFTxLPF2 filter Band Width
-                (1u << 4) |     //  1 BW Mode Selection
-                (1u << 3) |     //  1
-                (0u << 2);      //  0 Gain after FM Demodulation
-
-            if (weakSignal) {
-                val |= (3u << 9);
-            }
-            else {
-                val |= (0u << 9);     //  0 RF filter bandwidth when signal is weak
-            }
-            break;
-        }*/
+        if (bw >= BK4819_Filter_Bandwidth::BK4819_FILTER_BW_14k &&
+            bw <= BK4819_Filter_Bandwidth::BK4819_FILTER_BW_10k) {
+            val = keepWeakSame ? 0x3648 : 0x3448; // 12.5 kHz style profile
+        }
+        else if (bw >= BK4819_Filter_Bandwidth::BK4819_FILTER_BW_9k) {
+            val = keepWeakSame ? 0x1348 : 0x1148; // 6.25 kHz style profile
+        }
 
         spi.writeRegister(BK4819_REG_43, val);
     }
@@ -543,7 +422,7 @@ public:
         bool isSsb = type == ModType::MOD_LSB || type == ModType::MOD_USB;
         bool isFm = type == ModType::MOD_FM || type == ModType::MOD_WFM;
         setAF((BK4819_AF)modTypeRegValues[(uint8_t)type]);
-        setRegValue(afDacGainRegSpec, 0x8);
+        setRegValue(afDacGainRegSpec, type == ModType::MOD_AM ? 0xA : 0xF);
         spi.writeRegister(0x3D, isSsb ? 0 : 0x2AAB);
         setRegValue(afcDisableRegSpec, !isFm);
         if (type == ModType::MOD_WFM) {
@@ -827,12 +706,6 @@ private:
 
     static constexpr uint32_t VHF_UHF_BOUND1 = 24000000;
     static constexpr uint32_t VHF_UHF_BOUND2 = 28000000;
-
-    // AGC thresholds (dB/LSB) chosen to keep RF gain up on weak signals.
-    static constexpr uint8_t agcLowDefault = 48;   // Datasheet default 0x30
-    static constexpr uint8_t agcHighDefault = 80;  // Datasheet default 0x50
-    static constexpr uint8_t agcLowFast = 32;      // Faster/looser profile
-    static constexpr uint8_t agcHighFast = 64;
 
     SPISoftwareInterface spi;
     uint16_t gpioOutState;
