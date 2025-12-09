@@ -648,6 +648,9 @@ void Radio::setupToneDetection(Settings::VFOAB vfo) {
 void Radio::checkRadioInterrupts(void) {
 
     while (bk4819.getInterruptRequest() & 1u) { // BK chip interrupt request
+
+        bk4819.clearInterrupt();                       // then acknowledge/clear latch
+
         union {
             struct InterruptFlags {
                 uint16_t __UNUSED : 1;
@@ -670,11 +673,7 @@ void Radio::checkRadioInterrupts(void) {
             uint16_t __raw;
         } interrupts;
 
-        // Read latched flags before clearing them
-        interrupts.__raw = bk4819.readInterrupt();
-
-        // Acknowledge/clear interrupt latch
-        bk4819.clearInterrupt();
+        interrupts.__raw = bk4819.readInterrupt();   // read latched flags first
 
         uart.print("%0.16b\n", interrupts);        
 
@@ -692,13 +691,13 @@ void Radio::checkRadioInterrupts(void) {
 
          if (interrupts.flags.fskFifoAlmostEmpty) {
              uart.sendLog("FSK FIFO Almost Empty");
-         }*/
+         }
 
          if (interrupts.flags.fskRxSync) {
              uart.sendLog("FSK RX Sync");
          }
 
-         /*if (interrupts.flags.voxLost) {
+         if (interrupts.flags.voxLost) {
              uart.sendLog("VOX Lost");
          }
 
@@ -977,12 +976,12 @@ void Radio::setFSKRxEnabled(bool enable) {
         bk4819.writeRaw(BK4819_REG_5B, 0x55AA);
         bk4819.writeRaw(BK4819_REG_5C, 0x5625); // CRC off
 
+        // FIFO almost-full threshold: 8 bytes, interrupt enable
+        bk4819.writeRaw(BK4819_REG_5E, static_cast<uint16_t>((64u << 3) | (1u << 0)));
+
         // Match TX packet length (64 bytes)
         uint16_t size = 64;
         bk4819.writeRaw(BK4819_REG_5D, static_cast<uint16_t>(size << 8));
-
-        // FIFO almost-full threshold: 8 bytes, interrupt enable
-        bk4819.writeRaw(BK4819_REG_5E, static_cast<uint16_t>((64u << 3) | (1u << 0)));
 
         bk4819.writeRaw(BK4819_REG_59, static_cast<uint16_t>((1u << 15) | (1u << 14) | fsk_reg59));
         bk4819.writeRaw(BK4819_REG_59, static_cast<uint16_t>((1u << 12) | fsk_reg59));
@@ -993,8 +992,10 @@ void Radio::setFSKRxEnabled(bool enable) {
         uint16_t mask = static_cast<uint16_t>(savedIntMask |
             BK4819_REG_3F_FSK_RX_SYNC |
             BK4819_REG_3F_FSK_RX_FINISHED |
-            BK4819_REG_3F_FSK_FIFO_ALMOST_FULL);
+            BK4819_REG_3F_FSK_FIFO_ALMOST_FULL |
+            BK4819_REG_3F_FSK_TX_FINISHED);
         bk4819.setInterrupt(mask);
+
     } else {
         bk4819.writeRaw(BK4819_REG_59, 0);
         bk4819.writeRaw(BK4819_REG_58, saved58);

@@ -59,7 +59,6 @@ void Messenger::drawScreen() {
     char displayBuf[MAX_MSG_LEN + 2] = {0};
     snprintf(displayBuf, sizeof(displayBuf), "%s_", inputBuffer.data());
     ui.drawString(TextAlign::LEFT, 2, 0, 62, false, false, false, displayBuf);
-    recallIndex = -1; // typing resets recall
 
     // Popup with available characters and current selection
     if (popupLen > 0 && (getElapsedMilliseconds() - lastKeyTime) < MULTITAP_TIMEOUT_MS) {
