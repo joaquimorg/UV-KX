@@ -303,6 +303,7 @@ bool Radio::sendFSKMessage(const char* msg) {
     bk4819.writeRaw(BK4819_REG_59, static_cast<uint16_t>((1u << 15) | (1u << 14) | fsk_reg59));
     bk4819.writeRaw(BK4819_REG_59, fsk_reg59);
 
+    delayMs(100); // let things settle
     // Build and load a padded packet into FIFO (little-endian words)
     uint8_t packet[PACKET_LEN] = { 0 };
     packet[0] = 'M';
@@ -324,7 +325,7 @@ bool Radio::sendFSKMessage(const char* msg) {
     bk4819.writeRaw(BK4819_REG_59, static_cast<uint16_t>((1u << 11) | fsk_reg59));
 
     // Wait for TX finish (timeout ~ 1000ms)
-    uint16_t timeout = 200;
+    uint16_t timeout = 500;
     bool done = false;
     while (timeout-- > 0) {
         delayMs(5);
@@ -338,6 +339,7 @@ bool Radio::sendFSKMessage(const char* msg) {
         }
     }
 
+    delayMs(100); // let things settle
     // Disable FSK TX
     bk4819.writeRaw(BK4819_REG_59, fsk_reg59);
     bk4819.disableTxPath();
@@ -646,10 +648,6 @@ void Radio::setupToneDetection(Settings::VFOAB vfo) {
 void Radio::checkRadioInterrupts(void) {
 
     while (bk4819.getInterruptRequest() & 1u) { // BK chip interrupt request
-        // clear interrupts
-        bk4819.clearInterrupt();
-        // fetch interrupt status bits
-
         union {
             struct InterruptFlags {
                 uint16_t __UNUSED : 1;
@@ -672,9 +670,13 @@ void Radio::checkRadioInterrupts(void) {
             uint16_t __raw;
         } interrupts;
 
+        // Read latched flags before clearing them
         interrupts.__raw = bk4819.readInterrupt();
 
-        //uart.print("%0.16b\n", interrupts);        
+        // Acknowledge/clear interrupt latch
+        bk4819.clearInterrupt();
+
+        uart.print("%0.16b\n", interrupts);        
 
         /* if (interrupts.flags.fskRxFinied) {
              uart.sendLog("FSK RX Finished");
@@ -690,13 +692,13 @@ void Radio::checkRadioInterrupts(void) {
 
          if (interrupts.flags.fskFifoAlmostEmpty) {
              uart.sendLog("FSK FIFO Almost Empty");
-         }
+         }*/
 
          if (interrupts.flags.fskRxSync) {
              uart.sendLog("FSK RX Sync");
          }
 
-         if (interrupts.flags.voxLost) {
+         /*if (interrupts.flags.voxLost) {
              uart.sendLog("VOX Lost");
          }
 
@@ -751,6 +753,7 @@ void Radio::checkRadioInterrupts(void) {
 
         if (fskRxEnabled && (interrupts.flags.fskRxSync || interrupts.flags.fskRxFinied || interrupts.flags.fskFifoAlmostFull || interrupts.flags.fskTxFinied)) {
             handleFSKInterrupts(interrupts.__raw);
+            uart.print("FSK : %0.16b\n", interrupts);
         }
 
 
@@ -874,8 +877,9 @@ uint8_t Radio::selectBias(Settings::TXOutputPower level, uint32_t freq) const {
     uint8_t biasHigh = pickBiasForLevel(*upper, level);
     return interpolateBias(biasLow, biasHigh, lower->freq, upper->freq, freq);
 }
+
 void Radio::handleFSKInterrupts(uint16_t flags) {
-    // Reset capture on fresh sync
+    // Reset capture on fresh sync/
     if (flags & BK4819_REG_3F_FSK_RX_SYNC) {
         // Clear FIFOs to avoid stale data
         uint16_t base = bk4819.readRaw(BK4819_REG_59) & ~static_cast<uint16_t>((1u << 15) | (1u << 14) | (1u << 12) | (1u << 11));
@@ -907,14 +911,25 @@ void Radio::handleFSKInterrupts(uint16_t flags) {
     }
     buf[len] = '\0';
 
+    // Strip padding and optional "MS" header so the app sees just the payload
+    while (len > 0 && buf[len - 1] == '\0') {
+        --len;
+    }
+    buf[len] = '\0';
+    const char* payload = buf;
+    if (len >= 2 && buf[0] == 'M' && buf[1] == 'S') {
+        payload = &buf[2];
+        len = static_cast<uint8_t>(len - 2);
+    }
+
     // Clear FIFOs and re-enable RX
     uint16_t base = bk4819.readRaw(BK4819_REG_59) & ~static_cast<uint16_t>((1u << 15) | (1u << 14) | (1u << 12) | (1u << 11));
     bk4819.writeRaw(BK4819_REG_59, static_cast<uint16_t>((1u << 15) | (1u << 14) | base));
     bk4819.writeRaw(BK4819_REG_59, static_cast<uint16_t>((1u << 12) | base));
 
     uint8_t nextTail = static_cast<uint8_t>((fskRxTail + 1) % fskRxQueue.size());
-    if (nextTail != fskRxHead) {
-        strncpy(fskRxQueue[fskRxTail].data(), buf, fskRxQueue[fskRxTail].size() - 1);
+    if (nextTail != fskRxHead && len > 0) {
+        strncpy(fskRxQueue[fskRxTail].data(), payload, fskRxQueue[fskRxTail].size() - 1);
         fskRxQueue[fskRxTail][fskRxQueue[fskRxTail].size() - 1] = '\0';
         fskRxTail = nextTail;
     }
