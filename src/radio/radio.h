@@ -80,6 +80,11 @@ namespace RadioNS
             setupToVFO(vfo);
         }
 
+        bool sendFSKMessage(const char* msg);
+        void handleFSKInterrupts(uint16_t flags);
+        void setFSKRxEnabled(bool enable);
+        bool popFSKMessage(char* out, uint8_t maxLen);
+
         void toggleRX(bool on, Settings::CodeType codeType);
         void checkRadioInterrupts(void);
 
@@ -220,6 +225,12 @@ namespace RadioNS
         uint8_t selectBias(Settings::TXOutputPower level, uint32_t freq) const;
         static uint8_t pickBiasForLevel(const TxCalPoint& pt, Settings::TXOutputPower level);
         static uint8_t interpolateBias(uint8_t a, uint8_t b, uint32_t fa, uint32_t fb, uint32_t f);
+
+        // FSK RX queue
+        std::array<std::array<char, 64>, 4> fskRxQueue{};
+        uint8_t fskRxHead = 0;
+        uint8_t fskRxTail = 0;
+        bool fskRxEnabled = false;
 
     };
 

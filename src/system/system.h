@@ -24,6 +24,7 @@
 #include "menu.h"
 #include "set_vfo.h"
 #include "set_radio.h"
+#include "messenger.h"
 
 // ------------------------------------------------------------------------------------------------------------
 namespace System
@@ -64,7 +65,8 @@ namespace System
             menuApp(*this, ui, radio), // Initialize menu application
             setVFOAApp(*this, ui, Settings::VFOAB::VFOA, settings, radio), // Initialize Set VFO A application
             setVFOBApp(*this, ui, Settings::VFOAB::VFOB, settings, radio), // Initialize Set VFO B application
-            setRadioApp(*this, ui, settings) // Initialize Set Radio application
+            setRadioApp(*this, ui, settings), // Initialize Set Radio application
+            messengerApp(*this, ui, radio) // Messenger application
         {
             initSystem(); // Initialize system
         }
@@ -141,6 +143,7 @@ namespace System
         Applications::SetVFO setVFOAApp;
         Applications::SetVFO setVFOBApp;
         Applications::SetRadio setRadioApp;
+        Applications::Messenger messengerApp;
 
         Applications::Application* currentApplication;
         Applications::Applications currentApp = Applications::Applications::None;

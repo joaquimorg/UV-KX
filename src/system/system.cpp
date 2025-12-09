@@ -376,10 +376,7 @@ void SystemTask::loadApplication(Applications::Applications app) {
         setActionTimeout(5);
         break;
     case Applications::Applications::MESSENGER:
-        // TODO: Implement Messenger
-        //currentApplication = &messengerApp;
-        currentApplication = &mainVFOApp;
-        pushMessage(SystemMSG::MSG_PLAY_BEEP, (uint32_t)Settings::BEEPType::BEEP_500HZ_60MS_DOUBLE_BEEP_OPTIONAL);
+        currentApplication = &messengerApp;
         break;
     case Applications::Applications::SCANNER:
         // TODO: Implement Scanner

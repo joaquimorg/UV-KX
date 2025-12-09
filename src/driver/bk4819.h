@@ -492,6 +492,10 @@ public:
         return spi.readRegister(BK4819_REG_02);
     }
 
+    // Low-level accessors (used for FSK TX setup)
+    uint16_t readRaw(uint8_t reg) { return spi.readRegister(static_cast<BK4819_REGISTER_t>(reg)); }
+    void writeRaw(uint8_t reg, uint16_t val) { spi.writeRegister(static_cast<BK4819_REGISTER_t>(reg), val); }
+
     void setInterrupt(uint16_t mask) {
         spi.writeRegister(BK4819_REG_3F, mask);
     }
@@ -671,6 +675,7 @@ public:
     void disableTones(void) {
         spi.writeRegister(BK4819_REG_70, 0);
     }
+
 
     bool switchToTx(uint32_t frequency) {
         if (!canTransmit(frequency)) {

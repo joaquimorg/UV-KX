@@ -1,4 +1,5 @@
 #include <cstring>
+#include <algorithm>
 
 #include "radio.h"
 #include "sys.h"
@@ -146,7 +147,6 @@ void Radio::setupToVFO(Settings::VFOAB vfo) {
     setupToneDetection(vfo);
 
     bk4819.tuneTo(radioVFO[vfoIndex].rx.frequency, true);
-
 }
 
 void Radio::toggleBK4819(bool on) {
@@ -198,6 +198,156 @@ void Radio::toggleRX(bool on, Settings::CodeType codeType = Settings::CodeType::
             systask.pushMessage(System::SystemTask::SystemMSG::MSG_RADIO_IDLE, 0);
         }
     }
+}
+
+bool Radio::sendFSKMessage(const char* msg) {
+    if (!msg || !msg[0]) {
+        return false;
+    }
+
+    // Use a fixed packet length (64 bytes) like the reference FFSK modem for better stability
+    static constexpr size_t PACKET_LEN = 64;
+    const size_t maxPayload = PACKET_LEN - 2; // reserve 2 bytes for a simple "MS" header
+    size_t payloadLen = std::min<size_t>(std::strlen(msg), maxPayload);
+
+    // Determine TX frequency (use TX if set, otherwise RX)
+    uint8_t vfoIndex = static_cast<uint8_t>(getCurrentVFO());
+    uint32_t txFreq = radioVFO[vfoIndex].tx.frequency ? radioVFO[vfoIndex].tx.frequency : radioVFO[vfoIndex].rx.frequency;
+
+    // Save state to restore later
+    uint16_t css_val = bk4819.readRaw(BK4819_REG_51);
+    uint16_t dev_val = bk4819.readRaw(BK4819_REG_40);
+    uint16_t filt_val = bk4819.readRaw(BK4819_REG_2B);
+
+    // Disable CTCSS/CDCSS during FSK
+    bk4819.writeRaw(BK4819_REG_51, 0);
+
+    // Adjust deviation based on bandwidth
+    uint16_t deviation = 850;
+    switch (radioVFO[vfoIndex].bw) {
+    case BK4819_Filter_Bandwidth::BK4819_FILTER_BW_26k: deviation = 1050; break;
+    case BK4819_Filter_Bandwidth::BK4819_FILTER_BW_23k: deviation = 1050; break;
+    case BK4819_Filter_Bandwidth::BK4819_FILTER_BW_20k: deviation = 950; break;
+    case BK4819_Filter_Bandwidth::BK4819_FILTER_BW_17k: deviation = 900; break;
+    default: deviation = 850; break;
+    }
+    bk4819.writeRaw(BK4819_REG_40, static_cast<uint16_t>((dev_val & 0xF000u) | (deviation & 0x0FFFu)));
+
+    // Disable TX HPF / preemphasis
+    bk4819.writeRaw(BK4819_REG_2B, static_cast<uint16_t>((1u << 2) | (1u << 0)));
+
+    // Configure FFSK 1200/1800 TX
+    bk4819.writeRaw(BK4819_REG_58, 		
+        (1u << 13) |		// 1 FSK TX mode selection
+							//   0 = FSK 1.2K and FSK 2.4K TX .. no tones, direct FM
+							//   1 = FFSK 1200/1800 TX
+							//   2 = ???
+							//   3 = FFSK 1200/2400 TX
+							//   4 = ???
+							//   5 = NOAA SAME TX
+							//   6 = ???
+							//   7 = ???
+							//
+		(7u << 10) |		// 0 FSK RX mode selection
+							//   0 = FSK 1.2K, FSK 2.4K RX and NOAA SAME RX .. no tones, direct FM
+							//   1 = ???
+							//   2 = ???
+							//   3 = ???
+							//   4 = FFSK 1200/2400 RX
+							//   5 = ???
+							//   6 = ???
+							//   7 = FFSK 1200/1800 RX
+							//
+		(0u << 8) |			// 0 FSK RX gain
+							//   0 ~ 3
+							//
+		(0u << 6) |			// 0 ???
+							//   0 ~ 3
+							//
+		(0u << 4) |			// 0 FSK preamble type selection
+							//   0 = 0xAA or 0x55 due to the MSB of FSK sync byte 0
+							//   1 = ???
+							//   2 = 0x55
+							//   3 = 0xAA
+							//
+		(1u << 1) |			// 1 FSK RX bandwidth setting
+							//   0 = FSK 1.2K .. no tones, direct FM
+							//   1 = FFSK 1200/1800
+							//   2 = NOAA SAME RX
+							//   3 = ???
+							//   4 = FSK 2.4K and FFSK 1200/2400
+							//   5 = ???
+							//   6 = ???
+							//   7 = ???
+							//
+		(1u << 0));			// 1 FSK enable
+							//   0 = disable
+							//   1 = enable
+
+    // Tone2 frequency = 1200Hz and enable tone2 with gain
+    bk4819.setTone2Frequency(1200);
+    bk4819.writeRaw(BK4819_REG_70, static_cast<uint16_t>((1u << 7) | (96u << 0)));
+
+    // Packet length (bytes) fixed to PACKET_LEN
+    bk4819.writeRaw(BK4819_REG_5D, static_cast<uint16_t>(PACKET_LEN << 8));
+
+    // Sync/preamble config
+    bk4819.writeRaw(BK4819_REG_5A, 0x5555);
+    bk4819.writeRaw(BK4819_REG_5B, 0x55AA);
+    bk4819.writeRaw(BK4819_REG_5C, 0x5625); // CRC off
+
+    // FSK control
+    uint16_t fsk_reg59 = static_cast<uint16_t>((0u << 15) | (0u << 14) | (0u << 13) | (0u << 12) |
+        (0u << 11) | (0u << 10) | (0u << 9) | (0u << 8) | (15u << 4) | (1u << 3) | (0u << 0));
+    // clear FIFOs
+    bk4819.writeRaw(BK4819_REG_59, static_cast<uint16_t>((1u << 15) | (1u << 14) | fsk_reg59));
+    bk4819.writeRaw(BK4819_REG_59, fsk_reg59);
+
+    // Build and load a padded packet into FIFO (little-endian words)
+    uint8_t packet[PACKET_LEN] = { 0 };
+    packet[0] = 'M';
+    packet[1] = 'S';
+    memcpy(&packet[2], msg, payloadLen);
+
+    for (size_t i = 0; i < PACKET_LEN; i += 2) {
+        uint16_t w = static_cast<uint16_t>(static_cast<uint8_t>(packet[i]) |
+            (static_cast<uint16_t>(packet[i + 1]) << 8));
+        bk4819.writeRaw(BK4819_REG_5F, w);
+    }
+
+    // Go to TX
+    bk4819.enableTxPath();
+    bk4819.tuneTo(txFreq, true);
+    toggleSpeaker(false);
+
+    // Enable FSK TX
+    bk4819.writeRaw(BK4819_REG_59, static_cast<uint16_t>((1u << 11) | fsk_reg59));
+
+    // Wait for TX finish (timeout ~ 1000ms)
+    uint16_t timeout = 200;
+    bool done = false;
+    while (timeout-- > 0) {
+        delayMs(5);
+        if (bk4819.getInterruptRequest() & 1u) {
+            bk4819.clearInterrupt();
+            uint16_t flags = bk4819.readInterrupt();
+            if (flags & BK4819_REG_3F_FSK_TX_FINISHED) {
+                done = true;
+                break;
+            }
+        }
+    }
+
+    // Disable FSK TX
+    bk4819.writeRaw(BK4819_REG_59, fsk_reg59);
+    bk4819.disableTxPath();
+
+    // Restore registers
+    bk4819.writeRaw(BK4819_REG_40, dev_val);
+    bk4819.writeRaw(BK4819_REG_2B, filt_val);
+    bk4819.writeRaw(BK4819_REG_51, css_val);
+
+    return done;
 }
 
 bool Radio::startTX() {
@@ -461,6 +611,7 @@ void Radio::setupToneDetection(Settings::VFOAB vfo) {
     }*/
 
     interruptMask |= BK4819_REG_3F_SQUELCH_FOUND | BK4819_REG_3F_SQUELCH_LOST | BK4819_REG_3F_DTMF_5TONE_FOUND;
+    interruptMask |= BK4819_REG_3F_FSK_RX_SYNC | BK4819_REG_3F_FSK_RX_FINISHED | BK4819_REG_3F_FSK_FIFO_ALMOST_FULL | BK4819_REG_3F_FSK_TX_FINISHED;
 
     if (radioVFO[vfoIndex].modulation == ModType::MOD_FM) {
 
@@ -598,6 +749,10 @@ void Radio::checkRadioInterrupts(void) {
             toggleRX(false);
         }
 
+        if (fskRxEnabled && (interrupts.flags.fskRxSync || interrupts.flags.fskRxFinied || interrupts.flags.fskFifoAlmostFull || interrupts.flags.fskTxFinied)) {
+            handleFSKInterrupts(interrupts.__raw);
+        }
+
 
     }
 }
@@ -718,4 +873,128 @@ uint8_t Radio::selectBias(Settings::TXOutputPower level, uint32_t freq) const {
     uint8_t biasLow = pickBiasForLevel(*lower, level);
     uint8_t biasHigh = pickBiasForLevel(*upper, level);
     return interpolateBias(biasLow, biasHigh, lower->freq, upper->freq, freq);
+}
+void Radio::handleFSKInterrupts(uint16_t flags) {
+    // Reset capture on fresh sync
+    if (flags & BK4819_REG_3F_FSK_RX_SYNC) {
+        // Clear FIFOs to avoid stale data
+        uint16_t base = bk4819.readRaw(BK4819_REG_59) & ~static_cast<uint16_t>((1u << 15) | (1u << 14) | (1u << 12) | (1u << 11));
+        bk4819.writeRaw(BK4819_REG_59, static_cast<uint16_t>((1u << 15) | (1u << 14) | base));
+        bk4819.writeRaw(BK4819_REG_59, static_cast<uint16_t>((1u << 12) | base));
+    }
+
+    if ((flags & BK4819_REG_3F_FSK_RX_FINISHED) == 0) {
+        return;
+    }
+
+    char buf[64] = { 0 };
+    uint8_t len = 0;
+
+    // Read expected payload from FIFO words
+    uint16_t pktLenBytes = static_cast<uint16_t>(bk4819.readRaw(BK4819_REG_5D) >> 8);
+    uint16_t wordsToRead = static_cast<uint16_t>((pktLenBytes + 1u) / 2u);
+
+    for (uint16_t i = 0; i < wordsToRead && (static_cast<size_t>(len) + 1) < sizeof(buf); ++i) {
+        uint16_t word = bk4819.readRaw(BK4819_REG_5F);
+        buf[len++] = static_cast<char>(word & 0xFF);
+        if (len < sizeof(buf)) {
+            buf[len++] = static_cast<char>((word >> 8) & 0xFF);
+        }
+    }
+
+    if (len >= sizeof(buf)) {
+        len = static_cast<uint8_t>(sizeof(buf) - 1);
+    }
+    buf[len] = '\0';
+
+    // Clear FIFOs and re-enable RX
+    uint16_t base = bk4819.readRaw(BK4819_REG_59) & ~static_cast<uint16_t>((1u << 15) | (1u << 14) | (1u << 12) | (1u << 11));
+    bk4819.writeRaw(BK4819_REG_59, static_cast<uint16_t>((1u << 15) | (1u << 14) | base));
+    bk4819.writeRaw(BK4819_REG_59, static_cast<uint16_t>((1u << 12) | base));
+
+    uint8_t nextTail = static_cast<uint8_t>((fskRxTail + 1) % fskRxQueue.size());
+    if (nextTail != fskRxHead) {
+        strncpy(fskRxQueue[fskRxTail].data(), buf, fskRxQueue[fskRxTail].size() - 1);
+        fskRxQueue[fskRxTail][fskRxQueue[fskRxTail].size() - 1] = '\0';
+        fskRxTail = nextTail;
+    }
+}
+
+void Radio::setFSKRxEnabled(bool enable) {
+    if (enable == fskRxEnabled) {
+        return;
+    }
+
+    static uint16_t savedIntMask = 0;
+    static uint16_t saved58 = 0;
+    static uint16_t saved70 = 0;
+    static uint16_t saved5C = 0;
+    static uint16_t saved5D = 0;
+    static uint16_t saved72 = 0;
+
+    fskRxEnabled = enable;
+    if (enable) {
+        fskRxHead = fskRxTail = 0;
+        savedIntMask = bk4819.readRaw(BK4819_REG_3F);
+        saved58 = bk4819.readRaw(BK4819_REG_58);
+        saved70 = bk4819.readRaw(BK4819_REG_70);
+        saved5C = bk4819.readRaw(BK4819_REG_5C);
+        saved5D = bk4819.readRaw(BK4819_REG_5D);
+        saved72 = bk4819.readRaw(BK4819_REG_72);
+
+        uint16_t fsk_reg59 = static_cast<uint16_t>(
+            (0u << 15) | (0u << 14) | (0u << 13) | (0u << 12) | (0u << 11) |
+            (0u << 10) | (0u << 9) | (0u << 8) | (15u << 4) | (1u << 3) | (0u << 0));
+
+        // Tone2 / FSK setup for 1200/1800 FFSK
+        bk4819.writeRaw(BK4819_REG_70, static_cast<uint16_t>((1u << 7) | (96u << 0)));
+        bk4819.setTone2Frequency(1200);
+
+        bk4819.writeRaw(BK4819_REG_58, static_cast<uint16_t>(
+            (1u << 13) |  // FFSK TX (mode select)
+            (7u << 10) |  // FFSK 1200/1800 RX
+            (3u << 8)  |  // RX gain
+            (0u << 4)  |  // preamble type
+            (1u << 1)  |  // RX bandwidth for 1200/1800
+            (1u << 0)));  // FSK enable
+
+        bk4819.writeRaw(BK4819_REG_5A, 0x5555);
+        bk4819.writeRaw(BK4819_REG_5B, 0x55AA);
+        bk4819.writeRaw(BK4819_REG_5C, 0x5625); // CRC off
+
+        // Match TX packet length (64 bytes)
+        uint16_t size = 64;
+        bk4819.writeRaw(BK4819_REG_5D, static_cast<uint16_t>(size << 8));
+
+        // FIFO almost-full threshold: 8 bytes, interrupt enable
+        bk4819.writeRaw(BK4819_REG_5E, static_cast<uint16_t>((64u << 3) | (1u << 0)));
+
+        bk4819.writeRaw(BK4819_REG_59, static_cast<uint16_t>((1u << 15) | (1u << 14) | fsk_reg59));
+        bk4819.writeRaw(BK4819_REG_59, static_cast<uint16_t>((1u << 12) | fsk_reg59));
+
+        // Clear any pending interrupt latches
+        bk4819.clearInterrupt();
+
+        uint16_t mask = static_cast<uint16_t>(savedIntMask |
+            BK4819_REG_3F_FSK_RX_SYNC |
+            BK4819_REG_3F_FSK_RX_FINISHED |
+            BK4819_REG_3F_FSK_FIFO_ALMOST_FULL);
+        bk4819.setInterrupt(mask);
+    } else {
+        bk4819.writeRaw(BK4819_REG_59, 0);
+        bk4819.writeRaw(BK4819_REG_58, saved58);
+        bk4819.writeRaw(BK4819_REG_70, saved70);
+        bk4819.writeRaw(BK4819_REG_5C, saved5C);
+        bk4819.writeRaw(BK4819_REG_5D, saved5D);
+        bk4819.writeRaw(BK4819_REG_72, saved72);
+        bk4819.setInterrupt(savedIntMask);
+    }
+}
+
+bool Radio::popFSKMessage(char* out, uint8_t maxLen) {
+    if (fskRxHead == fskRxTail) return false;
+    strncpy(out, fskRxQueue[fskRxHead].data(), maxLen - 1);
+    out[maxLen - 1] = '\0';
+    fskRxHead = static_cast<uint8_t>((fskRxHead + 1) % fskRxQueue.size());
+    return true;
 }
